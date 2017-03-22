@@ -10,7 +10,6 @@ from scipy.optimize import fsolve
 from numpy.random import uniform as uni
 import matplotlib.pyplot as plt
 from scipy.integrate import quad
-import math
 
 def sat_carbon_par(factor=2,Im = 50, IM = 200):
     """ returns random parameters for the model

@@ -44,8 +44,8 @@ def r_i(C,E, species,P,carbon):
 
 def test_r_i_av(species, P,carbon):
     r_i_val = []
-    mini = com.equilibrium(50, species[:,1],carbon[1])
-    maxi = com.equilibrium(200, species[:,1],carbon[1])
+    mini = ches.equilibrium(50, species[:,1],carbon[1])
+    maxi = ches.equilibrium(200, species[:,1],carbon[1])
     for C in np.linspace(mini, maxi, 10):
         print(C)
         for E in np.linspace(50,200,10):
@@ -53,8 +53,8 @@ def test_r_i_av(species, P,carbon):
     return np.average(r_i_val)
     
 def equi_point(species, carbon,I_r):
-    E_star = com.find_balance(species, carbon, I_r)
-    C_star = com.equilibrium(E_star, species[:,1], carbon[1])
+    E_star = ches.find_balance(species, carbon, I_r)
+    C_star = ches.equilibrium(E_star, species[:,1], carbon[1])
     return E_star, C_star
 
 def bound_growth(species, carbon,I_r ,P):
@@ -69,7 +69,7 @@ def bound_growth(species, carbon,I_r ,P):
     #plt.figure()
     #plotter(curl_E,50, 200,accuracy = 15 )
     Im, IM = I_r
-    integrand_C = lambda I: curl_C(com.equilibrium(I, species[:,1], 
+    integrand_C = lambda I: curl_C(ches.equilibrium(I, species[:,1], 
                                 carbon[1]))/(IM-Im)
     integrand_E = lambda I: curl_E(I)/(IM-Im)
     ave_C = quad(integrand_C, *I_r)[0]
@@ -130,10 +130,10 @@ def diff(fun, tol = 0.001):
     return differential
 """    
 start = timer()
-species, carbon = com.test_species(w_photoinhibition)
+species, carbon,I_r = ches.gen_species(sat_carbon_par)
 
 
-a,b,c,d,e,f= bound_growth(species,50, carbon)
-print(a,b,e)
+a,b,c= bound_growth(species, carbon,I_r, 50)
+print(a,b,c)
 end = timer()
 print(end-start)"""
