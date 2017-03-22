@@ -16,7 +16,6 @@ k_green = interp1d(absor_val['x_green'], 10**-9*absor_val['y_green'], 'cubic')
 k = lambda lam: np.array([k_green(lam), k_red(lam)])
 
 l = np.array([0.014,0.014])  #specific loss rate [h^-1]
-l /=3600            #change to [s^-1]
 
 phi = 10**6*np.array([1.6,1.6])   # photosynthetic efficiency [fl*mumol^-1]
 zm = 7.7          #total depth [m]
@@ -27,18 +26,52 @@ I_in = lambda t,l: I_in_prev(t,l)*int_I_in/300
 
 def growth(N, t, absor = 'both' ):
     if absor == 'both':
-        abs_fun = lambda lam: sum(N*k(lam))
+        abs_fun = lambda lam: sum(N*k(lam)) #take the sum
     else: 
-        abs_fun = lambda lam: (N*k(lam))[absor]
+        abs_fun = lambda lam: (N*k(lam))[absor] #only take the absorbing one
     #plotter(abs_fun,400,700)
-    integrand = lambda lam, col: I_in(t,lam)*k(lam)[col]/(abs_fun(lam))*\
+    integrand = lambda lam, col: I_in(t,lam)*k(lam)[col]/abs_fun(lam)*\
                             (1-math.exp(-abs_fun(lam)*zm))
     gamma0 = quad(lambda lam: integrand(lam,0), 400,700)[0]
     gamma1 = quad(lambda lam: integrand(lam,1), 400,700)[0]
     gamma = np.array([gamma0,gamma1])
     return (phi/zm*gamma-l)*N
 
-time = np.linspace(0,1000,50)
+def outcoming_light(N,t, absor = 'both'):
+    """computes the outcoming light"""
+    if absor == 'both':
+        abs_fun = lambda lam: sum(N*k(lam)) #take the sum
+    else: 
+        abs_fun = lambda lam: (N*k(lam))[absor] #only take the absorbing one
+    I_out = lambda lam: I_in(t, lam)*np.exp(-abs_fun(lam)*zm)
+    return quad(I_out, 400,700)[0]
 
-N_time = odeint(growth, np.array([0,1]),time, args = (1,))
+
+
+    
+    
+def intens(n, resident, invader = None, t = 0):
+    if invader == None:
+        invader = resident
+    abs_n = lambda lam: k(lam)[invader]*k(lam)[resident]**n*I_in(t,lam)
+    
+    return quad(abs_n,400,700)[0]
+    
+fun = lambda n: phi[1]*(-N_time[-1]*zm)**n/(math.factorial(n+1))
+sumor = lambda n,k,l: sum([fun(n-1-i)[1]*intens(n-1-i,k,l) for i in range(n)])
+
+abs_values = np.array([[intens(i,0,1),intens(i,1,1)] for i in range(15)])
+
+def one_abs_growth(N, t, resident):
+    """computes the growth rate, when only one species is absorbing light"""
+    abs_fun = lambda lam: (N*k(lam))[resident]
+    N_values = (-N*zm)**[[i] for i in range(15)]\
+                /np.array([[math.factorial(i+1)] for i in range(15)])
+    return N*(phi*sum(N_values*abs_values)-l)
+    
+
+time = np.linspace(0,1000,50)
+start = timer()
+N_time = odeint(growth_fast, np.array([0,10**7]),time, args = ('both',))
 plt.plot(time,N_time)
+print(timer()-start)
