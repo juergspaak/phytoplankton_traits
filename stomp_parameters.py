@@ -60,18 +60,21 @@ def intens(n, resident, invader = None, t = 0):
 fun = lambda n: phi[1]*(-N_time[-1]*zm)**n/(math.factorial(n+1))
 sumor = lambda n,k,l: sum([fun(n-1-i)[1]*intens(n-1-i,k,l) for i in range(n)])
 
-abs_values = np.array([[intens(i,0,1),intens(i,1,1)] for i in range(15)])
+abs_values = [np.array([[intens(i,0,0),intens(i,0,1)] for i in range(15)]),
+             np.array([[intens(i,1,0),intens(i,1,1)] for i in range(15)])]
+
+exponent = [[i] for i in range(15)]
+divisor = np.array([[math.factorial(i+1)] for i in range(15)])
 
 def one_abs_growth(N, t, resident):
     """computes the growth rate, when only one species is absorbing light"""
-    abs_fun = lambda lam: (N*k(lam))[resident]
-    N_values = (-N*zm)**[[i] for i in range(15)]\
-                /np.array([[math.factorial(i+1)] for i in range(15)])
-    return N*(phi*sum(N_values*abs_values)-l)
+    N_values = (-N*zm)**exponent/divisor
+    return N*(phi*sum(N_values*abs_values[resident])-l)
     
 
-time = np.linspace(0,1000,50)
+time = np.linspace(0,500,50)
 start = timer()
-N_time = odeint(growth_fast, np.array([0,10**7]),time, args = ('both',))
+N_time = odeint(one_abs_growth, np.array([10**8,0]),time, args = (0,))
 plt.plot(time,N_time)
 print(timer()-start)
+plt.plot(time,save,'^')
