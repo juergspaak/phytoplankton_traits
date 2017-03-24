@@ -68,13 +68,14 @@ divisor = np.array([[math.factorial(i+1)] for i in range(15)])
 
 def one_abs_growth(N, t, resident):
     """computes the growth rate, when only one species is absorbing light"""
-    N_values = (-N*zm)**exponent/divisor
+    N_values = (-N[resident]*zm)**exponent/divisor
     return N*(phi*sum(N_values*abs_values[resident])-l)
+     
     
 
 time = np.linspace(0,500,50)
 start = timer()
-N_time = odeint(one_abs_growth, np.array([10**8,0]),time, args = (0,))
+N_time = odeint(one_abs_growth, np.array([10**8,10**5]),time, args = (0,))
 plt.plot(time,N_time)
 print(timer()-start)
 plt.plot(time,save,'^')
