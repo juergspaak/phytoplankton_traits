@@ -2,7 +2,7 @@
 
 from itertools import combinations
 
-coefs = np.array([1,2,1])
+coefs = np.array([1,-3,2])
 
 roots = np.roots(coefs)
 
@@ -38,21 +38,15 @@ def frac(roots):
     
 
 
-def test(roots):
-    print(quad(lambda x: 1/factor_poly(x,roots),1,2))
-    print(integral_N(roots)(2)-integral_N(roots)(1))
+def test(coefs):
+    print(quad(lambda x: 1/np.polyval(coefs,x)/coefs[0],-11,-2))
+    roots = np.roots(coefs)
+    print(quad(lambda x: 1/factor_poly(x,roots),-11,-2))
+    print(integral_N(roots)(-2)-integral_N(roots)(-11))
     
+test(np.array([1,0,2]))
     
 def integral_N(roots):
     print(frac(roots))
     return lambda N: np.real(sum(frac(roots)*np.log(np.abs(N-roots))))
-    
-exponent = np.array([i for i in range(15)])
-divisor = np.array([math.factorial(i+1) for i in range(15)])
 
-poly_coefs = phi[1]*((-zm)**exponent/divisor*abs_values[1][:,1])
-poly_coefs[0] = poly_coefs[0]-l[1]
-poly_coefs = np.insert(poly_coefs,0,0)
-
-fun = integral_N(np.roots(poly_coefs[::-1]))
-fun2  =lambda x: fun(x)/poly_coefs[-1]
