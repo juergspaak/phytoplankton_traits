@@ -7,9 +7,10 @@ import math
 from scipy.integrate import quad, odeint
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
 
-absor_val = np.load("npz,absorption.npz") #loads the absorption curves of the cyanos
-
+absor_val = np.load("npz,stomp_values.npz") #loads the absorption curves of the cyanos
+alphas = absor_val['alphas']
 
 k_red = interp1d(absor_val['x_red'], 10**-9*absor_val['y_red'], 'cubic')
 k_green = interp1d(absor_val['x_green'], 10**-9*absor_val['y_green'], 'cubic')
@@ -60,22 +61,48 @@ def intens(n, resident, invader = None, t = 0):
 fun = lambda n: phi[1]*(-N_time[-1]*zm)**n/(math.factorial(n+1))
 sumor = lambda n,k,l: sum([fun(n-1-i)[1]*intens(n-1-i,k,l) for i in range(n)])
 
-abs_values = [np.array([[intens(i,0,0),intens(i,0,1)] for i in range(15)]),
-             np.array([[intens(i,1,0),intens(i,1,1)] for i in range(15)])]
-
-exponent = [[i] for i in range(15)]
-divisor = np.array([[math.factorial(i+1)] for i in range(15)])
-
-def one_abs_growth(N, t, resident):
-    """computes the growth rate, when only one species is absorbing light"""
-    N_values = (-N[resident]*zm)**exponent/divisor
-    return N*(phi*sum(N_values*abs_values[resident])-l)
-     
+#abs_values = [np.array([[intens(i,0,0),intens(i,0,1)] for i in range(15)]),
+#             np.array([[intens(i,1,0),intens(i,1,1)] for i in range(15)])]
+    #contains the values integrate(k_spec*k_res^n*I_in dlambda)
+    #abs_values[res][:,spec] contains those 15 values
     
+def alpha(n,resident, spe_int, t = 0):
+    alpha = phi[spe_int]*(-zm)**n/math.factorial(n+1)
+    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n*I_in(t,lam)
+            ,400,700)[0]
+    if n == 0: alpha -=l[spe_int]
+    return alpha
+
+#alphas = [np.array([[alpha(14-i,0,0),alpha(14-i,0,1)] for i in range(15)]),
+#          np.array([[alpha(14-i,1,0),alpha(14-i,1,1)] for i in range(15)])]
+#contains the values phi*(zm)^n/(n+1)!*integrate(k_spec*k_res^n*I_in dlambda)
+#alphas[res][n,spec] contains those values
+
+
+exponent = np.array([[14-i] for i in range(15)])
+def res_absorb_growth(N,t,resident):
+    """computes the growthrate when only one species is absorbing
+    
+    This is done by a tylor approximation up to 15 terms. The code is
+    equivalent N*np.polyval(alphas[resident], N[resident]), but about
+    10-20% faster"""
+    N_values = N[resident]**exponent
+    return N*sum(N_values*alphas[resident])
 
 time = np.linspace(0,500,50)
+
+resi = 0
+N_start = np.array([10**5, 10**5])
+N_start[resi] = 10**8
 start = timer()
-N_time = odeint(one_abs_growth, np.array([10**8,10**5]),time, args = (0,))
-plt.plot(time,N_time)
+N_time = odeint(res_absorb_growth, N_start,time, args = (resi,))
 print(timer()-start)
+"""
+start = timer()
+save = odeint(fast_ode, N_start,time, args = (resi,))
+print(timer()-start)
+plt.plot(time,N_time)
+
 plt.plot(time,save,'^')
+plt.figure()
+plt.plot(time, 1-(N_time/save))"""

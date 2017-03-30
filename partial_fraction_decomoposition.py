@@ -36,10 +36,23 @@ def frac(roots):
     beta = np.linalg.solve(mat, b)
     return np.array(beta)
     
-frac(np.array([1,-1]))
 
-def test(roots,x):
-    print("true", 1/factor_poly(x,roots))
-    print(sum(frac(roots)/(x-roots)))
+
+def test(roots):
+    print(quad(lambda x: 1/factor_poly(x,roots),1,2))
+    print(integral_N(roots)(2)-integral_N(roots)(1))
     
-test(np.array([1,5,4]),1.5)
+    
+def integral_N(roots):
+    print(frac(roots))
+    return lambda N: np.real(sum(frac(roots)*np.log(np.abs(N-roots))))
+    
+exponent = np.array([i for i in range(15)])
+divisor = np.array([math.factorial(i+1) for i in range(15)])
+
+poly_coefs = phi[1]*((-zm)**exponent/divisor*abs_values[1][:,1])
+poly_coefs[0] = poly_coefs[0]-l[1]
+poly_coefs = np.insert(poly_coefs,0,0)
+
+fun = integral_N(np.roots(poly_coefs[::-1]))
+fun2  =lambda x: fun(x)/poly_coefs[-1]
