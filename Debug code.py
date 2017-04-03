@@ -1,71 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-Generates parameters for the stomp model
+These file has possibly no stable functions, it is only to try stuff
 """
-from scipy.interpolate import interp1d
-import math
-from scipy.integrate import quad, odeint
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.optimize import fsolve
 
-absor_val = np.load("npz,stomp_values.npz") #loads the absorption curves of the cyanos
-alphas = absor_val['alphas']
-
-k_red = interp1d(absor_val['x_red'], 10**-9*absor_val['y_red'], 'cubic')
-k_green = interp1d(absor_val['x_green'], 10**-9*absor_val['y_green'], 'cubic')
-k = lambda lam: np.array([k_green(lam), k_red(lam)])
-
-l = np.array([0.014,0.014])  #specific loss rate [h^-1]
-
-phi = 10**6*np.array([1.6,1.6])   # photosynthetic efficiency [fl*mumol^-1]
-zm = 7.7          #total depth [m]
-N = np.array([1,1]) # density [fl*cm^-3]
-I_in_prev = lambda t,l: 1
-int_I_in = 40  # light over entire spectrum [mumol ph*m^-2*s^-1]
-I_in = lambda t,l: I_in_prev(t,l)*int_I_in/300
-
-def growth(N, t, absor = 'both' ):
-    if absor == 'both':
-        abs_fun = lambda lam: sum(N*k(lam)) #take the sum
-    else: 
-        abs_fun = lambda lam: (N*k(lam))[absor] #only take the absorbing one
-    #plotter(abs_fun,400,700)
-    integrand = lambda lam, col: I_in(t,lam)*k(lam)[col]/abs_fun(lam)*\
-                            (1-math.exp(-abs_fun(lam)*zm))
-    gamma0 = quad(lambda lam: integrand(lam,0), 400,700)[0]
-    gamma1 = quad(lambda lam: integrand(lam,1), 400,700)[0]
-    gamma = np.array([gamma0,gamma1])
-    return (phi/zm*gamma-l)*N
-
-def outcoming_light(N,t, absor = 'both'):
-    """computes the outcoming light"""
-    if absor == 'both':
-        abs_fun = lambda lam: sum(N*k(lam)) #take the sum
-    else: 
-        abs_fun = lambda lam: (N*k(lam))[absor] #only take the absorbing one
+def plot_I_out(N_res, resident):
+    t = 0
+    abs_fun = lambda lam: (N_res*k(lam))[resident] #only take the absorbing one
     I_out = lambda lam: I_in(t, lam)*np.exp(-abs_fun(lam)*zm)
-    return quad(I_out, 400,700)[0]
 
+    plotter(lambda lam: I_out(lam), 400,700)
+    print(quad(lambda lam: I_out(lam),400,700)[0])
+    
+plot_I_out(10**9,1)
+plot_I_out(10**9,0)
 
-
-    
-    
-def intens(n, resident, invader = None, t = 0):
-    if invader == None:
-        invader = resident
-    abs_n = lambda lam: k(lam)[invader]*k(lam)[resident]**n*I_in(t,lam)
-    
-    return quad(abs_n,400,700)[0]
-    
-fun = lambda n: phi[1]*(-N_time[-1]*zm)**n/(math.factorial(n+1))
-sumor = lambda n,k,l: sum([fun(n-1-i)[1]*intens(n-1-i,k,l) for i in range(n)])
-
-#abs_values = [np.array([[intens(i,0,0),intens(i,0,1)] for i in range(20)]),
-#             np.array([[intens(i,1,0),intens(i,1,1)] for i in range(20)])]
-    #contains the values integrate(k_spec*k_res^n*I_in dlambda)
-    #abs_values[res][:,spec] contains those 15 values
-    
 def alpha(n,resident, spe_int, t = 0):
     alpha = phi[spe_int]*(-zm)**n/math.factorial(n+1)
     alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n*I_in(t,lam)
@@ -75,34 +23,13 @@ def alpha(n,resident, spe_int, t = 0):
 
 alphas = [np.array([[alpha(14-i,0,0),alpha(14-i,0,1)] for i in range(15)]),
           np.array([[alpha(14-i,1,0),alpha(14-i,1,1)] for i in range(15)])]
-#contains the values phi*(zm)^n/(n+1)!*integrate(k_spec*k_res^n*I_in dlambda)
-#alphas[res][n,spec] contains those values
 
 
-exponent = np.array([[14-i] for i in range(15)])
-def res_absorb_growth(N,t,resident, precision = 0):
-    """computes the growthrate when only one species is absorbing
+def nonexact_int_function(N_res,resident):
+    print(np.polyval(abs_values[resident][:,resident][::-1],-N_res*zm))
+    t = 0
+    abs_fun = lambda lam: (N_res*k(lam))[resident] #only take the absorbing one
+    fun = lambda lam: I_in(t, lam)*(1-np.exp(-abs_fun(lam)*zm))
+    print(quad(fun, 400,700)[0])
     
-    This is done by a tylor approximation up to 15 terms. The code is
-    equivalent N*np.polyval(alphas[resident], N[resident]), but about
-    10-20% faster"""
-    N_values = N[resident]**exponent[precision:]
-    return N*(sum(N_values*alphas[resident][precision:,:]))
-
-time = np.linspace(0,500,50)
-
-resi = 0
-N_start = np.array([10**5, 10**5])
-N_start[resi] = 10**8
-start = timer()
-N_time = odeint(res_absorb_growth, N_start,time, args = (resi,))
-print(timer()-start)
-
-start = timer()
-#save = odeint(growth, N_start,time, args = (resi,))
-print(timer()-start)
-plt.plot(time,N_time)
-
-plt.plot(time,absor_val['test_data'][resi],'^')
-plt.figure()
-plt.plot(time, 1-(N_time/absor_val['test_data'][resi]))
+nonexact_int_function(10**9,1)

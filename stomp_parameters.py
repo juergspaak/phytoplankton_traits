@@ -24,7 +24,7 @@ N = np.array([1,1]) # density [fl*cm^-3]
 I_in_prev = lambda t,l: 1
 int_I_in = 40  # light over entire spectrum [mumol ph*m^-2*s^-1]
 I_in = lambda t,l: I_in_prev(t,l)*int_I_in/300
-alphas = alphas*int_I_in #alphas were computed with normalized light intensity
+alphas = alphas*I_in(1,450) #alphas were computed with normalized light intensity
 alphas[0][-1,:] -= l
 alphas[1][-1,:] -= l
 
@@ -62,13 +62,14 @@ def outcoming_light(N,t, absor = 'both'):
     
 def alpha(n,resident, spe_int, t = 0):
     alpha = phi[spe_int]*(-zm)**n/math.factorial(n+1)
-    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n*I_in(t,lam)
+    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n*I_in(1,450)
             ,400,700)[0]
-    if n == 0: alpha -=l[spe_int]
+    if n == 0:
+        alpha -= l[spe_int]
     return alpha
 
-alphas = [np.array([[alpha(14-i,0,0),alpha(14-i,0,1)] for i in range(15)]),
-         np.array([[alpha(14-i,1,0),alpha(14-i,1,1)] for i in range(15)])]
+#alphas = [np.array([[alpha(14-i,0,0),alpha(14-i,0,1)] for i in range(15)]),
+#         np.array([[alpha(14-i,1,0),alpha(14-i,1,1)] for i in range(15)])]
 #contains the values phi*(zm)^n/(n+1)!*integrate(k_spec*k_res^n*I_in dlambda)
 #alphas[res][n,spec] contains those values
 
