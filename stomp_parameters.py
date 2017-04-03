@@ -62,10 +62,10 @@ def outcoming_light(N,t, absor = 'both'):
     
 def alpha(n,resident, spe_int, t = 0):
     alpha = phi[spe_int]*(-zm)**n/math.factorial(n+1)
-    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
+    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n*int_I_in
             ,400,700)[0]
     if n == 0:
-        alpha -= l[0]
+        alpha -= l[spe_int]
     return alpha
 
 alphas = [np.array([[alpha(14-i,0,0),alpha(14-i,0,1)] for i in range(15)]),
@@ -101,7 +101,7 @@ def N_time(N_start,coefs):
     return lambda t: fsolve(solver_fun,N_start,args = (t,),
                     fprime = lambda N,t: N_fun_prime(N))
 times = len(alphas[0][:,0])
-exponent = np.array([[times-i] for i in range(times)])
+exponent = np.array([[14-i] for i in range(15)])
 def res_absorb_growth(N,t,resident, precision = 0):
     """computes the growthrate when only one species is absorbing
     
