@@ -24,13 +24,9 @@ N = np.array([1,1]) # density [fl*cm^-3]
 I_in_prev = lambda t,l: 1
 int_I_in = 40  # light over entire spectrum [mumol ph*m^-2*s^-1]
 I_in = lambda t,l: I_in_prev(t,l)*int_I_in/300
-alphas = alphas*int_I_in #alphas were computed with normalized light intensity
+alphas = alphas*int_I_in/300 #alphas were computed with normalized light intensity
 alphas[0][-1,:] -= l
 alphas[1][-1,:] -= l
-
-
-
-
 
 def growth(N, t, absor = 'both' ):
     if absor == 'both':
@@ -53,23 +49,15 @@ def outcoming_light(N,t, absor = 'both'):
         abs_fun = lambda lam: (N*k(lam))[absor] #only take the absorbing one
     I_out = lambda lam: I_in(t, lam)*np.exp(-abs_fun(lam)*zm)
     return quad(I_out, 400,700)[0]
-
-
-
-    
-    
-
     
 def alpha(n,resident, spe_int, t = 0):
     alpha = phi[spe_int]*(-zm)**n/math.factorial(n+1)
-    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n*int_I_in
+    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
             ,400,700)[0]
-    if n == 0:
-        alpha -= l[spe_int]
     return alpha
 
-alphas = [np.array([[alpha(14-i,0,0),alpha(14-i,0,1)] for i in range(15)]),
-         np.array([[alpha(14-i,1,0),alpha(14-i,1,1)] for i in range(15)])]
+#alphas = np.array([[[alpha(15-i,0,0),alpha(15-i,0,1)] for i in range(16)],
+#         [[alpha(15-i,1,0),alpha(15-i,1,1)] for i in range(16)]])
 #contains the values phi*(zm)^n/(n+1)!*integrate(k_spec*k_res^n*I_in dlambda)
 #alphas[res][n,spec] contains those values
 
@@ -100,8 +88,9 @@ def N_time(N_start,coefs):
     solver_fun = lambda N,t: N_fun(N)-N_fun(N_start)-t
     return lambda t: fsolve(solver_fun,N_start,args = (t,),
                     fprime = lambda N,t: N_fun_prime(N))
+
 times = len(alphas[0][:,0])
-exponent = np.array([[14-i] for i in range(15)])
+exponent = np.array([[times-1-i] for i in range(times)])
 def res_absorb_growth(N,t,resident, precision = 0):
     """computes the growthrate when only one species is absorbing
     
