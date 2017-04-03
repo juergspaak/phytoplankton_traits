@@ -1,31 +1,11 @@
 """ computes the partial fraction decomposition for a given polynomial"""
-
+import numpy as np
 from itertools import combinations
 
-coefs = np.array([1,-3,2])
-
-roots = np.roots(coefs)
-
-def ncr_arr(arr,n):
-    if n == 0:
-        return 1
-    combi = list(combinations(arr,n))
-    return sum(np.prod(combi, axis = 1))
-    
-def factor_poly(x,roots):
-    return np.prod(x-roots)
-    
-def poly_expand(roots):
-    l = len(roots)
-    coefs = np.array([ncr_arr(-roots,i) for i in range(l+1)])
-    print(coefs)
-    print(np.poly(roots))
-    return lambda x: sum([x**i*coefs[l-i] for i in range(l+1)])
     
 def poly_matrix(roots):
     n = len(roots)
     mat = np.array([np.poly(np.delete(roots,i)) for i in range(n)])
-   
     return np.matrix.transpose(mat)    
     
 def frac(roots):
@@ -35,18 +15,23 @@ def frac(roots):
     b[-1]=1
     beta = np.linalg.solve(mat, b)
     return np.array(beta)
+
     
-
-
-def test(coefs):
-    print(quad(lambda x: 1/np.polyval(coefs,x)/coefs[0],-11,-2))
+def integral_N(coefs):
     roots = np.roots(coefs)
-    print(quad(lambda x: 1/factor_poly(x,roots),-11,-2))
-    print(integral_N(roots)(-2)-integral_N(roots)(-11))
-    
-test(np.array([1,0,2]))
-    
-def integral_N(roots):
-    print(frac(roots))
-    return lambda N: np.real(sum(frac(roots)*np.log(np.abs(N-roots))))
+    fracts = frac(roots)
+    return lambda N: float(np.real(sum(fracts*np.log(N-roots)))/coefs[0])
+
+rooter = np.roots(a)
+fracts = frac(rooter)/a[0]
+fprime_fun = lambda x: np.array([np.real(sum(fracts/(x-rooter)))])
+f_relevant = integral_N(a)
+f_solver = lambda x: f_relevant(x)-f_relevant(10**8)-1000
+start = timer()
+fsolve(f_solver, 4*10**8,fprime = fprime_fun)
+print(timer()-start)
+start = timer()
+fsolve(f_solver, 4*10**8,fprime = lambda x: np.array([1]))
+print(timer()-start)
+
 
