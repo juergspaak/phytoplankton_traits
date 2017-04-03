@@ -24,6 +24,13 @@ N = np.array([1,1]) # density [fl*cm^-3]
 I_in_prev = lambda t,l: 1
 int_I_in = 40  # light over entire spectrum [mumol ph*m^-2*s^-1]
 I_in = lambda t,l: I_in_prev(t,l)*int_I_in/300
+alphas = alphas*int_I_in #alphas were computed with normalized light intensity
+alphas[0][-1,:] -= l
+alphas[1][-1,:] -= l
+
+
+
+
 
 def growth(N, t, absor = 'both' ):
     if absor == 'both':
@@ -51,35 +58,50 @@ def outcoming_light(N,t, absor = 'both'):
 
     
     
-def intens(n, resident, invader = None, t = 0):
-    if invader == None:
-        invader = resident
-    abs_n = lambda lam: k(lam)[invader]*k(lam)[resident]**n*I_in(t,lam)
-    
-    return quad(abs_n,400,700)[0]
-    
-fun = lambda n: phi[1]*(-N_time[-1]*zm)**n/(math.factorial(n+1))
-sumor = lambda n,k,l: sum([fun(n-1-i)[1]*intens(n-1-i,k,l) for i in range(n)])
 
-#abs_values = [np.array([[intens(i,0,0),intens(i,0,1)] for i in range(20)]),
-#             np.array([[intens(i,1,0),intens(i,1,1)] for i in range(20)])]
-    #contains the values integrate(k_spec*k_res^n*I_in dlambda)
-    #abs_values[res][:,spec] contains those 15 values
     
 def alpha(n,resident, spe_int, t = 0):
     alpha = phi[spe_int]*(-zm)**n/math.factorial(n+1)
-    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n*I_in(t,lam)
+    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
             ,400,700)[0]
-    if n == 0: alpha -=l[spe_int]
+    if n == 0:
+        alpha -= l[0]
     return alpha
 
-#alphas = [np.array([[alpha(14-i,0,0),alpha(14-i,0,1)] for i in range(15)]),
-#          np.array([[alpha(14-i,1,0),alpha(14-i,1,1)] for i in range(15)])]
+alphas = [np.array([[alpha(14-i,0,0),alpha(14-i,0,1)] for i in range(15)]),
+         np.array([[alpha(14-i,1,0),alpha(14-i,1,1)] for i in range(15)])]
 #contains the values phi*(zm)^n/(n+1)!*integrate(k_spec*k_res^n*I_in dlambda)
 #alphas[res][n,spec] contains those values
 
 
-exponent = np.array([[14-i] for i in range(15)])
+def analytical_integral(coefs):
+    """analyticaly solves the differential equation dN/dt = 1/sum(N^i*coefs[n-i])
+    returns the result in a function fun(N) = t+c, which can be solved
+    numerically for solutions. returns the function fun, as well ad d/dN fun(N)
+    
+    this is done by a partial fraction decomposiiton"""
+    roots = np.roots(coefs)
+    n = len(roots)
+    mat = np.array([np.poly(np.delete(roots,i)) for i in range(n)])
+    mat = np.matrix.transpose(mat)
+    num_poly = np.zeros(len(roots)) 
+    num_poly[-1]=1 #b are the coefs of the numerator polynom
+    beta = np.linalg.solve(mat, num_poly)/coefs[0] #numerators of the partial fractions
+    fun_prime = lambda N: np.array([np.real(sum(beta/(N-roots)))]) #fractial decomposition
+    fun = lambda N: np.real(sum(beta*np.log(N-roots)))
+    return fun, fun_prime
+    
+def N_time(N_start,coefs):
+    """returns a callable, that has the densities of N over time
+    
+    N_start is the starting density of N, coefs are the taylor approximation
+    for the stomp differential equation whith only one absorber"""
+    N_fun, N_fun_prime = analytical_integral(coefs)
+    solver_fun = lambda N,t: N_fun(N)-N_fun(N_start)-t
+    return lambda t: fsolve(solver_fun,N_start,args = (t,),
+                    fprime = lambda N,t: N_fun_prime(N))
+times = len(alphas[0][:,0])
+exponent = np.array([[times-i] for i in range(times)])
 def res_absorb_growth(N,t,resident, precision = 0):
     """computes the growthrate when only one species is absorbing
     
@@ -99,7 +121,7 @@ N_time = odeint(res_absorb_growth, N_start,time, args = (resi,))
 print(timer()-start)
 
 start = timer()
-#save = odeint(growth, N_start,time, args = (resi,))
+
 print(timer()-start)
 plt.plot(time,N_time)
 
