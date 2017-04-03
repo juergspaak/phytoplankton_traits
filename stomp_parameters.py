@@ -62,10 +62,9 @@ def outcoming_light(N,t, absor = 'both'):
     
 def alpha(n,resident, spe_int, t = 0):
     alpha = phi[spe_int]*(-zm)**n/math.factorial(n+1)
-    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n*int_I_in
+    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n*I_in(t,lam)
             ,400,700)[0]
-    if n == 0:
-        alpha -= l[spe_int]
+    if n == 0: alpha -=l[spe_int]
     return alpha
 
 alphas = [np.array([[alpha(14-i,0,0),alpha(14-i,0,1)] for i in range(15)]),
