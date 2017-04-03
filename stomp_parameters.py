@@ -79,18 +79,37 @@ def analytical_integral(coefs):
     fun = lambda N: np.real(sum(beta*np.log(N-roots)))
     return fun, fun_prime
     
-def N_time(N_start,coefs):
+def N_time_fun(N_start,spe_int):
     """returns a callable, that has the densities of N over time
     
     N_start is the starting density of N, coefs are the taylor approximation
-    for the stomp differential equation whith only one absorber"""
-    N_fun, N_fun_prime = analytical_integral(coefs)
+    for the stomp differential equation whith only one absorber
+    
+    warning: is numerically unstable near the equilibrium"""
+    coefs = np.append(alphas[spe_int][:,spe_int],0) #multipling with species
+    N_fun, N_fun_prime = analytical_integral(coefs)     ##densities
     solver_fun = lambda N,t: N_fun(N)-N_fun(N_start)-t
     return lambda t: fsolve(solver_fun,N_start,args = (t,),
                     fprime = lambda N,t: N_fun_prime(N))
+    
+def stomp_equi(spe_int,start = False, acc = 0.01):
+    """returns the equilibrium density of species spe_int in monoculture
+    
+    if start is a float, then it returns aswell the time to reach 
+    a range of acc within the equilibrium, with starting density start"""
+    coefs = alphas[spe_int][:,spe_int]
+    roots = np.roots(coefs)
+    equi = np.real(roots[-1])
+    if not start:
+        return equi
+    N_fun, N_fun_prime = analytical_integral(np.append(coefs,0))
+    return equi, N_fun(equi*(1-acc))-N_fun(start)
+    
+
 
 times = len(alphas[0][:,0])
 exponent = np.array([[times-1-i] for i in range(times)])
+
 def res_absorb_growth(N,t,resident, precision = 0):
     """computes the growthrate when only one species is absorbing
     
@@ -103,14 +122,10 @@ def res_absorb_growth(N,t,resident, precision = 0):
 time = np.linspace(0,500,50)
 
 resi = 0
-N_start = np.array([10**5, 10**5])
-N_start[resi] = 10**8
+N_start = np.array([10.0**5, 10.0**5])
+N_start[resi] = 10.0**8
 start = timer()
 N_time = odeint(res_absorb_growth, N_start,time, args = (resi,))
-print(timer()-start)
-
-start = timer()
-
 print(timer()-start)
 plt.plot(time,N_time)
 
