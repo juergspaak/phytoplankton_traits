@@ -3,33 +3,25 @@
 These file has possibly no stable functions, it is only to try stuff
 """
 
-def plot_I_out(N_res, resident):
-    t = 0
-    abs_fun = lambda lam: (N_res*k(lam))[resident] #only take the absorbing one
-    I_out = lambda lam: I_in(t, lam)*np.exp(-abs_fun(lam)*zm)
-
-    plotter(lambda lam: I_out(lam), 400,700)
-    print(quad(lambda lam: I_out(lam),400,700)[0])
+def res_absorb_growth(N,t,resident, precision = 0):
+    """computes the growthrate when only one species is absorbing
     
-plot_I_out(10**9,1)
-plot_I_out(10**9,0)
-
-def alpha(n,resident, spe_int, t = 0):
-    alpha = phi[spe_int]*(-zm)**n/math.factorial(n+1)
-    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n*I_in(t,lam)
-            ,400,700)[0]
-    if n == 0: alpha -=l[spe_int]
-    return alpha
-
-alphas = [np.array([[alpha(14-i,0,0),alpha(14-i,0,1)] for i in range(15)]),
-          np.array([[alpha(14-i,1,0),alpha(14-i,1,1)] for i in range(15)])]
-
-
-def nonexact_int_function(N_res,resident):
-    print(np.polyval(abs_values[resident][:,resident][::-1],-N_res*zm))
-    t = 0
-    abs_fun = lambda lam: (N_res*k(lam))[resident] #only take the absorbing one
-    fun = lambda lam: I_in(t, lam)*(1-np.exp(-abs_fun(lam)*zm))
-    print(quad(fun, 400,700)[0])
+    This is done by a tylor approximation up to 15 terms. The code is
+    equivalent N*np.polyval(alphas[resident], N[resident]), but about
+    10-20% faster"""
+    print(1-N[0]/fun(t))
+    N_values = fun(t)**exponent[precision:]
+    return N*(sum(N_values*alphas[resident][precision:,:]))
     
-nonexact_int_function(10**9,1)
+def res_absorb_growth2(N,t,resident, precision = 0):
+    """computes the growthrate when only one species is absorbing
+    
+    This is done by a tylor approximation up to 15 terms. The code is
+    equivalent N*np.polyval(alphas[resident], N[resident]), but about
+    10-20% faster"""
+    N_values = fun(t)**range(16)[::-1]
+    a=alphas[resident][precision:,:]
+    return [N[0]*(sum(N_values*a[:,1])),0]
+    
+
+N_time2 = odeint(res_absorb_growth, [10.0**8,10.0**5],time[:25], args = (resi,))

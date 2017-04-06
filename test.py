@@ -7,7 +7,6 @@ Created on Thu Feb 23 10:46:20 2017
 from numpy.random import uniform as uni
 
 
-
 def w_photoinhibition(factor=2, return_light = True, return_sol = False):
     """ returns random parameters for the model
     the generated parameters are ensured to survive"""
