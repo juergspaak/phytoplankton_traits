@@ -93,7 +93,7 @@ def alpha(n,resident, spe_int, t = 0):
 #         np.array([[alpha(14-i,1,0),alpha(14-i,1,1)] for i in range(15)])]
 #contains the values phi*(zm)^n/(n+1)!*integrate(k_spec*k_res^n*I_in dlambda)
 #alphas[res][n,spec] contains those values
-=======
+
 def N_time_fun(N_start,spe_int):
     """returns a callable, that has the densities of N over time
     
@@ -121,7 +121,7 @@ def stomp_equi(spe_int,start = False, acc = 0.01):
     return equi, N_fun(equi*(1-acc))-N_fun(start)
     
 
->>>>>>> Debugbranch
+
 
 times = len(alphas[0][:,0])
 exponent = np.array([[times-1-i] for i in range(times)])
@@ -145,7 +145,7 @@ def analytical_integral(coefs):
     return fun, fun_prime
 
 times = len(alphas[0][:,0])
-exponent = np.array([[14-i] for i in range(15)])
+exponent = np.array([[times-1-i] for i in range(times)])
 
 def res_absorb_growth(N,t,resident, precision = 0):
     """computes the growthrate when only one species is absorbing
@@ -164,13 +164,7 @@ N_start[resi] = 10.0**8
 start = timer()
 N_time = odeint(res_absorb_growth, N_start,time, args = (resi,))
 print(timer()-start)
-<<<<<<< HEAD
 
-start = timer()
-
-print(timer()-start)
-=======
->>>>>>> Debugbranch
 plt.plot(time,N_time)
 
 plt.plot(time,absor_val['test_data'][resi],'^')
