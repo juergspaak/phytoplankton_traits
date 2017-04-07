@@ -6,11 +6,33 @@ Created on Fri Apr  7 09:14:35 2017
 Contains help functions for stomp model
 """
 import math
+import numpy as np
 
 from scipy.integrate import quad
 from scipy.optimize import fsolve
+from scipy.interpolate import interp1d
 
+"""loading/defining the variables"""
+absor_val = np.load("npz,stomp_values.npz") #loads the absorption curves of the cyanos
+alphas = absor_val['alphas']
 
+k_red = interp1d(absor_val['x_red'], 10**-9*absor_val['y_red'], 'cubic')
+k_green = interp1d(absor_val['x_green'], 10**-9*absor_val['y_green'], 'cubic')
+k = lambda lam: np.array([k_green(lam), k_red(lam)])
+
+l = np.array([0.014,0.014])  #specific loss rate [h^-1]
+
+phi = 10**6*np.array([1.6,1.6])   # photosynthetic efficiency [fl*mumol^-1]
+zm = 7.7          #total depth [m]
+N = np.array([1,1]) # density [fl*cm^-3]
+I_in_prev = lambda t,l: 1
+int_I_in = 40  # light over entire spectrum [mumol ph*m^-2*s^-1]
+I_in = lambda t,l: I_in_prev(t,l)*int_I_in/300
+alphas = alphas*int_I_in/300 #alphas were computed with normalized light intensity
+alphas[0][-1,:] -= l
+alphas[1][-1,:] -= l 
+
+#####################
 def alpha(n,resident, spe_int, t = 0):
     """computes the taylor expansion for the differential equation
     
