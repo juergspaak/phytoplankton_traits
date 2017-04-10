@@ -9,7 +9,7 @@ import math
 import numpy as np
 
 from scipy.integrate import quad, odeint
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, brentq
 from scipy.interpolate import interp1d
 
 """loading/defining the variables"""
@@ -45,19 +45,18 @@ def alpha(n,resident, spe_int, t = 0):
     
     alpha_fac = phi[spe_int]*(-zm)**n/math.factorial(n+1)
     #splitting the integral into these parts, because they have really
-    #different order of magnitudes, quad seems to be messing these things up
+    #different order of magnitudes, quad seems to be messing these things up          
     alpha1 = quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
             ,400,500)[0]
     alpha2 = quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
             ,500,600)[0]
     alpha3 = quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
             ,600,700)[0]   
-    fun = lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
-    plt.semilogy(np.linspace(400,700,100),fun(np.linspace(400,700,100)))
+    #fun = lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
+    #plt.semilogy(np.linspace(400,700,100),fun(np.linspace(400,700,100)))
     #lam = 500
     #print(k(lam)[spe_int]*k(lam)[resident]**n)
     return alpha_fac*(alpha1+alpha2+alpha3)
-
 
 
 def outcoming_light(N,t, absor = 'both'):
@@ -136,20 +135,27 @@ def N_time_fun(N_start,spe_int):
     coefs = np.append(alphas[spe_int][:,spe_int],0) #multipling with species
     N_fun, N_fun_prime = analytical_integral(coefs)     ##densities
     solver_fun = lambda N,t: N_fun(N)-N_fun(N_start)-t
-    return lambda t: fsolve(solver_fun,N_start,args = (t,),
-                    fprime = lambda N,t: N_fun_prime(N))
+    maximu = stomp_equi(spe_int)
+    return lambda t: brentq(solver_fun,10**8,maximu,args = (t,))
+
     
-def invader_growth(N_start, resi, end_time, accuracy = 50):
+
+def invader_growth(N_start, resi, end_time, N_time = None, accuracy = 100):
+    """returns invader density at end_time
+    
+    could be updated to return a fucntion/array"""
     inv = int(not resi)
-    time = np.linspace(0,end_time,accuracy)
-    N_time = odeint(res_absorb_growth, N_start[resi],time, args = (resi,))
-    plt.plot(time,N_time)
+    if N_time is None:
+        time = np.linspace(0,end_time,accuracy)
+        N_time = odeint(res_absorb_growth, N_start[resi],time, args = (resi,))
+    else:
+        time = np.linspace(0,end_time, len(N_time))
+    #plt.plot(time,N_time)
     N_times = N_time[:,0]**exponent
     #resident_fun = interp1d(time, N_time, 'cubic')
     integrates = np.trapz(N_times, time)
     return N_start[inv]*np.exp(sum(alphas[resi][:,inv]*integrates))
-    
-#print(invader_growth(N_start, resi,500))     
+  
     
 def stomp_equi(spe_int,start = False, acc = 0.01):
     """returns the equilibrium density of species spe_int in monoculture
