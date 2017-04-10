@@ -8,7 +8,7 @@ Contains help functions for stomp model
 import math
 import numpy as np
 
-from scipy.integrate import quad
+from scipy.integrate import quad, odeint
 from scipy.optimize import fsolve
 from scipy.interpolate import interp1d
 
@@ -28,6 +28,7 @@ N = np.array([1,1]) # density [fl*cm^-3]
 I_in_prev = lambda t,l: 1
 int_I_in = 40  # light over entire spectrum [mumol ph*m^-2*s^-1]
 I_in = lambda t,l: I_in_prev(t,l)*int_I_in/300
+ 
 alphas = alphas*int_I_in/300 #alphas were computed with normalized light intensity
 alphas[0][-1,:] -= l
 alphas[1][-1,:] -= l 
@@ -36,15 +37,28 @@ alphas[1][-1,:] -= l
 def alpha(n,resident, spe_int, t = 0):
     """computes the taylor expansion for the differential equation
     
-    alphas = np.array([[[alpha(15-i,0,0),alpha(15-i,0,1)] for i in range(16)],
-    [[alpha(15-i,1,0),alpha(15-i,1,1)] for i in range(16)]])
+    m = 29
+    alphas = np.array([[[alpha(m-i,0,0),alpha(m-i,0,1)] for i in range(m+1)],
+    [[alpha(m-i,1,0),alpha(m-i,1,1)] for i in range(m+1)]])
     contains the values phi*(zm)^n/(n+1)!*integrate(k_spec*k_res^n*I_in dlambda)
     alphas[res][n,spec] contains those values"""
     
-    alpha = phi[spe_int]*(-zm)**n/math.factorial(n+1)
-    alpha *= quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
-            ,400,700)[0]
-    return alpha
+    alpha_fac = phi[spe_int]*(-zm)**n/math.factorial(n+1)
+    #splitting the integral into these parts, because they have really
+    #different order of magnitudes, quad seems to be messing these things up
+    alpha1 = quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
+            ,400,500)[0]
+    alpha2 = quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
+            ,500,600)[0]
+    alpha3 = quad(lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
+            ,600,700)[0]   
+    fun = lambda lam: k(lam)[spe_int]*k(lam)[resident]**n
+    plt.semilogy(np.linspace(400,700,100),fun(np.linspace(400,700,100)))
+    #lam = 500
+    #print(k(lam)[spe_int]*k(lam)[resident]**n)
+    return alpha_fac*(alpha1+alpha2+alpha3)
+
+
 
 def outcoming_light(N,t, absor = 'both'):
     """computes the outcoming light"""
@@ -57,7 +71,7 @@ def outcoming_light(N,t, absor = 'both'):
 
     
 ################## function not using taylor expansion (most exact)
-def growth(N, t, absor = 'both' ):
+def growth(N, t, absor):
     """computes the growth of both species"""
     if absor == 'both':
         abs_fun = lambda lam: sum(N*k(lam)) #take the sum
@@ -75,15 +89,24 @@ def growth(N, t, absor = 'both' ):
 ###################### functions making use of Taylor expansion
 times = len(alphas[0][:,0])
 exponent = np.array([[times-1-i] for i in range(times)])
-def res_absorb_growth(N,t,resident, precision = 0):
+
+def res_absorb_growth(N,t,resident, m = 15):
     """computes the growthrate when only one species is absorbing
     
-    This is done by a tylor approximation up to 15 terms. The code is
-    equivalent N*np.polyval(alphas[resident], N[resident]), but about
-    10-20% faster"""
-    N_values = N[resident]**exponent[precision:]
-    return N*(sum(N_values*alphas[resident][precision:,:]))
+    if N is an array (i.e contains the values for both species), it returns
+    the growthrate for both, otherwise N should be the density of the resident
+    m is the order of the taylor approximation, max = len(alphas[0][:,0])=29,
+    should be uneven
     
+    This is done by a tylor approximation up to 16 terms. The code in the if
+    statement is equivalent N*np.polyval(alphas[resident], N[resident]),
+    but about 10-20% faster"""
+    if m%2==1 and m<30:
+        if type(N) == np.ndarray and len(N)==2:
+            return N*np.polyval(alphas[resident][times-m:,:], N[resident])
+        else:
+            return N*np.polyval(alphas[resident][times-m:,resident],N)
+    else: print("choose m uneven for stability reasons and m<30 is necessray")
 
 ##################### functions that use anaylitcal integration
 def analytical_integral(coefs):
@@ -115,6 +138,18 @@ def N_time_fun(N_start,spe_int):
     solver_fun = lambda N,t: N_fun(N)-N_fun(N_start)-t
     return lambda t: fsolve(solver_fun,N_start,args = (t,),
                     fprime = lambda N,t: N_fun_prime(N))
+    
+def invader_growth(N_start, resi, end_time, accuracy = 50):
+    inv = int(not resi)
+    time = np.linspace(0,end_time,accuracy)
+    N_time = odeint(res_absorb_growth, N_start[resi],time, args = (resi,))
+    plt.plot(time,N_time)
+    N_times = N_time[:,0]**exponent
+    #resident_fun = interp1d(time, N_time, 'cubic')
+    integrates = np.trapz(N_times, time)
+    return N_start[inv]*np.exp(sum(alphas[resi][:,inv]*integrates))
+    
+#print(invader_growth(N_start, resi,500))     
     
 def stomp_equi(spe_int,start = False, acc = 0.01):
     """returns the equilibrium density of species spe_int in monoculture

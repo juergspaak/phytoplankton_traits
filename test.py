@@ -4,22 +4,21 @@ Created on Thu Feb 23 10:46:20 2017
 
 @author: spaakjue
 """
-from numpy.random import uniform as uni
+from scipy.integrate import ode
 
+"""
+N_timer = np.zeros([500,2])
+N_timer[0] = N_start
+itera = int(50)
+h = 500.0/itera
 
-def w_photoinhibition(factor=2, return_light = True, return_sol = False):
-    """ returns random parameters for the model
-    the generated parameters are ensured to survive"""
-    k = uni(0.002/factor, factor*0.002,2)
-    p_max = uni(1/factor, factor*1,2)
-    I_k = uni(40/factor, factor*40,2)
-    I_opt = uni(100/factor, factor*100,2)
-    l = uni(0.5/factor, 0.5*factor,2)  # carbon loss
-    species = np.array([k,p_max,I_k, I_opt, l])
-    a = I_k/I_opt**2
-    b = 1-2*I_k/I_opt
-    carbon0 = lambda I: (I*p_max/(a*I**2+b*I+I_k))[0]
-    carbon1 = lambda I: (I*p_max/(a*I**2+b*I+I_k))[0]
-    carbon = [carbon0,carbon1]
+for i in range(itera-1):
+    N_timer[i+1] = N_timer[i]+h*growth(N_timer[i],1,resi)
+"""   
     
-    return species, carbon
+def compare(N, resi, m = 15):
+    simple = res_absorb_growth(N, 1,resi, m)
+    comple = growth(N, 1, resi)
+    return 1-simple/comple
+    
+print(compare(N_start, resi))
