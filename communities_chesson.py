@@ -13,8 +13,14 @@ from scipy.integrate import quad
 
 def sat_carbon_par(factor=2,Im = 50, IM = 200):
     """ returns random parameters for the model
-    the generated parameters are ensured to survive"""
+    the generated parameters are ensured to survive
     
+    the carbon uptake function is saturating (no photoinhibition)
+    
+    returns species, which contain the different parameters of the species
+    species_x = species[:,x]
+    carbon = [carbon[0], carbon[1]] the carbon uptake functions
+    I_r = [Im, IM] the minimum and maximum incident light"""    
     k = uni(0.004/factor, 0.004*factor,2) # absorption coefficient [m^2/g]
     H = uni(100/factor, 100*factor,2) # halfsaturation for carbon uptake [J/(m^2 s)]
     p_max = uni(9/factor, 9*factor,2) # maximal absorbtion of carbon [s^-1]
@@ -23,11 +29,18 @@ def sat_carbon_par(factor=2,Im = 50, IM = 200):
     carbon0 = lambda I: (p_max*I/(H+I))[0]
     carbon1 = lambda I: (p_max*I/(H+I))[1]
     carbon = [carbon0,carbon1]
-    return species, carbon,Im,IM
+    return species, carbon,[Im, IM
     
 def photoinhibition_par(factor=2, Im = 100, IM = 1000):
     """ returns random parameters for the model
-    the generated parameters are ensured to survive"""
+    the generated parameters are ensured to survive
+    
+    the carbon uptake function suffers from photoinhibition
+    
+    returns species, which contain the different parameters of the species
+    species_x = species[:,x]
+    carbon = [carbon[0], carbon[1]] the carbon uptake functions
+    I_r = [Im, IM] the minimum and maximum incident light"""
     k = uni(0.002/factor, factor*0.002,2)
     p_max = uni(1/factor, factor*1,2)
     I_k = uni(40/factor, factor*40,2)
@@ -39,11 +52,19 @@ def photoinhibition_par(factor=2, Im = 100, IM = 1000):
     carbon0 = lambda I: (I*p_max/(a*I**2+b*I+I_k))[0]
     carbon1 = lambda I: (I*p_max/(a*I**2+b*I+I_k))[1]
     carbon = [carbon0,carbon1]
-    return species, carbon, Im, IM                
+    return species, carbon, [Im, IM]               
 
 def gen_species(parameter_generator):
+    """returns two species, for which dominance depends on I_in
+    
+    parameter_generator shoul be a function that generates 2 species
+    gen_species only ensures, that the dominance depends on the incident light
+    
+    returns:
+        same values as parameter_generator"""
     while True:
-        species, carbon,Im,IM = parameter_generator()
+        species, carbon,I_r = parameter_generator()
+        Im, IM = I_r
         k = species[0]
         sol0 = equilibrium(Im,species[:,0],carbon[0], True) # density, [g/m^2]
         sol1 = equilibrium(Im,species[:,1],carbon[1], True) # density, [g/m^2]
@@ -70,10 +91,9 @@ def equilibrium(I_in,species,carbon, approx = False):
     return equi[0]
 
 def I_out(I_in, species, carbon):
+    """computes the outcoming light at equilibrium"""
     k = species[0]
     return I_in*np.exp(-k*equilibrium(I_in, species, carbon))
-
-#species, carbon, I_r = gen_species(photoinhibition_par)
 
 def find_balance(species, carbon,I_r):
     """finds the incoming light, at which both species have the same I_out*
