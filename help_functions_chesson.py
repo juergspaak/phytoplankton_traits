@@ -90,7 +90,7 @@ def growth(N, t, absor):
     
 
 ###################### functions making use of Taylor expansion
-
+times = len(alphas[0][:,0])
 def res_absorb_growth(N,t,resident, m = 15):
     """computes the growthrate when only one species is absorbing
     
