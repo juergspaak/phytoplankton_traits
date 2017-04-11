@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+#SBATCH --job-name=stomp_cluster
+#SBATCH --output=stomp_cluster.txt
+#
+#SBATCH --ntasks=1
+#SBATCH --time=5:00:00
+#SBATCH --mem-per-cpu=1000
+chmod 755 test_cluster.py
+time ./test_cluster.py 
