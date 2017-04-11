@@ -30,7 +30,7 @@ int_I_in = 40  # light over entire spectrum [mumol ph*m^-2*s^-1]
 I_in = lambda t,l: I_in_prev(t,l)*int_I_in/300
  
 alphas = alphas*int_I_in/300 #alphas were computed with normalized light intensity
-alphas[0][-1,:] -= l
+alphas[0][-1,:] -= l #dilution rate added to be flexible with light intensity
 alphas[1][-1,:] -= l 
 
 #####################
@@ -60,7 +60,7 @@ def alpha(n,resident, spe_int, t = 0):
 
 
 def outcoming_light(N,t, absor = 'both'):
-    """computes the outcoming light"""
+    """computes the outcoming light, i.e. flux"""
     if absor == 'both':
         abs_fun = lambda lam: sum(N*k(lam)) #take the sum
     else: 
@@ -71,7 +71,11 @@ def outcoming_light(N,t, absor = 'both'):
     
 ################## function not using taylor expansion (most exact)
 def growth(N, t, absor):
-    """computes the growth of both species"""
+    """computes the growth of both species
+    
+    absor can be 'both', i.e. both species absorb or an integre (0 or 1)
+    indicating that only this species absorbs light (the other is at 0 density)
+    """
     if absor == 'both':
         abs_fun = lambda lam: sum(N*k(lam)) #take the sum
     else: 
@@ -86,12 +90,11 @@ def growth(N, t, absor):
     
 
 ###################### functions making use of Taylor expansion
-times = len(alphas[0][:,0])
-exponent = np.array([[times-1-i] for i in range(times)])
 
 def res_absorb_growth(N,t,resident, m = 15):
     """computes the growthrate when only one species is absorbing
     
+    resident is the integer of the resident species (0 or 1)    
     if N is an array (i.e contains the values for both species), it returns
     the growthrate for both, otherwise N should be the density of the resident
     m is the order of the taylor approximation, max = len(alphas[0][:,0])=29,
