@@ -6,7 +6,7 @@ Created on Fri Jan  6 12:27:19 2017
 Generates random environments and checks whether this environment allows existence
 """
 import numpy as np
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, brentq
 from numpy.random import uniform as uni
 import matplotlib.pyplot as plt
 from scipy.integrate import quad
@@ -29,9 +29,9 @@ def sat_carbon_par(factor=2,Im = 50, IM = 200):
     carbon0 = lambda I: (p_max*I/(H+I))[0]
     carbon1 = lambda I: (p_max*I/(H+I))[1]
     carbon = [carbon0,carbon1]
-    return species, carbon,[Im, IM
+    return species, carbon,[Im, IM]
     
-def photoinhibition_par(factor=2, Im = 100, IM = 1000):
+def photoinhibition_par(factor=2, Im = 100, IM = 500):
     """ returns random parameters for the model
     the generated parameters are ensured to survive
     
@@ -85,11 +85,17 @@ def equilibrium(I_in,species,carbon, approx = False):
     growth = lambda W: quad((lambda I: carbon(I)/(I*k)),
                             I_in*np.exp(-k*W),I_in)[0]-l*W #should be zero at equilibrium
     growth_prime = lambda W: [carbon(I_in*np.exp(-k*W))-l] #dgrowth/dW
+    
     start_value = quad((lambda I: carbon(I)/(I*k)),0,I_in)[0]/l #start value assumes I_out = 0
+    #plotter(growth, 0,3*start_value,accuracy  = 50)
     if approx: return start_value #faster, but might be wrong in certain cases
-    equi = fsolve(growth,start_value, fprime = growth_prime) #solves for roots
-    return equi[0]
+    try:
+        return brentq(growth, start_value/2, 2*start_value) #finds W^*
+    except ValueError:#there is most likely no equilibrium point for this species
+        #this however might miss some zeros, to fix this you could try fsolve additionally
+        return 0
 
+    
 def I_out(I_in, species, carbon):
     """computes the outcoming light at equilibrium"""
     k = species[0]
