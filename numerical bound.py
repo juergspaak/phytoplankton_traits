@@ -108,8 +108,6 @@ def bound_growth(species, carbon,I_r ,P):
     integrand_E = lambda I: curl_E(I)/(IM-Im)
     ave_C = quad(integrand_C, *I_r)[0]
     
-    
-    
     if math.isnan(ave_C):
         return None
     ave_E = quad(integrand_E, *I_r)[0]
