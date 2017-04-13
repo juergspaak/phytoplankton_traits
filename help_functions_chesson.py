@@ -11,10 +11,12 @@ import numpy as np
 from scipy.integrate import quad, odeint
 from scipy.optimize import fsolve, brentq
 from scipy.interpolate import interp1d
+from numpy.random import uniform as uni
+
 
 """loading/defining the variables"""
 absor_val = np.load("npz,stomp_values.npz") #loads the absorption curves of the cyanos
-alphas = absor_val['alphas']
+alphas_global = absor_val['alphas']
 
 k_red = interp1d(absor_val['x_red'], 10**-9*absor_val['y_red'], 'cubic')
 k_green = interp1d(absor_val['x_green'], 10**-9*absor_val['y_green'], 'cubic')
@@ -26,12 +28,7 @@ phi = 10**6*np.array([1.6,1.6])   # photosynthetic efficiency [fl*mumol^-1]
 zm = 7.7          #total depth [m]
 N = np.array([1,1]) # density [fl*cm^-3]
 I_in_prev = lambda t,l: 1
-int_I_in = 40  # light over entire spectrum [mumol ph*m^-2*s^-1]
-I_in = lambda t,l: I_in_prev(t,l)*int_I_in/300
- 
-alphas = alphas*int_I_in/300 #alphas were computed with normalized light intensity
-alphas[0][-1,:] -= l #dilution rate added to be flexible with light intensity
-alphas[1][-1,:] -= l 
+
 
 #####################
 def alpha(n,resident, spe_int, t = 0):
@@ -57,6 +54,26 @@ def alpha(n,resident, spe_int, t = 0):
     #lam = 500
     #print(k(lam)[spe_int]*k(lam)[resident]**n)
     return alpha_fac*(alpha1+alpha2+alpha3)
+
+class LuxIn:
+    """class that maintains the amount of incoming light"""
+    def __init__(self, period):
+        self.period = period # period lenght of environment
+        self.record_lux = [uni(20,60)] #current incomming light]
+    
+    def time(self,t):
+        """if t reaches the end of the period, the incoming light is changed"""
+        if (t//self.period)>(len(self.record_lux)-1):
+            new_values = uni(20,60,t//self.period-len(self.record_lux)+1)
+            self.record_lux.extend(new_values)
+        return self.record_lux[int(t//self.period)]
+
+    
+def alphas_time(t, lux_in):
+    alphas = alphas_global*lux_in.time(t)/300 #alphas were computed with normalized light intensity
+    alphas[0][-1,:] -= l #dilution rate added to be flexible with light intensity
+    alphas[1][-1,:] -= l 
+    return alphas
 
 
 def outcoming_light(N,t, absor = 'both'):
@@ -90,8 +107,8 @@ def growth(N, t, absor):
     
 
 ###################### functions making use of Taylor expansion
-times = len(alphas[0][:,0])
-def res_absorb_growth(N,t,resident, m = 15):
+times = len(alphas_global[0][:,0])
+def res_absorb_growth(N,t,resident,lux_in, m = 15):
     """computes the growthrate when only one species is absorbing
     
     resident is the integer of the resident species (0 or 1)    
@@ -103,6 +120,7 @@ def res_absorb_growth(N,t,resident, m = 15):
     This is done by a tylor approximation up to 16 terms. The code in the if
     statement is equivalent N*np.polyval(alphas[resident], N[resident]),
     but about 10-20% faster"""
+    alphas = alphas_time(t, lux_in)
     if m%2==1 and m<30:
         if type(N) == np.ndarray and len(N)==2:
             return N*np.polyval(alphas[resident][times-m:,:], N[resident])
@@ -128,13 +146,14 @@ def analytical_integral(coefs):
     fun = lambda N: np.real(sum(beta*np.log(N-roots)))
     return fun, fun_prime
     
-def N_time_fun(N_start,spe_int):
+def N_time_fun(N_start,spe_int,lux_in,t = 0):
     """returns a callable, that has the densities of N over time
     
     N_start is the starting density of N, coefs are the taylor approximation
     for the stomp differential equation whith only one absorber
     
     warning: is numerically unstable near the equilibrium"""
+    alphas = alphas_time(t, lux_in)
     coefs = np.append(alphas[spe_int][:,spe_int],0) #multipling with species
     N_fun, N_fun_prime = analytical_integral(coefs)     ##densities
     solver_fun = lambda N,t: N_fun(N)-N_fun(N_start)-t
@@ -143,10 +162,12 @@ def N_time_fun(N_start,spe_int):
 
     
 
-def invader_growth(N_start, resi, end_time, N_time = None, accuracy = 100):
+def invader_growth(N_start, resi, end_time,lux_in, N_time = None,
+                   t =0, accuracy = 100):
     """returns invader density at end_time
     
     could be updated to return a fucntion/array"""
+    alphas = alphas_time(t,lux_in)
     inv = int(not resi)
     if N_time is None:
         time = np.linspace(0,end_time,accuracy)
@@ -160,11 +181,12 @@ def invader_growth(N_start, resi, end_time, N_time = None, accuracy = 100):
     return N_start[inv]*np.exp(sum(alphas[resi][:,inv]*integrates))
   
     
-def stomp_equi(spe_int,start = False, acc = 0.01):
+def stomp_equi(spe_int,t,lux_in,start = False, acc = 0.01):
     """returns the equilibrium density of species spe_int in monoculture
     
     if start is a float, then it returns aswell the time to reach 
     a range of acc within the equilibrium, with starting density start"""
+    alphas = alphas_time(t,lux_in)
     coefs = alphas[spe_int][:,spe_int]
     roots = np.roots(coefs)
     equi = np.real(roots[-1])

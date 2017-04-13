@@ -16,9 +16,19 @@ for i in range(itera-1):
     N_timer[i+1] = N_timer[i]+h*growth(N_timer[i],1,resi)
 """   
     
-def compare(N, resi, m = 15):
-    simple = res_absorb_growth(N, 1,resi, m)
-    comple = growth(N, 1, resi)
-    return 1-simple/comple
+class time_dependent():
+    current = 100
     
-print(compare(N_start, resi))
+    def time(self, t):
+        if t%100 == 0:
+            self.current = uni(50,200)
+        return self.current
+        
+        
+        
+I_in = time_dependent()
+
+print(I_in.time(1))
+print(I_in.time(100))
+print(I_in.time(150))
+print(I_in.time(200))
