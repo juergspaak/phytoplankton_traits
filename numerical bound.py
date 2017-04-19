@@ -26,22 +26,19 @@ class Species:
         self.species = species
         self.carbon = carbon
         self.I_r = I_r
-        self.P = np.random.uniform(5,50,1)
+        self.P = np.array([])
         
-        spec_redo = species
-        spec_redo[:,0] = species[:,1]
-        spec_redo[:,1] = species[:,0]
-        comp1, envi1, r_i_1 = bound_growth(species,carbon, I_r, self.P[0])
-        
+        spec_redo = species.copy()
+        spec_redo[:,0] = species[:,1].copy()
+        spec_redo[:,1] = species[:,0].copy()
         carb_redo = [carbon[1], carbon[0]]
+                     
         self.redo = [spec_redo, carb_redo]
-        comp2, envi2, r_i_2 = bound_growth(self.redo[0], self.redo[1],
-                                           self.I_r, self.P[-1])
-        self.comp = np.array([comp1,comp2])
-        self.envi = np.array([envi1,envi2])
-        self.r_i = np.array([r_i_1, r_i_2])
+        self.comp = np.array([])
+        self.envi = np.array([])
+        self.r_i = np.array([])
         
-    def new_Period(self, P = None):
+    def new_period(self, P = None):
         """computes the boundary growth rate for a new function"""
         if P is None:
             P = np.random.uniform(5,50)
@@ -53,8 +50,9 @@ class Species:
         self.comp = np.append(self.comp,np.array([comp1,comp2]))
         self.envi = np.append(self.envi,np.array([envi1,envi2]))
         self.r_i = np.append(self.r_i,np.array([r_i_1, r_i_2]))
-        
-spec = Species(sat_carbon_par)   
+    
+    def equi(self,light,i, pl = False):
+        return ches.equilibrium(light, self.species[:,i], self.carbon[i], pl = pl)
   
 def dwdt(W,t,species, I_in,carbon):
     """computes the derivative, either for one species or for two
@@ -119,7 +117,8 @@ def bound_growth(species, carbon,I_r ,P):
     E_star, C_star = equi_point(species, carbon,I_r)
     #print(timer()-start, "tim, equi")
     if C_star <1:
-        return None
+        print("printed by bound_growth",E_star, C_star)
+        #return None
     curl_C = lambda C: -r_i(C, E_star, species, P,carbon)
     curl_E = lambda E: r_i(C_star, E, species, P,carbon)
     #plotter(curl_C,C_star/2, C_star*2,accuracy = 15 )
@@ -130,9 +129,9 @@ def bound_growth(species, carbon,I_r ,P):
                                 carbon[1]))/(IM-Im)
     integrand_E = lambda I: curl_E(I)/(IM-Im)
     ave_C = quad(integrand_C, *I_r)[0]
-    
+    """
     if math.isnan(ave_C):
-        return None
+        return None"""
     ave_E = quad(integrand_E, *I_r)[0]
     integrand_stor = lambda I_y, I_x: integrand_C(I_x)*integrand_E(I_y)
     Im_fun = lambda x: Im
@@ -187,12 +186,3 @@ def diff(fun, tol = 0.001):
             print("possibly bad approximation in differentiation", fun)
         return np.average(delta_eps)
     return differential
-"""    
-start = timer()
-species, carbon,I_r = ches.gen_species(sat_carbon_par)
-
-
-a,b,c= bound_growth(species, carbon,I_r, 50)
-print(a,b,c)
-end = timer()
-print(end-start)"""
