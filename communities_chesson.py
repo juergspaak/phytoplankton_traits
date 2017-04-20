@@ -6,9 +6,8 @@ Created on Fri Jan  6 12:27:19 2017
 Generates random environments and checks whether this environment allows existence
 """
 import numpy as np
-from scipy.optimize import fsolve, brentq
+from scipy.optimize import brentq
 from numpy.random import uniform as uni
-import matplotlib.pyplot as plt
 from scipy.integrate import quad
 
 def sat_carbon_par(factor=2,Im = 50, IM = 200):
