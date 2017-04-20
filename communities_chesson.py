@@ -62,19 +62,22 @@ def gen_species(parameter_generator):
     
     returns:
         same values as parameter_generator"""
-    while True:
+    while True: #randomly generate species until they survive
         species, carbon,I_r = parameter_generator()
         Im, IM = I_r
         k = species[0]
-        sol0 = equilibrium(Im,species[:,0],carbon[0], True) # density, [g/m^2]
-        sol1 = equilibrium(Im,species[:,1],carbon[1], True) # density, [g/m^2]
-        if 200<sol0<1e5 and 200<sol1<1e5:
-            Sol0 = equilibrium(IM,species[:,0],carbon[0]) # density, [g/m^2]
-            Sol1 = equilibrium(IM,species[:,1],carbon[1]) # density, [g/m^2]
-            abso0 = k[0]*np.array([sol0,Sol0])
-            abso1 = k[1]*np.array([sol1,Sol1])
+        equis = [0,0,0,0]
+        equis[0] = equilibrium(Im,species[:,0],carbon[0]) # density, [g/m^2]
+        equis[1] = equilibrium(Im,species[:,1],carbon[1]) # density, [g/m^2]
+        equis[2] = equilibrium(IM,species[:,0],carbon[0]) # density, [g/m^2]
+        equis[3] = equilibrium(IM,species[:,1],carbon[1]) # density, [g/m^2]
+        if min(equis)>200 and max(equis)<1e5: #do species survive in monoculture?
+            abso0 = k[0]*np.array([equis[0],equis[2]])
+            abso1 = k[1]*np.array([equis[1],equis[3]])
             if not ((abso0<abso1).all() or (abso0>abso1).all()):
+                #are different species superior at different light regimes?
                 if 1.1*Im<find_balance(species, carbon, [Im, IM])<0.9*IM:
+                    #is it more or less balanced?
                     return species, carbon, np.array([Im,IM])
                   
 def equilibrium(I_in,species,carbon, approx = False):
@@ -84,18 +87,19 @@ def equilibrium(I_in,species,carbon, approx = False):
     k,l = species[[0,-1]]
     growth = lambda W: quad((lambda I: carbon(I)/(I*k)),
                             I_in*np.exp(-k*W),I_in)[0]-l*W #should be zero at equilibrium
-    growth_prime = lambda W: [carbon(I_in*np.exp(-k*W))-l] #dgrowth/dW
     
     start_value = quad((lambda I: carbon(I)/(I*k)),0,I_in)[0]/l #start value assumes I_out = 0
-    #plotter(growth, 0,3*start_value,accuracy  = 50)
     if approx: return start_value #faster, but might be wrong in certain cases
     try:
-        return brentq(growth, start_value/2, 2*start_value) #finds W^*
+        return brentq(growth, start_value/1.5, 1.5*start_value, xtol = 1e-3) #finds W^*
     except ValueError:#there is most likely no equilibrium point for this species
-        #this however might miss some zeros, to fix this you could try fsolve additionally
-        return 0
+        for i in range(20):
+            start_value = quad((lambda I: carbon(I)/(I*k)),\
+                    I_in*np.exp(-start_value*k),I_in)[0]/l#iterative search for equilibrium
+            if np.abs(growth(start_value))<1e-3:
+                return start_value
+        return np.nan #species seems not to be able to survive
 
-    
 def I_out(I_in, species, carbon):
     """computes the outcoming light at equilibrium"""
     k = species[0]
