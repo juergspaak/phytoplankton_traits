@@ -9,6 +9,7 @@ import numpy as np
 import math
 from scipy.integrate import quad,odeint
 import communities_chesson as ches
+import storage_effect as stor
 
 class Species:
     """generates a pair of species
@@ -115,17 +116,13 @@ def bound_growth(species, carbon,I_r ,P):
     returns deltaC, delta E, r_i = deltaE-deltaC
     
     delta E is assumed to be very small"""
-    start = timer()
     E_star, C_star = equi_point(species, carbon,I_r)
-    #print(timer()-start, "tim, equi")
     if C_star <1:
         print("printed by bound_growth",E_star, C_star)
-        #return None
+
     curl_C = lambda C: -r_i(C, E_star, species, P,carbon)
     curl_E = lambda E: r_i(C_star, E, species, P,carbon)
-    #plotter(curl_C,C_star/2, C_star*2,accuracy = 15 )
-    #plt.figure()
-    #plotter(curl_E,50, 200,accuracy = 15 )
+    
     Im, IM = I_r
     integrand_C = lambda I: curl_C(ches.equilibrium(I, species[:,1], 
                                 carbon[1]))/(IM-Im)
@@ -142,48 +139,4 @@ def bound_growth(species, carbon,I_r ,P):
     gamma =  0#gamma_fun(lambda C,E: r_i(C,E,species, P))(C_star, E_star)
     return ave_C, ave_E,ave_E-ave_C
     
-def gamma_fun(fun, tol = 0.01):
-    """computes the gamma, the additivity of fun
-    
-    this is done by numerical differentiation, unstable for most functions"""
-    def differential(x,y):
-        err = 1
-        max_eps = 0.1
-        while err>tol and max_eps>1e-3:
-            eps = np.random.uniform(-max_eps, max_eps, [1000,2])
-            delta_eps = [(fun(x+e[0],y+e[1])-fun(x+e[0],y)-fun(x,y+e[1])
-                        +fun(x,y))/(e[0]*e[1]) for e in eps]
-            err = max(1-np.percentile(delta_eps,90)/np.average(delta_eps),
-                      1-np.percentile(delta_eps,10)/np.average(delta_eps))
-            print(np.percentile(delta_eps, 5), np.percentile(delta_eps, 95), max_eps)
-            eps = np.random.uniform(-max_eps, max_eps, [500,2])
-            delta_eps = [(fun(x+e[0],y+e[1])-fun(x+e[0],y)-fun(x,y+e[1])
-                        +fun(x,y))/(e[0]*e[1]) for e in eps]
-            err = max(1-np.percentile(delta_eps,90)/np.average(delta_eps),
-                      1-np.percentile(delta_eps,10)/np.average(delta_eps))
-            print(np.percentile(delta_eps, 5), np.percentile(delta_eps, 95), max_eps)
-            max_eps /=2
-        if max_eps<1e-2:
-            e = eps[0]
-            print("possibly bad approximation in differentiation", fun, 
-                  (fun(x+e[0],y+e[1])-fun(x+e[0],y)-fun(x,y+e[1])+fun(x,y)),
-                  (e[0]*e[1]), "av",np.average(delta_eps), max(delta_eps))
-        return np.average(delta_eps)
-    return differential
-    
-    
-def diff(fun, tol = 0.001):
-    """computes the derivative of the function fun"""
-    def differential(x):
-        err = 1
-        max_eps = 0.01
-        while err>tol and max_eps>1e-10:
-            eps = np.random.uniform(-max_eps, max_eps, 10)
-            delta_eps = [(fun(x+eps_i)-fun(x))/eps_i for eps_i in eps]
-            
-            err = 1-min(delta_eps)/max(delta_eps)
-            max_eps /=2
-        if max_eps<1e-10:
-            print("possibly bad approximation in differentiation", fun)
-        return np.average(delta_eps)
-    return differential
+

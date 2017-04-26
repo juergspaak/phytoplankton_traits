@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "./test_cluster.py", line 5, in <module>
+    import communities_chesson as ches
+  File "/home/users/j/s/jspaak/3_Programs/communities_chesson.py", line 11, in <module>
+    import matplotlib.pyplot as plt
+  File "/usr/local/Software/Python/3.5.1-foss-2016a/lib/python3.5/site-packages/matplotlib/pyplot.py", line 36, in <module>
+    from matplotlib.figure import Figure, figaspect
+  File "/usr/local/Software/Python/3.5.1-foss-2016a/lib/python3.5/site-packages/matplotlib/figure.py", line 40, in <module>
+    from matplotlib.axes import Axes, SubplotBase, subplot_class_factory
+  File "/usr/local/Software/Python/3.5.1-foss-2016a/lib/python3.5/site-packages/matplotlib/axes/__init__.py", line 4, in <module>
+    from ._subplots import *
+  File "/usr/local/Software/Python/3.5.1-foss-2016a/lib/python3.5/site-packages/matplotlib/axes/_subplots.py", line 10, in <module>
+    from matplotlib.axes._axes import Axes
+  File "/usr/local/Software/Python/3.5.1-foss-2016a/lib/python3.5/site-packages/matplotlib/axes/_axes.py", line 38, in <module>
+    import matplotlib.tri as mtri
+  File "/usr/local/Software/Python/3.5.1-foss-2016a/lib/python3.5/site-packages/matplotlib/tri/__init__.py", line 9, in <module>
+    from .triangulation import *
+  File "/usr/local/Software/Python/3.5.1-foss-2016a/lib/python3.5/site-packages/matplotlib/tri/triangulation.py", line 7, in <module>
+    import matplotlib._qhull as _qhull
+ImportError: libqhull.so.5: cannot open shared object file: No such file or directory
+
+real	0m2.970s
+user	0m0.767s
+sys	0m1.187s
