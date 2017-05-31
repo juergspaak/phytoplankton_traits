@@ -24,7 +24,7 @@ k = lambda lam: np.array([k_green(lam), k_red(lam)])
 
 l = np.array([0.014,0.014])  #specific loss rate [h^-1]
 
-phi = 10**6*np.array([1.6,1.6])   # photosynthetic efficiency [fl*mumol^-1]
+phi = 10**6*np.array([2.2,1.6])   # photosynthetic efficiency [fl*mumol^-1]
 zm = 7.7          #total depth [m]
 N = np.array([1,1]) # density [fl*cm^-3]
 I_in_prev = lambda t,l: 1
@@ -87,7 +87,7 @@ def outcoming_light(N,t, absor = 'both'):
 
     
 ################## function not using taylor expansion (most exact)
-def growth(N, t, absor):
+def growth(N, t, absor, lux = 40):
     """computes the growth of both species
     
     absor can be 'both', i.e. both species absorb or an integre (0 or 1)
@@ -98,7 +98,8 @@ def growth(N, t, absor):
     else: 
         abs_fun = lambda lam: (N*k(lam))[absor] #only take the absorbing one
     #plotter(abs_fun,400,700)
-    integrand = lambda lam, col: I_in(t,lam)*k(lam)[col]/abs_fun(lam)*\
+    I_in = lambda lam: lux/300
+    integrand = lambda lam, col: I_in(lam)*k(lam)[col]/abs_fun(lam)*\
                             (1-math.exp(-abs_fun(lam)*zm))
     gamma0 = quad(lambda lam: integrand(lam,0), 400,700)[0]
     gamma1 = quad(lambda lam: integrand(lam,1), 400,700)[0]

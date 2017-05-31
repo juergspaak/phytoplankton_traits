@@ -9,7 +9,7 @@ import numpy as np
 import math
 from scipy.integrate import quad,odeint
 import communities_chesson as ches
-import storage_effect as stor
+import Storage_effect as stor
 
 class Species:
     """generates a pair of species
