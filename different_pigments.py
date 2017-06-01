@@ -11,13 +11,12 @@ import numpy as np
 
 from scipy.integrate import simps
 from scipy.spatial import ConvexHull
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from timeit import default_timer as timer
 
 import help_functions_chesson as ches
 
-def pigments_distance(pigs, ratio, relfit,I_in = None, approx = True):
+def pigments_distance(pigs, ratio, relfit,I_in = None, approx = False
+                      ,avefit = 1.36e8):
     """checks invasion possibility of a species with given pigs, ratio and fit
     
     Parameters:
@@ -60,7 +59,7 @@ def pigments_distance(pigs, ratio, relfit,I_in = None, approx = True):
 
     if approx: # simplified version
         return simps(rel_abs, dx = dx, axis = 0)
-    f1 = 10**6/0.014*np.ones(relfit.shape)    #fitnes of resident species
+    f1 = avefit/np.sqrt(relfit)    #fitnes of resident species
     equis = equilibrium([ches.k_green, ches.k_red], ratio,f1)#equilibrium of res
     # (N_equi*f1)*denominator
     expon = np.einsum('rf,xr->xrf',np.einsum('rf,f->rf', equis,f1),denominator)
@@ -115,7 +114,7 @@ def equilibrium(pigs, ratio, fit):
     if np.amin(equi)<1:
         print("Warning, not all resident species have a equilibrium "+
               "denity above 1")
-        equi[equis<1] = np.nan  
+        equi[equi<1] = np.nan  
 
     return equi
     
@@ -145,29 +144,3 @@ def coex_hul(invade, ratio, fit):
     points = [[ratio[i], ratio[j], fit[k]] for i,j,k in zip(*coex_trip)]
     return ConvexHull(points)
     
-fit = 2**np.linspace(-1,1,11)
-ratio = np.linspace(0,1,10)
-equis = equilibrium([ches.k_green, ches.k_red], ratio,10**6/0.014*np.ones(len(fit)))
-print(timer()-start)
-a = pigments_distance([ches.k_green, ches.k_red], ratio,fit,approx = False)
-print(timer()-start) 
-
-fig = plt.figure()
-Y,X = np.meshgrid(fit, ratio)
-ax = fig.gca(projection = '3d')
-ax.plot_surface(X,Y,equis)
-fig = plt.figure()
-ax = fig.gca()
-print(np.amin(a))
-
-plt.imshow(a[0], interpolation = 'bicubic')
-plt.colorbar()
-coex_trip = np.where(a>0)
-points = [[ratio[i], ratio[j], fit[k]] for i,j,k in zip(*coex_trip)]
-xs = np.array([ratio[i] for i in coex_trip[0]])
-ys = np.array([ratio[i] for i in coex_trip[1]])
-zs = np.array([fit[i] for i in coex_trip[2]])
-fig = plt.figure()
-ax = fig.add_subplot(111,projection= '3d')
-ax.scatter(xs,ys,np.log(zs),s = 1)
-
