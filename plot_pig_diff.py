@@ -3,11 +3,12 @@ import help_functions_chesson as ches
 import different_pigments as dpig
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from scipy.signal import convolve2d
 from timeit import default_timer as timer
 
 #parameters for the run
-fit = 2**np.linspace(-1,1,100)
-ratio = np.linspace(0,1,50)
+fit = 2**np.linspace(-1,1,101)
+ratio = np.linspace(0,1,101)
 avefit = 1.38e8
 abs_fit = avefit/np.sqrt(fit)
 
@@ -55,17 +56,18 @@ ax.set_xlim(0,1)
 ax.set_ylim(0,1)"""
 
 #to save the maximum values for fitness
-maxz = len(fit)*np.ones([len(ratio), len(ratio),2])
+zval = (len(fit)-1)/2*np.ones([len(ratio), len(ratio),2])
+no_coex = np.nan*np.ones([len(ratio), len(ratio)])
 co = coex.T
 for i in range(len(ratio)):
     for j in range(len(ratio)):
         try: 
-            maxz[i,j,0] = np.amin(co[np.logical_and(co[:,0]==i, co[:,1]==j)][:,2])
-            maxz[i,j,1] = np.amax(co[np.logical_and(co[:,0]==i, co[:,1]==j)][:,2])
+            zval[i,j,0] = np.amin(co[np.logical_and(co[:,0]==i, co[:,1]==j)][:,2])
+            zval[i,j,1] = np.amax(co[np.logical_and(co[:,0]==i, co[:,1]==j)][:,2])
         except ValueError:
-            pass
+            no_coex[i,j] = 0
 
-maxz = maxz.astype(int)        
+zval = zval.astype(int)        
 fit = np.append(fit, np.nan)
 fig = plt.figure(figsize = (7,7))
 X,Y = np.meshgrid(ratio, ratio)
@@ -75,11 +77,22 @@ ax = fig.gca(projection = '3d')
 ax.set_xlabel('ratio invader')
 ax.set_ylabel('ratio resident')
 ax.set_zlabel('relative fitness (log)')
-ax.set_zlim(np.amin(np.percentile(np.log(zs),2)), np.amax(np.percentile(np.log(zs),98)))
+#ax.set_zlim(np.amin(np.percentile(np.log(zs),2)), np.amax(np.percentile(np.log(zs),98)))
 ax.set_xlim(0,1)
 ax.set_ylim(0,1)
-#ax.plot_wireframe(X,Y,np.zeros(X.shape),color='red', rstride = 5, cstride = 5)
-ax.plot_wireframe(X,Y,np.log(np.array([fit[i] for i in maxz[:,:,0]])), 
+zmin = np.log(np.array([fit[i] for i in zval[:,:,0]]))
+convzmin = convolve2d(zmin, np.ones([3,3]), boundary = 'symm')[1:-1, 1:-1]
+zmax = np.log(np.array([fit[i] for i in zval[:,:,1]]))
+convzmax = convolve2d(zmax, np.ones([3,3]), boundary = 'symm')[1:-1, 1:-1]
+eq = convzmax.copy()
+eq[convzmax-convzmin>0.01] = np.nan
+print(convzmax.shape, zs.shape)
+
+ax.plot_wireframe(X,Y,convzmin/9, 
                      color = 'green', rstride = 5, cstride = 5)
-ax.plot_wireframe(X,Y,np.log(np.array([fit[i] for i in maxz[:,:,1]]))
-                , rstride = 5, cstride = 5)
+ax.plot_wireframe(X,Y,convzmax/9
+                , rstride = 5, cstride = 5, color = 'blue')
+ax.plot_wireframe(X,Y,eq/9, linewidth = 3
+                , rstride = 5, cstride = 5, color = 'red')
+#ax.plot_wireframe(X,Y,no_coex,color='red', 
+#                       rstride = 5, cstride = 5)
