@@ -8,15 +8,15 @@ from timeit import default_timer as timer
 from scipy.integrate import simps
 
 #parameters for the run
-npoints = 101
+npoints = 51
 fit = 2**np.linspace(-1,1,npoints) #uniform distributionin logspace
 ratio = np.linspace(0,1,npoints)
 avefit = 1.38e8
 abs_fit = avefit/np.sqrt(fit)
 
-def plt_equi():
+def plt_equi(pigs):
     #plot equilibrium data
-    equis = dpig.equilibrium([ches.k_green, ches.k_red], ratio,abs_fit)
+    equis = dpig.equilibrium(pigs, ratio,abs_fit)
     fig = plt.figure(figsize = (7,7))
     X,Y = np.meshgrid(np.log(abs_fit), ratio)
     ax = fig.gca(projection = '3d')
@@ -24,7 +24,7 @@ def plt_equi():
     ax.set_xlabel('ratio of pig 1')
     ax.set_ylabel('Fitness (log)')
     ax.set_zlabel('Equilibrium density')
-    
+
 def smooth(mat,sig=1):
     """Make a gaussian kernel, e^(-|x|^2/sig**2)"""
     if sig == 0: #no convolution
@@ -34,10 +34,10 @@ def smooth(mat,sig=1):
     kern = np.exp(-((x-0.5)**2+(y-0.5)**2)/(2*sig))
     return convolve2d(mat, kern/kern.sum(), boundary = 'symm', mode = 'same')
 
-def pig_diff_points(avefit = avefit):
+def pig_diff_points(pigs, avefit = avefit):
 
     #compute pigment distance
-    pd = dpig.pigments_distance([ches.k_green, ches.k_red], ratio,fit
+    pd = dpig.pigments_distance(pigs, ratio,fit
                                 ,approx = False,avefit = avefit)
     coex_trip = np.where(pd>0) #case where invasion is possible
     nocoex_trip = np.where(pd<0) #no coexistence possible
@@ -86,10 +86,12 @@ def min_max_pig_diff(xs,ys,zs,coex, sig= 0.0005):
     convzmin = smooth(zmin,sig)
     zmax = np.log(np.array([fit[i] for i in zval[:,:,1]]))
     convzmax = smooth(zmax,sig)
-    print(np.amax(zmax), np.amax(convzmax))
+    print("convolution error:",np.amax(zmax), np.amax(convzmax))
     return convzmin, convzmax
 
-def plt_pig_diff(convzmin, convzmax):
+def plt_pig_diff(convzmin = None, convzmax = None, pigs = None):
+    if convzmin is None:
+        convzmin, convzmax = min_max_pig_diff(*pig_diff_points(pigs))
     fig = plt.figure(figsize = (7,7))
     X,Y = np.meshgrid(ratio, ratio)
     ax = fig.gca(projection = '3d')
@@ -106,22 +108,34 @@ def plt_pig_diff(convzmin, convzmax):
     eq[convzmax-convzmin>0.01] = np.nan
     
     
-    ax.plot_wireframe(X,Y,convzmin, linewidth = 1,
+    ax.plot_wireframe(Y,X,convzmin, linewidth = 1,
                      color = 'green', rstride = 5, cstride = 5)
-    ax.plot_wireframe(X,Y,convzmax, linewidth = 1
+    ax.plot_wireframe(Y,X,convzmax, linewidth = 1
                 , rstride = 5, cstride = 5, color = 'blue')
-    ax.plot_wireframe(X,Y,eq, linewidth = 3
+    ax.plot_wireframe(Y,X,eq, linewidth = 3
                 , rstride = 5, cstride = 5, color = 'red')
 
-def volume_pig_diff(zmin,zmax):
+def volume_pig_diff(zmin = None,zmax = None, pigs = None, percent = True):
+    if zmin is None:
+        zmin, zmax = min_max_pig_diff(*pig_diff_points(pigs))
     volsimp = simps(zmax-zmin,dx = 1/(zmax.shape[0]-1))
     volsimp = simps(volsimp,dx = 1/(zmax.shape[0]-1))
+    if percent:
+        return volsimp/(2*np.log(2))
     return volsimp
-start = timer()
-xs,ys,zs,coex = pig_diff_points()
-print(timer()-start, " compute points")
-zmin, zmax = min_max_pig_diff(xs,ys,zs,coex)
-print(timer()-start, "find min, max") 
-plt_pig_diff(zmin, zmax)
-print(timer()-start, "plotting")
-print(volume_pig_diff(zmin, zmax))
+    
+coex_vol = []
+for pig in dpig.pigs:
+    for pig2 in dpig.pigs:
+        if pig ==pig2:
+            continue
+        print("new couple")
+        start = timer()
+        xs,ys,zs,coex = pig_diff_points([pig, pig2])
+        print(timer()-start, " compute points")
+        zmin, zmax = min_max_pig_diff(xs,ys,zs,coex)
+        print(timer()-start, "find min, max") 
+        #plt_pig_diff(zmin, zmax)
+        print(timer()-start, "plotting")
+        coex_vol.append(volume_pig_diff(zmin, zmax))
+print(coex_vol)
