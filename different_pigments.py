@@ -7,11 +7,12 @@ Assumptions: z_m = 1, Sum(\alpha_i)=1
 """
 
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 from scipy.integrate import simps
 from scipy.spatial import ConvexHull
 from timeit import default_timer as timer
+from scipy.interpolate import interp1d
 
 import help_functions_chesson as ches
 
@@ -104,7 +105,7 @@ def equilibrium(pigs, ratio, fit):
                         np.einsum('rf,rx->rfx',N_fit,absor(ratio, lam))))
     #iteratively search for equilibrium, start at infinity
     equi = np.infty*np.ones([len(ratio), len(fit)])
-    for i in range(50):
+    for i in range(25):
         # N*fit
         N_fit = np.einsum('rf,f->rf', equi,fit)
         #compute the function values
@@ -144,3 +145,24 @@ def coex_hul(invade, ratio, fit):
     points = [[ratio[i], ratio[j], fit[k]] for i,j,k in zip(*coex_trip)]
     return ConvexHull(points)
     
+def load_pigments(file,plot = False, mode = 'cubic'):
+
+    pig_data = np.genfromtxt("../2_Data/"+file, delimiter = ',').T
+    if plot:
+        fun = lambda lam: 10**-9*np.amax([interp1d(pig_data[0], pig_data[1],
+                                        mode)(lam),1e-16+0*lam], axis = 0)
+        x = np.linspace(400,700,100)
+        plt.plot(x,fun(x))
+    return lambda lam: 10**-9*np.amax([interp1d(pig_data[0], pig_data[1],
+                                        mode)(lam),1e-16+0*lam], axis = 0)
+    
+chlo_a  = load_pigments("Chlorophyll a.csv")
+chlo_b  = load_pigments("Chlorophyll b.csv")
+chlo_c  = load_pigments("Chlorophyll c.csv")
+chlo_d  = load_pigments("Chlorophyll d.csv")
+caro_a  = load_pigments("alpha-Carotene.csv")
+zeaxanthin  = load_pigments("Zeaxanthin.csv")
+phycocyanin  = load_pigments("Phycocyanin.csv")
+phycoerythrin  = load_pigments("Phycoerythrin.csv")
+pigs = [chlo_a, chlo_b, chlo_c, chlo_d, caro_a, zeaxanthin,
+        phycoerythrin,phycocyanin]
