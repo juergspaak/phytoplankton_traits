@@ -6,7 +6,8 @@ Generates parameters for the stomp model
 import numpy as np
 import matplotlib.pyplot as plt
 
-from scipy.integrate import odeint 
+from scipy.integrate import odeint
+
 
 import help_functions_chesson as ches_funs
 from help_functions_chesson import alpha
