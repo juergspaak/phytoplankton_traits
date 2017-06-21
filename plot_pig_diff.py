@@ -89,7 +89,7 @@ def min_max_pig_diff(xs,ys,zs,coex, sig= 0.0005):
     print("convolution error:",np.amax(zmax), np.amax(convzmax))
     return convzmin, convzmax
 
-def plt_pig_diff(convzmin = None, convzmax = None, pigs = None):
+def plt_pig_diff(convzmin = None, convzmax = None, pigs = None, vol = False):
     if convzmin is None:
         convzmin, convzmax = min_max_pig_diff(*pig_diff_points(pigs))
     fig = plt.figure(figsize = (7,7))
@@ -114,16 +114,22 @@ def plt_pig_diff(convzmin = None, convzmax = None, pigs = None):
                 , rstride = 5, cstride = 5, color = 'blue')
     ax.plot_wireframe(Y,X,eq, linewidth = 3
                 , rstride = 5, cstride = 5, color = 'red')
+    if vol:
+        volume_pig_diff(convzmin, convzmax)
+    
 
-def volume_pig_diff(zmin = None,zmax = None, pigs = None, percent = True):
+def volume_pig_diff(zmin = None,zmax = None, pigs = None, percent = True,
+                    pl = False):
     if zmin is None:
         zmin, zmax = min_max_pig_diff(*pig_diff_points(pigs))
     volsimp = simps(zmax-zmin,dx = 1/(zmax.shape[0]-1))
     volsimp = simps(volsimp,dx = 1/(zmax.shape[0]-1))
+    if pl:
+        plt_pig_diff(zmin, zmax)
     if percent:
         return volsimp/(2*np.log(2))
     return volsimp
-    
+"""    
 coex_vol = []
 for pig in dpig.pigs:
     for pig2 in dpig.pigs:
@@ -138,4 +144,4 @@ for pig in dpig.pigs:
         #plt_pig_diff(zmin, zmax)
         print(timer()-start, "plotting")
         coex_vol.append(volume_pig_diff(zmin, zmax))
-print(coex_vol)
+print(coex_vol)"""

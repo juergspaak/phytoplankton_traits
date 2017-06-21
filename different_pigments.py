@@ -145,7 +145,7 @@ def coex_hul(invade, ratio, fit):
     points = [[ratio[i], ratio[j], fit[k]] for i,j,k in zip(*coex_trip)]
     return ConvexHull(points)
     
-def load_pigments(file,plot = False, mode = 'cubic'):
+def load_pigments(file,plot = True, mode = 'linear'):
 
     pig_data = np.genfromtxt("../2_Data/"+file, delimiter = ',').T
     if plot:
@@ -164,5 +164,8 @@ caro_a  = load_pigments("alpha-Carotene.csv")
 zeaxanthin  = load_pigments("Zeaxanthin.csv")
 phycocyanin  = load_pigments("Phycocyanin.csv")
 phycoerythrin  = load_pigments("Phycoerythrin.csv")
+caro_a2 = load_pigments("alpha-Carotene2.csv")
+caro_b = load_pigments("beta-Carotene.csv")
+lycopene = load_pigments("lycopene.csv")
 pigs = [chlo_a, chlo_b, chlo_c, chlo_d, caro_a, zeaxanthin,
         phycoerythrin,phycocyanin]
