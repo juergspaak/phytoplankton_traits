@@ -16,6 +16,96 @@ from scipy.interpolate import interp1d
 
 import help_functions_chesson as ches
 
+def multispecies_equi_single(pigs, fits):
+    equis = 1e20*np.ones(len(fits)) # start of iteration
+    lam, dx = np.linspace(400,700,101, retstep  = True) # points for integration
+    
+    # k_j(lam), shape = (len(fits), len(lam))
+    abs_points = np.array([pig(lam) for pig in pigs])
+    for i in range(5000):
+        equis_old = equis.copy()
+        # sum_j(N_j*k_j(lam)), shape = (len(lam),)
+        tot_abs = np.einsum('n,nl->l', equis, abs_points)
+        # N_j*k_j(lam), shape = (len(fits), len(lam))
+        all_abs = np.einsum('n,nl->nl', equis, abs_points)
+
+        # N_j*k_j(lam)/sum_j(N_j*k_j)*(1-e^(-sum_j(N_j*k_j))), shape =(len(fits), len(lam))
+        y_simps = np.einsum('nl,l->nl', all_abs, (1-np.exp(-tot_abs))/tot_abs)
+        # fit*int(y_simps)
+        equis = fits*simps(y_simps, dx = dx)
+        equis[equis<1] = 0
+
+    return equis, equis_old
+    
+def multispecies_equi_randfit(pigs, itera = int(2e5),runs = 100, av_fit =1.4e8,
+                        pow_fit = 2, per_fix = True):
+    """Compute the equilibrium density for several species with its pigments
+    
+    Computes `itera` randomly selected communities, each community contains
+    at most len(`pigs`) different species. Returns equilibrium densities
+    for each community.
+    
+    Parameters
+    ----------
+    pigs : list of functions
+        Each element `pig` of pigs must be the absorption spectrum of that 
+        pigment. Each `pig` must be a function that returns a float
+    itera : int, optional
+        number of generated communities
+    runs : int, optional
+        number of iterations to find equilibrium
+    av_fit: float, optional
+        Average fitness of all species
+    pow_fix: float, optional
+        Fitness of each species ill be in [1/pow_fit, pow_fit]*av_fit
+    per_fix: Bool, optional
+        Percent of fixed species is printed if True
+        
+    Returns
+    -------
+    equis:
+        Equilibrium densitiy of all species, that reached equilibrium
+    """
+    # total number of species
+    npi = len(pigs)
+    # asign a fitness to all species, shape = (npi, itera)
+    fitness = 2**np.random.uniform(-1,1,[npi, itera])*1.4e8
+    # not all species are present in all communities
+    pres = np.random.binomial(1, 0.8, [npi, itera])
+    fitness = pres*fitness
+    # starting densities for iteration, shape = (npi, itera)
+    equis = 1e20*np.ones([npi, itera]) # start of iteration
+    
+    lam, dx = np.linspace(400,700,101, retstep  = True) #points for integration
+    # k_j(lam), shape = (len(fits), len(lam))
+    abs_points = np.array([pig(lam) for pig in pigs])
+    
+    for i in range(runs):
+        if i == runs-1:
+            #save previous values in final run to see whether equilibrium has 
+            #been reached
+            equis_old = equis.copy()
+        if i%10==0: #prograss report
+            print(i)
+            
+        # sum_j(N_j*k_j(lam)), shape = (len(lam),itera)
+        tot_abs = np.einsum('ni,nl->li', equis, abs_points)
+        # N_j*k_j(lam), shape = (npi, len(lam), itera)
+        all_abs = np.einsum('ni,nl->nli', equis, abs_points)
+        # N_j*k_j(lam)/sum_j(N_j*k_j)*(1-e^(-sum_j(N_j*k_j))), shape =(npi, len(lam), itera)
+        y_simps = np.einsum('nli,li->nli', 
+                            all_abs, (1-np.exp(-tot_abs))/tot_abs)
+        # fit*int(y_simps)
+        equis = fitness*simps(y_simps, dx = dx, axis =1)
+        # remove rare species
+        equis[equis<1] = 0
+    # exclude the species that have not yet found equilibrium, avoid nan
+    stable = np.logical_or(equis == 0,(equis-equis_old)/equis_old<0.0001)
+    equis = stable*equis
+    
+    #group the species that belong into one community
+    return np.array([equis[i].reshape(-1) for i in range(len(equis))]).T
+    
 def pigments_distance(pigs, ratio, relfit,I_in = None, approx = False
                       ,avefit = 1.36e8):
     """checks invasion possibility of a species with given pigs, ratio and fit
@@ -138,34 +228,10 @@ def check_pig_dif(ratios, relfit):
     diff_check = quad(inte,400,700)[0]
     diff = pigments_distance(pigs, np.array(ratios), np.array([relfit]), approx = False)
     return diff[1,0]-diff_check<0.01
-
-   
-def coex_hul(invade, ratio, fit):
-    coex_trip = np.where(invade>1e-3)
-    points = [[ratio[i], ratio[j], fit[k]] for i,j,k in zip(*coex_trip)]
-    return ConvexHull(points)
     
-def load_pigments(file,plot = True, mode = 'linear'):
+def load_pig(n):
+    pig_data = (np.genfromtxt("../2_Data/myfile2.csv", delimiter = ',').T)[n]
+    lams = np.linspace(400,700,151)
+    return lambda lam: 10**-7*interp1d(lams, pig_data)(lam)
 
-    pig_data = np.genfromtxt("../2_Data/"+file, delimiter = ',').T
-    if plot:
-        fun = lambda lam: 10**-9*np.amax([interp1d(pig_data[0], pig_data[1],
-                                        mode)(lam),1e-16+0*lam], axis = 0)
-        x = np.linspace(400,700,100)
-        plt.plot(x,fun(x))
-    return lambda lam: 10**-9*np.amax([interp1d(pig_data[0], pig_data[1],
-                                        mode)(lam),1e-16+0*lam], axis = 0)
-    
-chlo_a  = load_pigments("Chlorophyll a.csv")
-chlo_b  = load_pigments("Chlorophyll b.csv")
-chlo_c  = load_pigments("Chlorophyll c.csv")
-chlo_d  = load_pigments("Chlorophyll d.csv")
-caro_a  = load_pigments("alpha-Carotene.csv")
-zeaxanthin  = load_pigments("Zeaxanthin.csv")
-phycocyanin  = load_pigments("Phycocyanin.csv")
-phycoerythrin  = load_pigments("Phycoerythrin.csv")
-caro_a2 = load_pigments("alpha-Carotene2.csv")
-caro_b = load_pigments("beta-Carotene.csv")
-lycopene = load_pigments("lycopene.csv")
-pigs = [chlo_a, chlo_b, chlo_c, chlo_d, caro_a, zeaxanthin,
-        phycoerythrin,phycocyanin]
+funs = [load_pig(i) for i in range(29)]

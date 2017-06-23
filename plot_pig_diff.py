@@ -112,7 +112,7 @@ def plt_pig_diff(convzmin = None, convzmax = None, pigs = None, vol = False):
                      color = 'green', rstride = 5, cstride = 5)
     ax.plot_wireframe(Y,X,convzmax, linewidth = 1
                 , rstride = 5, cstride = 5, color = 'blue')
-    ax.plot_wireframe(Y,X,eq, linewidth = 3
+    ax.plot_wireframe(Y,X,eq, linewidth = 2
                 , rstride = 5, cstride = 5, color = 'red')
     if vol:
         volume_pig_diff(convzmin, convzmax)
