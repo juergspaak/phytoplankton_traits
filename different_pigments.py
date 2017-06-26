@@ -37,8 +37,8 @@ def multispecies_equi_single(pigs, fits):
 
     return equis, equis_old
     
-def multispecies_equi_randfit(pigs, itera = int(2e5),runs = 100, av_fit =1.4e8,
-                        pow_fit = 2, per_fix = True):
+def multispecies_equi_randfit(pigs, itera = int(1e4),runs = 100, av_fit =1.4e8,
+                        pow_fit = 2, per_fix = True, sing_pig = True):
     """Compute the equilibrium density for several species with its pigments
     
     Computes `itera` randomly selected communities, each community contains
@@ -60,6 +60,9 @@ def multispecies_equi_randfit(pigs, itera = int(2e5),runs = 100, av_fit =1.4e8,
         Fitness of each species ill be in [1/pow_fit, pow_fit]*av_fit
     per_fix: Bool, optional
         Percent of fixed species is printed if True
+    sing_pig: Bool, optional
+        Determines if species have only one pigment. If False, species 
+        absorption spectrum will be a sum of different pigments        
         
     Returns
     -------
@@ -79,7 +82,17 @@ def multispecies_equi_randfit(pigs, itera = int(2e5),runs = 100, av_fit =1.4e8,
     lam, dx = np.linspace(400,700,101, retstep  = True) #points for integration
     # k_j(lam), shape = (len(fits), len(lam))
     abs_points = np.array([pig(lam) for pig in pigs])
+    str_abs = 'nl'
     
+    if not sing_pig:
+        # how much of which pigment is in which species, shape = (npi, npi, itera)
+        alpha = np.random.uniform(size = [npi, npi, itera])
+        #sum of all coefficients must be 1
+        alpha = np.einsum('nki,ni->nki',alpha, 1/np.sum(alpha,1))
+        # sum_j(a_ij*k_j(lam)), shape = (npi, len(lam), itera)
+        abs_points = np.einsum('nki, kl->nli', alpha, abs_points)
+        str_abs = 'nli'
+ 
     for i in range(runs):
         if i == runs-1:
             #save previous values in final run to see whether equilibrium has 
@@ -88,10 +101,10 @@ def multispecies_equi_randfit(pigs, itera = int(2e5),runs = 100, av_fit =1.4e8,
         if i%10==0: #prograss report
             print(i)
             
-        # sum_j(N_j*k_j(lam)), shape = (len(lam),itera)
-        tot_abs = np.einsum('ni,nl->li', equis, abs_points)
+        # sum_i(N_i*sum_j(a_ij*k_j(lam)), shape = (len(lam),itera)
+        tot_abs = np.einsum('ni,'+str_abs+'->li', equis, abs_points)
         # N_j*k_j(lam), shape = (npi, len(lam), itera)
-        all_abs = np.einsum('ni,nl->nli', equis, abs_points)
+        all_abs = np.einsum('ni,'+str_abs+'->nli', equis, abs_points)
         # N_j*k_j(lam)/sum_j(N_j*k_j)*(1-e^(-sum_j(N_j*k_j))), shape =(npi, len(lam), itera)
         y_simps = np.einsum('nli,li->nli', 
                             all_abs, (1-np.exp(-tot_abs))/tot_abs)
@@ -101,10 +114,16 @@ def multispecies_equi_randfit(pigs, itera = int(2e5),runs = 100, av_fit =1.4e8,
         equis[equis<1] = 0
     # exclude the species that have not yet found equilibrium, avoid nan
     stable = np.logical_or(equis == 0,(equis-equis_old)/equis_old<0.0001)
+    if per_fix:
+        print("percent of fixed species:", np.sum(stable)/stable.size)
     equis = stable*equis
     
     #group the species that belong into one community
-    return np.array([equis[i].reshape(-1) for i in range(len(equis))]).T
+    return np.array([equis[i].reshape(-1) for i in range(len(equis))]).T,(1-np.exp(-tot_abs))
+    
+def plt_coex(equis):
+    spec_num = [np.count_nonzero(i) for i in equis]
+    plt.plot(np.linspace(0,100, len(spec_num)),sorted(spec_num))
     
 def pigments_distance(pigs, ratio, relfit,I_in = None, approx = False
                       ,avefit = 1.36e8):
