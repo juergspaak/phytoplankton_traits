@@ -10,11 +10,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.integrate import simps
-from scipy.spatial import ConvexHull
 from timeit import default_timer as timer
 from scipy.interpolate import interp1d
-
-import help_functions_chesson as ches
 
 def multispecies_equi_single(pigs, fits):
     equis = 1e20*np.ones(len(fits)) # start of iteration
@@ -193,7 +190,7 @@ def pigments_distance(pigs, ratio, relfit,I_in = None, approx = False
     if approx: # simplified version
         return simps(rel_abs, dx = dx, axis = 0)
     f1 = avefit/np.sqrt(relfit)    #fitnes of resident species
-    equis = equilibrium([ches.k_green, ches.k_red], ratio,f1)#equilibrium of res
+    equis = equilibrium(pigs, ratio,f1)#equilibrium of res
     # (N_equi*f1)*denominator
     expon = np.einsum('rf,xr->xrf',np.einsum('rf,f->rf', equis,f1),denominator)
     # rel_abs*(1-np.exp(-expon))
@@ -254,7 +251,7 @@ def equilibrium(pigs, ratio, fit):
 from scipy.integrate import quad
 def check_pig_dif(ratios, relfit):
     """check whether pigments distance is done correct"""
-    pigs = [ches.k_green, ches.k_red]
+    pigs = funs[:2]
     equi = equilibrium(pigs, np.array([ratios[0]]), np.array([10**6/0.014]))[0,0]
     fun = lambda lam: 40/300*(1-np.exp(-equi*10**6/0.014*(ratios[0]*pigs[0](lam)+\
                                     (1-ratios[0])*pigs[1](lam))))
@@ -272,7 +269,8 @@ def check_pig_dif(ratios, relfit):
     return diff[1,0]-diff_check<0.01
     
 def load_pig(n):
-    pig_data = (np.genfromtxt("../2_Data/myfile2.csv", delimiter = ',').T)[n]
+    path = "../../2_Data/3. Different pigments/Pigs for python.csv"
+    pig_data = (np.genfromtxt(path, delimiter = ',').T)[n]
     lams = np.linspace(400,700,151)
     return lambda lam: 10**-7*interp1d(lams, pig_data)(lam)
 
