@@ -119,12 +119,35 @@ def multispecies_equi_randfit(pigs, itera = int(1e4),runs = 100, av_fit =1.4e8,
     equis = stable*equis
     
     #group the species that belong into one community
-    return np.array([equis[i].reshape(-1) for i in range(len(equis))]).T,(1-np.exp(-tot_abs))
+    return np.array([equis[i].reshape(-1) for i in range(len(equis))]).T
     
 def plt_coex(equis):
     spec_num = [np.count_nonzero(i) for i in equis]
     plt.plot(np.linspace(0,100, len(spec_num)),sorted(spec_num))
     
+def random_pigment_generator(n):
+    """randomly generates `n` absorption spectra
+    
+    n: number of absorption pigments to create
+    
+    Returns: pigs, a list of functions. Each function in pigs (`pigs[i]`) is
+    the absorption spectrum of this pigment.
+    `pig[i](lam)` = sum_peak(gamma*e^(-(lam-peak)**2/sigma)"""
+    #number of peaks for each pigment:
+    npeak = 2+np.random.randint(5,size = n)
+    # location of peaks
+    peak = [np.random.uniform(400,700,(1,npeak[i])) for i in range(n)]
+    # shape of peack
+    sigma = [np.random.uniform(50,800, size = (1,npeak[i])) for i in range(n)]
+    # magnitude of peak
+    gamma = [np.random.uniform(0,1, size = (1,npeak[i])) for i in range(n)]
+    pigs = []
+    for i in range(n):
+        pig = lambda lam, i = i: np.sum(gamma[i]*
+            np.exp(-(lam.reshape(lam.size,1)-peak[i])**2/sigma[i]),axis = 1)
+        pigs.append(pig)
+    return pigs
+
 def pigments_distance(pigs, ratio, relfit,I_in = None, approx = False
                       ,avefit = 1.36e8):
     """checks invasion possibility of a species with given pigs, ratio and fit
