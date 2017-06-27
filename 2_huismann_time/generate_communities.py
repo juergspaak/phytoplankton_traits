@@ -8,8 +8,6 @@ Generates random environments and checks whether this environment allows existen
 import numpy as np
 from scipy.optimize import fsolve
 from numpy.random import uniform as uni
-import matplotlib.pyplot as plt
-#from timeit import default_timer as timer
 
 def generate_com(light_range = True, light_m = 50, light_M = 200):
     """generates a community"""

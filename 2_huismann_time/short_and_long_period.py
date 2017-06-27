@@ -40,7 +40,7 @@ mp_approx_r_i:
 
 All these functions return r_i/P
     
-The times are given for low P, for large P, the time ca be reduced by the time
+The times are given for low P, for large P, the time can be reduced by the time
 of dist_resident, which is about 0.15"""
 
     

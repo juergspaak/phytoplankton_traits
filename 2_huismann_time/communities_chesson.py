@@ -1,14 +1,48 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri Jan  6 12:27:19 2017
+@author: J.W.Spaak
 
-@author: Jurg
-Generates random environments and checks whether this environment allows existence
+Generates random species
+
+`gen_species` returns two random species
+
+`sat_carbon_par`: rand. generate two species with saturating carbon uptake
+    functions
+`photoinhibition_par`: rand. generate two species with carbon uptake
+    functions that suffer from photoinhibition
+    
+`equilibrium` computes the equilibrium density of the species
+
+
 """
 import numpy as np
 from scipy.optimize import brentq
 from numpy.random import uniform as uni
 from scipy.integrate import quad
+
+def gen_species(parameter_generator):
+    """returns two species, for which dominance depends on I_in
+    
+    parameter_generator: sat_carbon_par or photoinhibition_par
+    
+    returns:
+        same values as parameter_generator"""
+    while True: #randomly generate species until they survive
+        species, carbon,I_r = parameter_generator()
+        Im, IM = I_r
+        k = species[0]
+        equis = [0,0,0,0]
+        equis[0] = equilibrium(Im,species[:,0],carbon[0]) # density, [g/m^2]
+        equis[1] = equilibrium(Im,species[:,1],carbon[1]) # density, [g/m^2]
+        equis[2] = equilibrium(IM,species[:,0],carbon[0]) # density, [g/m^2]
+        equis[3] = equilibrium(IM,species[:,1],carbon[1]) # density, [g/m^2]
+        if min(equis)>200 and max(equis)<1e5: #do species survive in monoculture?
+            abso0 = k[0]*np.array([equis[0],equis[2]])
+            abso1 = k[1]*np.array([equis[1],equis[3]])
+            if not ((abso0<abso1).all() or (abso0>abso1).all()):
+                #are different species superior at different light regimes?
+                if 1.1*Im<find_balance(species, carbon, [Im, IM])<0.9*IM:
+                    #is it more or less balanced?
+                    return species, carbon, np.array([Im,IM])
 
 def sat_carbon_par(factor=2,Im = 50, IM = 200):
     """ returns random parameters for the model
@@ -51,33 +85,7 @@ def photoinhibition_par(factor=2, Im = 100, IM = 500):
     carbon0 = lambda I: (I*p_max/(a*I**2+b*I+I_k))[0]
     carbon1 = lambda I: (I*p_max/(a*I**2+b*I+I_k))[1]
     carbon = [carbon0,carbon1]
-    return species, carbon, [Im, IM]               
-
-def gen_species(parameter_generator):
-    """returns two species, for which dominance depends on I_in
-    
-    parameter_generator shoul be a function that generates 2 species
-    gen_species only ensures, that the dominance depends on the incident light
-    
-    returns:
-        same values as parameter_generator"""
-    while True: #randomly generate species until they survive
-        species, carbon,I_r = parameter_generator()
-        Im, IM = I_r
-        k = species[0]
-        equis = [0,0,0,0]
-        equis[0] = equilibrium(Im,species[:,0],carbon[0]) # density, [g/m^2]
-        equis[1] = equilibrium(Im,species[:,1],carbon[1]) # density, [g/m^2]
-        equis[2] = equilibrium(IM,species[:,0],carbon[0]) # density, [g/m^2]
-        equis[3] = equilibrium(IM,species[:,1],carbon[1]) # density, [g/m^2]
-        if min(equis)>200 and max(equis)<1e5: #do species survive in monoculture?
-            abso0 = k[0]*np.array([equis[0],equis[2]])
-            abso1 = k[1]*np.array([equis[1],equis[3]])
-            if not ((abso0<abso1).all() or (abso0>abso1).all()):
-                #are different species superior at different light regimes?
-                if 1.1*Im<find_balance(species, carbon, [Im, IM])<0.9*IM:
-                    #is it more or less balanced?
-                    return species, carbon, np.array([Im,IM])
+    return species, carbon, [Im, IM]
                   
 def equilibrium(I_in,species,carbon, approx = False):
     """returns the equilibrium of species under light_0
@@ -99,15 +107,16 @@ def equilibrium(I_in,species,carbon, approx = False):
                 return start_value
         return np.nan #species seems not to be able to survive
 
-def I_out(I_in, species, carbon):
-    """computes the outcoming light at equilibrium"""
-    k = species[0]
-    return I_in*np.exp(-k*equilibrium(I_in, species, carbon))
-
 def find_balance(species, carbon,I_r):
     """finds the incoming light, at which both species have the same I_out*
-    species must be an array containg the parameters of two species, such that
-    one species dominates at I_in = 200 and the other at I_in = 50"""
+    
+    Parameters:
+        species: return value of *_par function such that one species dominates
+            at I_in = 200 and the other at I_in = 50
+            
+    Returns:
+        I_in: float
+        Incoming light at which nonstable coexistence occurs"""
     light_m, light_M = I_r
     I_in = light_m
     I_out = [0,0]
@@ -130,4 +139,7 @@ def find_balance(species, carbon,I_r):
         counter +=1
     return I_in
 
-      
+def I_out(I_in, species, carbon):
+    """computes the outcoming light at equilibrium"""
+    k = species[0]
+    return I_in*np.exp(-k*equilibrium(I_in, species, carbon))      

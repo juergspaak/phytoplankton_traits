@@ -25,6 +25,8 @@ def P_mp(P_ran = [-2,1], acc = 15):
     plt.loglog(Ps, mrs, '^')
     plt.loglog(Ps, mrs2, ':')
     plt.grid()
+    plt.ylabel("m")
+    plt.xlabel("period length")
     plt.legend(["exact", "asymptotic", "approx for large P"], loc = "best")
     return np.array([mps,mrs, mrs2])
   
