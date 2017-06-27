@@ -80,7 +80,7 @@ def equilibrium(pigs, ratio, fit, plot = False):
         ax.set_zlabel('Equilibrium density')
     return equi
     
-def invasion_success(pigs, ratio, relfit,I_in = None, approx = False
+def invasion_success(pigs, ratio, relfit, I_in = None, approx = False
                       ,avefit = 1.36e8):
     """checks invasion possibility of a species with given pigs, ratio and fit
     

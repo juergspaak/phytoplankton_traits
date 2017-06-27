@@ -95,7 +95,8 @@ def multispecies_equi(pigs, itera = int(1e4),runs = 100, av_fit =1.4e8,
     # exclude the species that have not yet found equilibrium, avoid nan
     stable = np.logical_or(equis == 0,(equis-equis_old)/equis_old<0.0001)
     if per_fix:
-        print("percent of fixed species:", np.sum(stable)/stable.size)
+        print("percent of species that reached equilibrium:",
+              np.sum(stable)/stable.size)
     equis = stable*equis
     
     #group the species that belong into one community

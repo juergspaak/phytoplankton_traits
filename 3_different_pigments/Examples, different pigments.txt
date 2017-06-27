@@ -1,0 +1,60 @@
+import load_pigments as pigments #contains pigments
+
+#first we analyse two pigments (run two_species_case)
+
+# load common pigments
+chlo_a = pigments.real[0] #chlorophyll a
+chlo_b = pigments.real[2] #chlorophyll b
+pycoer = pigments.real[5] #phycoerythrin
+pycocy = pigments.real[6] #phycocyanin
+pigs = [chlo_a, chlo_b, pycoer, pycocy]
+
+# look at the absorption spectrum of the pigments
+x_values = np.linspace(400,700,100)
+for pig in pigs:
+    plt.plot(x_values, pig(x_values))
+
+# First we want to see how the equilibrium density changes with changing
+# fitness and changing absorption spectrum
+
+ratio = np.linspace(0,1,51)
+fit = 1.4e8*2**np.linspace(-1,1,51)
+
+# compute and plot the equi. density
+# having both pigments is better than having only one
+equis = equilibrium(pigs[:2], ratio, fit, plot = True)
+
+# same can be done for any pigment combination
+
+equis = equilibrium(pigs[-2:], ratio, fit, plot = True)
+
+#How likely is it that two speices having pycocy and pycoer can coexist:
+plt_coex_reg([pycocy, pycoer], vol = True)
+
+# the region between the blue and the green grid is the region of coexistence
+# The red grid indicates where no coexistence is possible (green and blue meet)
+# 0.1172 is the probability that the species will coexist for randomly chosen parameters
+# note that plt_coex_reg([pycoer, pycocy], vol = True) is equivalent, but the picture
+# is less clear. Keep this in mind if the picture is not clear for two pigments.
+
+# Now we move on to the case where all pigments are present in a community of 4 species
+# (run multispecies_case)
+
+#in the first case every species has only one pigment
+equis_singpig = multispecies_equi(pigs, sing_pig = True)
+# now all species have all pigments
+equis_multpig = multispecies_equi(pigs, sing_pig = False)
+
+#How many species coexist in which community:
+plt_ncoex(equis_singpig) #close to uniform distribution
+plt_ncoex(equis_singpig) #communities with many species are far less probable
+
+#What happens if we take more pigments, reduce number of communities for speed:
+equis_manypigs = multispecies_equi(pigments.real, sing_pig = False, itera = 1000)
+plt_ncoex(equis_manypigs) # many species hardly coexist in one community
+#with this many species there's not a large difference between sing_pig = True or not
+
+#finally we try with much more pigments:
+pigs = pigments.random_pigments(60) #there were 29 pigments previously
+
+plt_ncoex(multispecies_equi(pigs, sing_pig = False, itera = 1000))
