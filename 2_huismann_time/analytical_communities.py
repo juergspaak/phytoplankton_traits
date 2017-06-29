@@ -18,7 +18,7 @@ def generate_com(ncoms = int(1e3), I_r = np.array([50,200])):
     light_range = np.amax([10*np.ones(ncoms),
                    np.amin([balance-I_r[0], I_r[1]-balance],0)],0)
     I_r = np.array([balance-light_range, balance+light_range]).T
-    period = np.random.randint(5,200,ncoms)
+    period = np.random.randint(1,200,ncoms)
     return species, period, I_r
         
 def find_species(ncoms = 1000, I_r = np.array([50,200])):
@@ -60,7 +60,8 @@ def random_par(nspecies = (100,2),factor=4, Im = 50):
     l = (l[surv]).reshape(nspecies)
     return np.array([k,H,p_max, l])
                 
-def equilibrium(specs, light, full = True):
+def equilibrium(specs, light, mode = 'full', 
+                l_spe = None, l_lig = None, l_ret = None):
     """returns the equilibrium of species with incoming light `light`
     
     Assumes that I_out = 0
@@ -76,14 +77,20 @@ def equilibrium(specs, light, full = True):
         Equilibrium density of each species for each incoming lightintensity
     """
     k,H,p_max,l = specs
-    if type(light) == float or type(light) == int or (not full):
+    if type(light) == float or type(light) == int or mode == 'simple':
         return p_max/(l*k)*np.log(1+light/H)
-    else:
+    elif mode == 'full':
         let = letters[:len(k.shape)] #handles the shape for np.einsum
         fit = p_max/(l*k) #fitness
         #total absorbed light => total energy absorbed
         energy = np.log(1+np.einsum('i,...->...i',light, 1/H))
         return np.einsum(let+','+let+'i->'+let+'i', fit, energy)
+    else: 
+        fit = p_max/(l*k) #fitness
+        
+        energy = np.log(1+np.einsum(l_lig+','+l_spe+'->'+l_ret,light, 1/H))
+        return np.einsum(l_spe+','+l_ret+'->'+l_ret, fit, energy)
+
         
 def find_balance(specs, I_r = np.array([50,200])):
     """finds the incoming light, at which both species have the same I_out*

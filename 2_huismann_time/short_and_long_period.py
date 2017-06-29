@@ -43,6 +43,151 @@ All these functions return r_i/P
 The times are given for low P, for large P, the time can be reduced by the time
 of dist_resident, which is about 0.15"""
 
+########## Vectorized functions:
+    
+def mp_approx_r_i(species, P, I_r):
+    """ Computes the boundary growth rate with an approximation of mp
+    
+    Is identical to lin_approx, except the computation of Wm,WM
+    See also lin_approx_r_i, exact_r_i"""
+    k,H,p,l = species #parameters of the species
+    I_av = (I_r[:,0]+I_r[:,1])/2 #average = balance point of I_in
+    
+    # E(environment)
+    E_envi = np.zeros(species.shape[1]) 
+    
+    # E(competition)
+    mc, qc = linear_comp(species) # comp_fun = mc*I+qc-1 
+    E_comp = -l[:,1]*(mc*I_av+qc-1) #l*int(comp_fun)
+    
+    # storage effect
+    mr = p[:,1]/(l[:,1]*k[:,1]*(H[:,1]+I_av)) #=dW/dI (I_av)
+    Wav = com.equilibrium(species[:,:,1],I_av,'simple') #mr*(I-Iav)+Wav = envi_fun
+    
+    #computation of Wm,WM is the only difference to lin_approx                  
+    mp = mr*((1-np.exp(-l[:,1]*P))/(1+np.exp(-l[:,1]*P)))**0.5
+    Wm = mp*(I_r[:,0]-I_av)+Wav #mp is the propotion of Wm that is reached
+    WM = mp*(I_r[:,1]-I_av)+Wav
+    
+    stor_prov = WM**2-Wm**2-2*WM*Wm*np.log(WM/Wm)
+    prefactor = l[:,0]/l[:,1]*mc/(4*mr*(WM-Wm))  #contains gamma             
+    E_stor = prefactor*stor_prov/P
+    
+    #return all the elements
+    return  E_envi,E_comp,E_stor, E_envi-E_comp+E_stor
+    
+def linear_comp(species, I_r = [50,200], itera = 151):
+    """makes a linear regression ot the eq. densities of the species"""
+    light_r = np.linspace(*I_r, itera)
+    equis = com.equilibrium(species, light_r)
+
+    kW = np.einsum('is,isl->isl', species[0], equis) #k*equis
+    kW_div = np.einsum('il,il->il', kW[:,0,:], 1/kW[:,1,:])
+    
+    light_av = np.average(light_r)
+    kW_av = np.average(kW_div, axis = 1)
+    kW_center = kW_div - np.einsum('i,l->il',kW_av,np.ones(itera))
+
+    Sxx = np.sum((light_r-light_av)**2)
+    Sxy = np.einsum('l,il->i', (light_r-light_av),(kW_center))
+    
+    slope = Sxy/Sxx
+    intercept = kW_av-slope*light_av
+    return slope, intercept
+
+def lin_approx_r_i(species, P, I_r = np.array([50,200])):    
+    """Computes the boundary growth rate, assumes com_fun is linear
+    
+    Is identical to lin_approx, except the computation of Wm,WM
+    See also lin_approx_r_i, exact_r_i"""
+    k,H,p,l = species #parameters of the species
+    I_av = (I_r[:,0]+I_r[:,1])/2 #average = balance point of I_in
+    
+    # E(environment)
+    E_envi = np.zeros(species.shape[1]) 
+    
+    # E(competition)
+    mc, qc = linear_comp(species) # comp_fun = mc*I+qc-1 
+    E_comp = -l[:,1]*(mc*I_av+qc-1) #l*int(comp_fun)
+    
+    # storage effect
+    mr = p[:,1]/(l[:,1]*k[:,1]*(H[:,1]+I_av)) #=dW/dI (I_av)
+    mp = mr.copy()
+    Wav = com.equilibrium(species[:,:,1],I_av,'simple') #mr*(I-Iav)+Wav = envi_fun
+    Wm = com.equilibrium(species[:,:,1], I_r[:,0], 'simple')
+    WM = com.equilibrium(species[:,:,1], I_r[:,1], 'simple')
+    
+    #epsilon < 0.01-> resident will always find it's new equilibrium                     
+    epsilon = (WM-Wm)*np.exp(-P*l[:,1])/Wm
+    short_period = epsilon>0.005
+    
+    mp[short_period] = dist_resident(species[:,short_period,1], 
+                         P[short_period], I_r[short_period], Wav[short_period])    
+    
+    Wm = mp*(I_r[:,0]-I_av)+Wav #mp is the propotion of Wm that is reached
+    WM = mp*(I_r[:,1]-I_av)+Wav
+    
+    stor_prov = WM**2-Wm**2-2*WM*Wm*np.log(WM/Wm)
+    prefactor = l[:,0]/l[:,1]*mc/(4*mr*(WM-Wm))  #contains gamma             
+    E_stor = prefactor*stor_prov/P
+    
+    #return all the elements
+    return  E_envi,E_comp,E_stor, E_envi-E_comp+E_stor
+    
+def dist_resident(res,P, I_r, W_av,  itera = 10001):
+    """gives a distribution of W_p(T)
+    if interpolate is False, then the data is approximated linearly,
+    otherwise the "exact" data is returned"""
+    l = res[-1]
+    rel_lights = np.random.uniform(size = (1,itera))
+    lights = (I_r[:,0]+(I_r[:,1]-I_r[:,0])*rel_lights.reshape((-1,1))).T
+
+    lights[:,0] = (I_r[:,0]+I_r[:,1])/2
+    W_r_eq = com.equilibrium(res,lights, 'custom', 'i','il', 'il')
+    W_r_ef = W_av.reshape((-1,1))*np.ones((1,itera))
+    lP = (l*P).reshape((-1,1))
+    for i in range(5):
+        W_r_ef[:,1:] = W_r_eq[:,1:]-(W_r_eq[:,1:]-W_r_ef[:,:-1])*np.exp(-lP)
+     
+    light_av = np.average(rel_lights)
+    W_r_av = np.average(W_r_ef, axis = 1)
+    W_r_center = W_r_ef - np.einsum('i,l->il',W_r_av,np.ones(itera))
+
+    Sxx = np.sum((rel_lights-light_av)**2)*(I_r[:,1]-I_r[:,0])**2
+    Sxy = np.einsum('al,il->i', (rel_lights-light_av),(W_r_center))\
+                            *(I_r[:,1]-I_r[:,0])
+    return Sxy/Sxx
+    
+#################################
+# Non vectorized versions
+a = lin_approx_r_i(spec, P, I_r)
+b = mp_approx_r_i(spec, P, I_r)
+plot_percentile((a[1]-b[1])/b[1])
+def lin_approx_r_i1(species, P, I_r = np.array([50,200])):
+    """analytically computes the boundary growth rate of species[0]
+    assumes, that com_fun, envi_fun are linear functions"""    
+    Iav = np.average(I_r)
+    mr,qr = linear_envi(species[1], I_r) #mr*I+qr = envi_fun
+    
+    Wm, WM = mr*I_r+qr
+    Wav = mr*Iav+qr
+    
+    epsilon = (WM-Wm)*np.exp(-P*species[1][-1])/Wm
+    if epsilon > 0.01: #Period is not long enough to find new treshhold 
+        dist_res = dist_resident(species[1], Wav,P=P, I_r=I_r)
+        Wm,WM = dist_res(I_r)
+        
+    mc, qc = linear_comp(species) # mc*I+qc-1 = comp_fun
+    compe = -species[0][-1]*(Iav*mc+qc-1) # integral is just the average
+    
+
+    stor_prov = WM**2-Wm**2-2*WM*Wm*np.log(WM/Wm)
+    l = species[:,-1]
+    prefactor = l[0]/l[1]*mc/(4*mr*(WM-Wm))  #contains gamma                 
+    stor = prefactor*stor_prov/P
+    return  compe, stor, stor-compe
+
+
     
 def coex_test(species = None, P = None, exact = False, indep_envi = False,
               lin = True, mp = False):
@@ -133,104 +278,14 @@ def indep_storage(species, comp_fun, envi_fun, I_r = np.array([50,200])):
 
 ###############################################################################
     
-def lin_approx_r_i(species, P, I_r = np.array([50,200])):
-    """analytically computes the boundary growth rate of species[0]
-    assumes, that com_fun, envi_fun are linear functions"""    
-    Iav = np.average(I_r)
-    mr,qr = linear_envi(species[1], I_r) #mr*I+qr = envi_fun
-    
-    Wm, WM = mr*I_r+qr
-    Wav = mr*Iav+qr
-    
-    epsilon = (WM-Wm)*np.exp(-P*species[1][-1])/Wm
-    if epsilon > 0.01: #Period is not long enough to find new treshhold 
-        dist_res = dist_resident(species[1], Wav,P=P, I_r=I_r)
-        Wm,WM = dist_res(I_r)
-        
-    mc, qc = linear_comp(species) # mc*I+qc-1 = comp_fun
-    compe = -species[0][-1]*(Iav*mc+qc-1) # integral is just the average
-    
 
-    stor_prov = WM**2-Wm**2-2*WM*Wm*np.log(WM/Wm)
-    l = species[:,-1]
-    prefactor = l[0]/l[1]*mc/(4*mr*(WM-Wm))  #contains gamma                 
-    stor = prefactor*stor_prov/P
-    return  compe, stor, stor-compe
     
 ###############################################################################    
-def mp_approx_r_i(species, P, I_r):
-    k,H,p,l = species
-    I_av = (I_r[:,0]+I_r[:,1])/2
-            
-    E_envi = np.zeros(species.shape[1]) #environment is zero
-    
-    # competition
-    mc, qc = linear_comp(species) # mc*I+qc-1 = comp_fun
-    E_comp = -l[:,1]*(mc*I_av+qc-1)
-    
-    # storage effect
-    mr = p[:,1]/(l[:,1]*k[:,1]*(H[:,1]+I_av)) #=dW/dI (I_av)
-    Wav = com.equilibrium(species[:,:,1],I_av,False) #mr*(I-Iav)+Wav = envi_fun
-    
-    #computation of mp is the only difference to lin_approx                  
-    mp = mr*((1-np.exp(-l[:,1]*P))/(1+np.exp(-l[:,1]*P)))**0.5
-    Wm = mp*(I_r[:,0]-I_av)+Wav
-    WM = mp*(I_r[:,1]-I_av)+Wav
-    stor_prov = WM**2-Wm**2-2*WM*Wm*np.log(WM/Wm)
-    prefactor = l[:,0]/l[:,1]*mc/(4*mr*(WM-Wm))  #contains gamma             
-    E_stor = prefactor*stor_prov/P
-    return  E_envi,E_comp,E_stor, E_envi-E_comp+E_stor
+
    
-def dist_resident(res, W_av = None, P = 5, I_r = [50,200], itera = 10001,
-                          interpolate = False, plot_bool = False):
-    """gives a distribution of W_p(T)
-    if interpolate is False, then the data is approximated linearly,
-    otherwise the "exact" data is returned"""
-    l = res[-1]
-    W_r = np.zeros(itera)
-    lights = np.random.uniform(I_r[0], I_r[1], itera)
-    lights[0] = np.average(I_r)
-    W_r[0] = com.equilibrium(lights[0], res)
-    for i in range(itera-1):
-        W_r_star = com.equilibrium(lights[i+1], res, True)
-        W_r[i+1] = W_r_star-(W_r_star-W_r[i])*np.exp(-l*P) #density at end of period
-    if plot_bool:
-        plot_percentile(W_r)
-       
-    adap_light = sorted(lights)-np.average(I_r)    
-    if interpolate:
-        if not(itera%100 == 1):
-            print("itera must be of the form n*10+1")
-            return None
-        fun = interp1d(np.linspace(*I_r, 11), sorted(W_r)[0::int(itera/10)],
-                       interpolate)
-        return fun
-    else:
-        W_adap =W_r -W_av 
-        cov = sum(adap_light*sorted(W_adap))
-        var = sum(adap_light**2)
-        m = cov/var # linear regression with 0 intercept, enforcing that m*Iav +q = Wav
-        q = W_av-m*np.average(I_r)
-        return lambda I: m*I+q
+
         
-def linear_comp(species, I_r = [50,200], itera = 151):
-    """makes a linear regression ot the eq. densities of the species"""
-    light_r = np.linspace(*I_r, itera)
-    equis = com.equilibrium(species, light_r)
 
-    kW = np.einsum('is,isl->isl', species[0], equis) #k*equis
-    kW_div = np.einsum('il,il->il', kW[:,0,:], 1/kW[:,1,:])
-    
-    light_av = np.average(light_r)
-    kW_av = np.average(kW_div, axis = 1)
-    kW_center = kW_div - np.einsum('i,l->il',kW_av,np.ones(itera))
-
-    Sxx = np.sum((light_r-light_av)**2)
-    Sxy = np.einsum('l,il->i', (light_r-light_av),(kW_center))
-    
-    slope = Sxy/Sxx
-    intercept = kW_av-slope*light_av
-    return slope, intercept
 
 def linear_envi(spec, I_r = [50,200], itera = 151):
     """ gives a linear regression for species equilibrium densities and incoming light
