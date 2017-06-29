@@ -42,8 +42,22 @@ All these functions return r_i/P
     
 The times are given for low P, for large P, the time can be reduced by the time
 of dist_resident, which is about 0.15"""
-
-########## Vectorized functions:
+    
+def exact_r_i(species, P, I_r):
+    I_av = (I_r[:,0]+I_r[:,1])/2 #average = balance point of I_in
+    Wav = com.equilibrium(species[:,:,1],I_av,'simple')
+    W_r_ef, W_r_eq, lights = dist_resident(species[:,:,1],  P, I_r, Wav, False)
+    W_i_eq = com.equilibrium(species[:,:,0],lights, 'custom', 'i','il', 'il')
+    k,l = species[[0,-1]]
+    C = (k[:,1].reshape((-1,1))*W_r_eq/(k[:,0].reshape((-1,1))*W_i_eq))[:,1:]
+    E = np.log(W_r_ef[:,1:]/W_r_ef[:,:-1]) 
+    curl_C = -(species[-1,:,0]*P).reshape((-1,1))*(1/C-1)
+    curl_E = (species[-1,:,0]/species[-1,:,1]).reshape((-1,1))*E
+    
+    E_envi = np.average(curl_E, 1)
+    E_comp = np.average(curl_C,1)
+    E_stor = -np.average(curl_E*curl_C,1)/(species[-1,:,0]*P)
+    return E_envi/P, E_comp/P, E_stor/P, (E_envi-E_comp+E_stor)/P
     
 def mp_approx_r_i(species, P, I_r):
     """ Computes the boundary growth rate with an approximation of mp
@@ -52,7 +66,7 @@ def mp_approx_r_i(species, P, I_r):
     See also lin_approx_r_i, exact_r_i"""
     k,H,p,l = species #parameters of the species
     I_av = (I_r[:,0]+I_r[:,1])/2 #average = balance point of I_in
-    
+
     # E(environment)
     E_envi = np.zeros(species.shape[1]) 
     
@@ -96,7 +110,7 @@ def linear_comp(species, I_r = [50,200], itera = 151):
     return slope, intercept
 
 def lin_approx_r_i(species, P, I_r = np.array([50,200])):    
-    """Computes the boundary growth rate, assumes com_fun is linear
+    """Computes the boundary growth rate, assumes com_fun, env_fun are linear
     
     Is identical to lin_approx, except the computation of Wm,WM
     See also lin_approx_r_i, exact_r_i"""
@@ -134,7 +148,7 @@ def lin_approx_r_i(species, P, I_r = np.array([50,200])):
     #return all the elements
     return  E_envi,E_comp,E_stor, E_envi-E_comp+E_stor
     
-def dist_resident(res,P, I_r, W_av,  itera = 10001):
+def dist_resident(res,P, I_r, W_av,  lin = True, itera = 10001):
     """gives a distribution of W_p(T)
     if interpolate is False, then the data is approximated linearly,
     otherwise the "exact" data is returned"""
@@ -143,167 +157,21 @@ def dist_resident(res,P, I_r, W_av,  itera = 10001):
     lights = (I_r[:,0]+(I_r[:,1]-I_r[:,0])*rel_lights.reshape((-1,1))).T
 
     lights[:,0] = (I_r[:,0]+I_r[:,1])/2
+    lights[:,-1] = (I_r[:,0]+I_r[:,1])/2
     W_r_eq = com.equilibrium(res,lights, 'custom', 'i','il', 'il')
     W_r_ef = W_av.reshape((-1,1))*np.ones((1,itera))
     lP = (l*P).reshape((-1,1))
     for i in range(5):
         W_r_ef[:,1:] = W_r_eq[:,1:]-(W_r_eq[:,1:]-W_r_ef[:,:-1])*np.exp(-lP)
-     
-    light_av = np.average(rel_lights)
-    W_r_av = np.average(W_r_ef, axis = 1)
-    W_r_center = W_r_ef - np.einsum('i,l->il',W_r_av,np.ones(itera))
-
-    Sxx = np.sum((rel_lights-light_av)**2)*(I_r[:,1]-I_r[:,0])**2
-    Sxy = np.einsum('al,il->i', (rel_lights-light_av),(W_r_center))\
-                            *(I_r[:,1]-I_r[:,0])
-    return Sxy/Sxx
+    if lin: #return linear approximation of data
+        light_av = np.average(rel_lights)
+        W_r_av = np.average(W_r_ef, axis = 1)
+        W_r_center = W_r_ef - np.einsum('i,l->il',W_r_av,np.ones(itera))
     
-#################################
-# Non vectorized versions
-a = lin_approx_r_i(spec, P, I_r)
-b = mp_approx_r_i(spec, P, I_r)
-plot_percentile((a[1]-b[1])/b[1])
-def lin_approx_r_i1(species, P, I_r = np.array([50,200])):
-    """analytically computes the boundary growth rate of species[0]
-    assumes, that com_fun, envi_fun are linear functions"""    
-    Iav = np.average(I_r)
-    mr,qr = linear_envi(species[1], I_r) #mr*I+qr = envi_fun
-    
-    Wm, WM = mr*I_r+qr
-    Wav = mr*Iav+qr
-    
-    epsilon = (WM-Wm)*np.exp(-P*species[1][-1])/Wm
-    if epsilon > 0.01: #Period is not long enough to find new treshhold 
-        dist_res = dist_resident(species[1], Wav,P=P, I_r=I_r)
-        Wm,WM = dist_res(I_r)
-        
-    mc, qc = linear_comp(species) # mc*I+qc-1 = comp_fun
-    compe = -species[0][-1]*(Iav*mc+qc-1) # integral is just the average
-    
-
-    stor_prov = WM**2-Wm**2-2*WM*Wm*np.log(WM/Wm)
-    l = species[:,-1]
-    prefactor = l[0]/l[1]*mc/(4*mr*(WM-Wm))  #contains gamma                 
-    stor = prefactor*stor_prov/P
-    return  compe, stor, stor-compe
-
-
-    
-def coex_test(species = None, P = None, exact = False, indep_envi = False,
-              lin = True, mp = False):
-    """ calls different functions to compute r_i
-    
-    if species and P are not given, they are generate by the function"""
-    ret = []
-    if species is None:
-        species = com.find_species()
-        ret.append(species)
-    if P is None:
-        P = np.random.uniform(0.1,10)
-        ret.append(P)
-    spec1, spec2 =list(species[0]), list(species[1])
-    species_redo = np.array([spec2, spec1])
-    functions = [exact_r_i,indep_envi_r_i,lin_approx_r_i, mp_approx_r_i]
-    compute = [exact, indep_envi, lin, mp]
-    for i in range(4):
-        if compute[i]:
-            comp1, stor1, r_i_1 = functions[i](species, P)
-            comp2, stor2, r_i_2 = functions[i](species_redo, P)
-            ret.extend([comp1, stor1, r_i_1, comp2, stor2, r_i_2])
-    return (*ret,)
-    
-def exact_r_i(species,P, I_r = np.array([50,200])):
-    """numerically computes the boundary growth rate of species[0]
-    assumptions: I_out = 0"""
-    comp, comp_fun = exact_comp(species, P, I_r) #delta C
-    envi_fun = exact_envi(species, P, I_r)
-    stor = exact_storage(species,comp_fun,envi_fun, P,I_r)/P #Delta I
-    return  comp, stor,stor-comp
-
-def exact_comp(species,P, I_r):
-    """returns C(I)"""
-    abs0 = lambda I: species[0][0]*com.equilibrium(I, species[0])
-    abs1 = lambda I: species[1][0]*com.equilibrium(I, species[1])
-    comp_fun = lambda I: abs0(I)/abs1(I)-1 #the competition function
-    return -species[0][-1]*numerical_comp(comp_fun),comp_fun #Delta C
-
-def exact_envi(species, P, I_r):
-    """returns a function, that gives the distribution of the species densities
-    over time"""
-    Iav = np.average(I_r) #average incoming light
-    #minimal, maximal and average density of the resident
-    Wm, WM, Wav = [com.equilibrium(I, species[1]) for I in [*I_r, Iav]]    
-                   
-    epsilon = (WM-Wm)*np.exp(-P*species[1][-1])/Wm
-    if epsilon > 0.01: #Period is not long enough to find new treshhold
-        return dist_resident(species[1], Wav,P=P, I_r=I_r, interpolate = 'cubic')
+        Sxx = np.sum((rel_lights-light_av)**2)*(I_r[:,1]-I_r[:,0])**2
+        Sxy = np.einsum('al,il->i', (rel_lights-light_av),(W_r_center))\
+                                *(I_r[:,1]-I_r[:,0])
+        return Sxy/Sxx
     else:
-        return lambda I: com.equilibrium(I, species[1])
-        
-def exact_storage(species, comp_fun, envi_fun, P,I_r = np.array([50,200])):
-    """numerically integrates the integrals needed for the storage effect"""
-    l = species[:,-1]
-    def fun1(I_n, I_p):
-        equi = com.equilibrium(I_n, species[1])
-        end_density = equi-(equi-envi_fun(I_p))*np.exp(-l[1]*P)
-        return comp_fun(I_n)*np.log(end_density/envi_fun(I_p))
-    Im, IM = I_r
-    Im_fun = lambda I: Im
-    IM_fun = lambda I: IM    
-    stor = dblquad(fun1,Im,IM, Im_fun, IM_fun)[0]    
-    prefactor = l[0]/l[1]/(I_r[1]-I_r[0])**2 #contains gamma    
-    return prefactor*stor 
+        return W_r_ef, W_r_eq, lights
 
-###############################################################################
-    
-def indep_envi_r_i(species,P, I_r = np.array([50,200])):
-    """numerically computes the boundary growth rate of species[0]
-    additional assumptions: W_P(T+1) and W_P(T) are uncorelated
-    """
-    comp, comp_fun = exact_comp(species, P, I_r)
-    envi_fun = exact_envi(species, P, I_r)
-    stor = indep_storage(species,comp_fun,envi_fun, I_r)/P #only difference to exact
-    return  comp, stor,stor-comp
-    
-def indep_storage(species, comp_fun, envi_fun, I_r = np.array([50,200])):
-    """numerically integrates the integrals needed for the storage effect
-    assumes, that W_P(T+1) and W_P(T) are uncorelated"""
-    fun1 = lambda I: comp_fun(I)*np.log(envi_fun(I))
-    save1 = quad(comp_fun, *I_r)[0] #integrals can be splited, as the are independent
-    save2 = quad(lambda I: np.log(envi_fun(I)), *I_r)[0]
-    save3 = quad(fun1, *I_r)[0]*(I_r[1]-I_r[0])
-    l = species[:,-1]
-    prefactor = l[0]/l[1]/(I_r[1]-I_r[0])**2 #contains gamma    
-    return prefactor*(save3-save1*save2)
-
-###############################################################################
-    
-
-    
-###############################################################################    
-
-   
-
-        
-
-
-def linear_envi(spec, I_r = [50,200], itera = 151):
-    """ gives a linear regression for species equilibrium densities and incoming light
-    species is only one species"""
-    light_r = np.linspace(*I_r, 151)
-    W = np.array([com.equilibrium(i, spec, True) for i in light_r])
-    m, q, r, p, st = stats.linregress(np.linspace(*I_r, 151),W)
-    if r**2< 0.95 or p>10**(-3):
-        print("possibly bad linear approximation",r**2,p)
-    return m,q
-
-def numerical_comp(comp_fun, I_r = [50,200]):
-    """computes \DeltaC for different approximations of comp"""
-    return quad(comp_fun,*I_r)[0]/(I_r[1]-I_r[0])
-   
-def r_i_period(species, I_now, W_res_prev, P = 5):
-    """computes how much the invader species grows in this period"""
-    W_now = com.equilibrium([I_now, I_now], species, True)
-    C = species[1][0]*W_now[1]/(species[0][0]*W_now[0])
-    E = np.log(W_now[1]/W_res_prev)
-    return (1-C)/C*species[0][-1]*P+species[0][-1]/species[1][-1]*E/C

@@ -35,7 +35,7 @@ def find_species(ncoms = 1000, I_r = np.array([50,200])):
         warn("less species have been returned than asked")
     return pot_specs[:,:ncoms,:]
 
-def random_par(nspecies = (100,2),factor=4, Im = 50):
+def random_par(nspecies = (100,2),factor=100, Im = 50):
     """ returns random parameters for the model
     
     Parameters:
@@ -48,16 +48,16 @@ def random_par(nspecies = (100,2),factor=4, Im = 50):
     factor = factor**0.5
     nspec = int(np.prod(np.array(nspecies)))
     #create twice as many as needed in case some are not able to survive
-    k = uni(0.004/factor, 0.004*factor, nspec) # absorption coefficient
-    H = uni(100/factor, 100*factor, nspec) #halfsaturation for carbon uptake
-    p_max = uni(9/factor, 9*factor, nspec) #maximal absorbtion of carbon
-    l = uni(0.5/factor, 0.5*factor, nspec)  # carbon loss
+    k = uni(0.004/factor, 0.004*factor, 2*nspec) # absorption coefficient
+    H = uni(100/factor, 100*factor, 2*nspec) #halfsaturation for carbon uptake
+    p_max = uni(9/factor, 9*factor, 2*nspec) #maximal absorbtion of carbon
+    l = uni(0.5/factor, 0.5*factor, 2*nspec)  # carbon loss
     surv = 80<equilibrium([k,H,p_max,l], Im) #find the ones that survive
     # return the ones that survived, might be less than nspecies, but unlikely
-    k = (k[surv]).reshape(nspecies)
-    H = (H[surv]).reshape(nspecies)
-    p_max = (p_max[surv]).reshape(nspecies)
-    l = (l[surv]).reshape(nspecies)
+    k = (k[surv][:nspec]).reshape(nspecies)
+    H = (H[surv][:nspec]).reshape(nspecies)
+    p_max = (p_max[surv][:nspec]).reshape(nspecies)
+    l = (l[surv][:nspec]).reshape(nspecies)
     return np.array([k,H,p_max, l])
                 
 def equilibrium(specs, light, mode = 'full', 
