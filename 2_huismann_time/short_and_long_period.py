@@ -1,6 +1,6 @@
 
 
-import generate_communities as com
+import analytical_communities as com
 import numpy as np
 from scipy import stats
 from scipy.integrate import quad, dblquad
@@ -109,6 +109,7 @@ def exact_storage(species, comp_fun, envi_fun, P,I_r = np.array([50,200])):
     prefactor = l[0]/l[1]/(I_r[1]-I_r[0])**2 #contains gamma    
     return prefactor*stor 
 
+###############################################################################
     
 def indep_envi_r_i(species,P, I_r = np.array([50,200])):
     """numerically computes the boundary growth rate of species[0]
@@ -130,6 +131,7 @@ def indep_storage(species, comp_fun, envi_fun, I_r = np.array([50,200])):
     prefactor = l[0]/l[1]/(I_r[1]-I_r[0])**2 #contains gamma    
     return prefactor*(save3-save1*save2)
 
+###############################################################################
     
 def lin_approx_r_i(species, P, I_r = np.array([50,200])):
     """analytically computes the boundary growth rate of species[0]
@@ -153,31 +155,32 @@ def lin_approx_r_i(species, P, I_r = np.array([50,200])):
     l = species[:,-1]
     prefactor = l[0]/l[1]*mc/(4*mr*(WM-Wm))  #contains gamma                 
     stor = prefactor*stor_prov/P
-    return  compe, stor, stor-compe    
+    return  compe, stor, stor-compe
     
-def mp_approx_r_i(species = None, P = None, I_r = np.array([50,200])):
-    """analytically computes the boundary growth rate of species[0]
-    assumes that mp = mr*((1-e^(-lr*P))/(1+e^(-lr*P)))^0.5 
-    and mr = dW/dI (I_av) """  
-    Iav = np.average(I_r) 
-    k,H,p,l = species[1]
-    mr = p/(l*k*(H+Iav)) #=dW/dI (Iav)
-    Wav = com.equilibrium(Iav, species[1]) #mr*(I-Iav)+Wav = envi_fun
+###############################################################################    
+def mp_approx_r_i(species, P, I_r):
+    k,H,p,l = species
+    I_av = (I_r[:,0]+I_r[:,1])/2
+            
+    E_envi = np.zeros(species.shape[1]) #environment is zero
     
-    mp = mr*((1-np.exp(-l*P))/(1+np.exp(-l*P)))**0.5 #computation of mp is the
-    Wm,WM = mp*(I_r-Iav)+Wav                    #only difference to lin_approx
-    
+    # competition
     mc, qc = linear_comp(species) # mc*I+qc-1 = comp_fun
-    compe = -species[0][-1]*(Iav*mc+qc-1) # integral is just the average
+    E_comp = -l[:,1]*(mc*I_av+qc-1)
     
+    # storage effect
+    mr = p[:,1]/(l[:,1]*k[:,1]*(H[:,1]+I_av)) #=dW/dI (I_av)
+    Wav = com.equilibrium(species[:,:,1],I_av,False) #mr*(I-Iav)+Wav = envi_fun
+    
+    #computation of mp is the only difference to lin_approx                  
+    mp = mr*((1-np.exp(-l[:,1]*P))/(1+np.exp(-l[:,1]*P)))**0.5
+    Wm = mp*(I_r[:,0]-I_av)+Wav
+    WM = mp*(I_r[:,1]-I_av)+Wav
     stor_prov = WM**2-Wm**2-2*WM*Wm*np.log(WM/Wm)
-    l = species[:,-1]
-    prefactor = l[0]/l[1]*mc/(4*mr*(WM-Wm))  #contains gamma                 
-    stor = prefactor*stor_prov/P
-    return  compe, stor, stor-compe    
-    
-
-    
+    prefactor = l[:,0]/l[:,1]*mc/(4*mr*(WM-Wm))  #contains gamma             
+    E_stor = prefactor*stor_prov/P
+    return  E_envi,E_comp,E_stor, E_envi-E_comp+E_stor
+   
 def dist_resident(res, W_av = None, P = 5, I_r = [50,200], itera = 10001,
                           interpolate = False, plot_bool = False):
     """gives a distribution of W_p(T)
@@ -212,15 +215,23 @@ def dist_resident(res, W_av = None, P = 5, I_r = [50,200], itera = 10001,
         
 def linear_comp(species, I_r = [50,200], itera = 151):
     """makes a linear regression ot the eq. densities of the species"""
-    k = [species[0][0], species[1][0]]
     light_r = np.linspace(*I_r, itera)
-    W0 = np.array([k[0]*com.equilibrium(i, species[0], True) for i in light_r])
-    W1 = np.array([k[1]*com.equilibrium(i, species[1], True) for i in light_r])
-    m, q, r, p, st = stats.linregress(np.linspace(*I_r, itera),(W0/W1))
-    if r**2< 0.95 or p>10**(-3):
-        print("possibly bad linear approximation",r**2,p)
-    return m,q    
+    equis = com.equilibrium(species, light_r)
+
+    kW = np.einsum('is,isl->isl', species[0], equis) #k*equis
+    kW_div = np.einsum('il,il->il', kW[:,0,:], 1/kW[:,1,:])
     
+    light_av = np.average(light_r)
+    kW_av = np.average(kW_div, axis = 1)
+    kW_center = kW_div - np.einsum('i,l->il',kW_av,np.ones(itera))
+
+    Sxx = np.sum((light_r-light_av)**2)
+    Sxy = np.einsum('l,il->i', (light_r-light_av),(kW_center))
+    
+    slope = Sxy/Sxx
+    intercept = kW_av-slope*light_av
+    return slope, intercept
+
 def linear_envi(spec, I_r = [50,200], itera = 151):
     """ gives a linear regression for species equilibrium densities and incoming light
     species is only one species"""
@@ -234,7 +245,7 @@ def linear_envi(spec, I_r = [50,200], itera = 151):
 def numerical_comp(comp_fun, I_r = [50,200]):
     """computes \DeltaC for different approximations of comp"""
     return quad(comp_fun,*I_r)[0]/(I_r[1]-I_r[0])
-    
+   
 def r_i_period(species, I_now, W_res_prev, P = 5):
     """computes how much the invader species grows in this period"""
     W_now = com.equilibrium([I_now, I_now], species, True)
