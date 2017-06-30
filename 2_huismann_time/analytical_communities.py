@@ -17,25 +17,27 @@ def generate_com(ncoms = int(1e3), I_r = np.array([50,200])):
     balance = find_balance(species, I_r)
     light_range = np.amax([10*np.ones(ncoms),
                    np.amin([balance-I_r[0], I_r[1]-balance],0)],0)
-    I_r = np.array([balance-light_range, balance+light_range]).T
-    period = np.random.randint(1,200,ncoms)
+    I_r = np.array([balance-light_range, balance+light_range])
+    period = np.random.uniform(1,200,ncoms)
     return species, period, I_r
         
-def find_species(ncoms = 1000, I_r = np.array([50,200])):
+def find_species(ncoms = 1000, I_r = np.array([50,200,5])):
     """finds species such that one dominates at I_r[0], the other at I_r[1]"""
     # only about 3.7% fullfill conditions, create to many species
-    specs = random_par((int(ncoms/0.02),2)) #randomly generate species
+    specs = random_par((2,int(ncoms/0.02))) #randomly generate species
+    
     equis = equilibrium(specs, I_r) #compute their equilibria
-    I_out_equiv = np.einsum('is,isl->isl',specs[0],equis) #equivalent to I_out
-    #check that species are dominant at different light conditions
-    div_dom = np.logical_xor(I_out_equiv[:,0,0]>I_out_equiv[:,1,0],
-                             I_out_equiv[:,0,1]>I_out_equiv[:,1,1])
-    pot_specs = specs[:,div_dom,:] #choose the ones with different dominance
-    if pot_specs.shape[1]<ncoms:
-        warn("less species have been returned than asked")
-    return pot_specs[:,:ncoms,:]
 
-def random_par(nspecies = (100,2),factor=100, Im = 50):
+    I_out_equiv = specs[0].reshape((1,)+specs[0].shape)*equis#equivalent to I_out
+    #check that species are dominant at different light conditions
+    div_dom = np.logical_xor(I_out_equiv[0,0]>I_out_equiv[0,1],
+                             I_out_equiv[1,0]>I_out_equiv[1,1])
+    pot_specs = specs[:,:, div_dom] #choose the ones with different dominance
+    if pot_specs.shape[-1]<ncoms:
+        warn("less species have been returned than asked")
+    return pot_specs[:,:,:ncoms]
+
+def random_par(nspecies = (2,100),factor=100, Im = 50):
     """ returns random parameters for the model
     
     Parameters:
@@ -60,8 +62,7 @@ def random_par(nspecies = (100,2),factor=100, Im = 50):
     l = (l[surv][:nspec]).reshape(nspecies)
     return np.array([k,H,p_max, l])
                 
-def equilibrium(specs, light, mode = 'full', 
-                l_spe = None, l_lig = None, l_ret = None):
+def equilibrium(specs, light, mode = 'full'):
     """returns the equilibrium of species with incoming light `light`
     
     Assumes that I_out = 0
@@ -77,19 +78,15 @@ def equilibrium(specs, light, mode = 'full',
         Equilibrium density of each species for each incoming lightintensity
     """
     k,H,p_max,l = specs
+    fit = p_max/(l*k)
     if type(light) == float or type(light) == int or mode == 'simple':
-        return p_max/(l*k)*np.log(1+light/H)
+        pass
     elif mode == 'full':
-        let = letters[:len(k.shape)] #handles the shape for np.einsum
-        fit = p_max/(l*k) #fitness
-        #total absorbed light => total energy absorbed
-        energy = np.log(1+np.einsum('i,...->...i',light, 1/H))
-        return np.einsum(let+','+let+'i->'+let+'i', fit, energy)
-    else: 
-        fit = p_max/(l*k) #fitness
-        
-        energy = np.log(1+np.einsum(l_lig+','+l_spe+'->'+l_ret,light, 1/H))
-        return np.einsum(l_spe+','+l_ret+'->'+l_ret, fit, energy)
+        light = light.reshape([len(light)]+len(k.shape)*[1])
+    elif mode == 'partial':
+        fit = fit.reshape((1,-1)) #fitness
+        H = H.reshape((1,-1))
+    return fit*np.log(1+light/H)    
 
         
 def find_balance(specs, I_r = np.array([50,200])):
@@ -101,13 +98,13 @@ def find_balance(specs, I_r = np.array([50,200])):
     
     # function to determine the dominance of the species
     # returns True if species 0 is dominant at I
-    dom = lambda I: (1+I/H[:,0])**fit[:,0]/((1+I/H[:,1])**fit[:,1])>1
+    dom = lambda I: (1+I/H[0])**fit[0]/((1+I/H[1])**fit[1])>1
     dom_Im = dom(I_r[0]) #dominance at minimum light
     
     # decrease I_interest to find equilibrium point?
     decrease_I_inb = lambda I: np.logical_xor(dom_Im, dom(I))
-    I_min = I_r[0]*np.ones(len(k)) 
-    I_max = I_r[1]*np.ones(len(k))
+    I_min = I_r[0]*np.ones(k.shape[-1]) 
+    I_max = I_r[1]*np.ones(k.shape[-1])
     #number of iterations needed to reach an error in balance of 0.1
     itera = int(np.log((I_r[1]-I_r[0])/0.1)/np.log(2))+1
     for i in range(itera):
