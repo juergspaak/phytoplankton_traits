@@ -9,7 +9,6 @@ import numpy as np
 
 from warnings import warn
 from numpy.random import uniform as uni
-from string import ascii_lowercase as letters
 
 def generate_com(ncoms = int(1e3), I_r = np.array([50,200])):
     """generates a community"""
@@ -84,8 +83,10 @@ def equilibrium(specs, light, mode = 'full'):
     elif mode == 'full':
         light = light.reshape([len(light)]+len(k.shape)*[1])
     elif mode == 'partial':
-        fit = fit.reshape((1,-1)) #fitness
-        H = H.reshape((1,-1))
+        fit = fit.reshape((1,)+k.shape) #fitness
+        H = H.reshape((1,)+k.shape)
+        light = light.reshape((light.shape[0],1,light.shape[-1]))
+        
     return fit*np.log(1+light/H)    
 
         
