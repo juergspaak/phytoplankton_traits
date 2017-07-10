@@ -47,10 +47,10 @@ equis_multpig = multispecies_equi(pigs, sing_pig = False)
 
 #How many species coexist in which community:
 plt_ncoex(equis_singpig) #close to uniform distribution
-plt_ncoex(equis_singpig) #communities with many species are far less probable
+plt_ncoex(equis_multpig) #communities with many species are far less probable
 
 #What happens if we take more pigments, reduce number of communities for speed:
-equis_manypigs = multispecies_equi(pigments.real, sing_pig = False, itera = 1000)
+equis_manypig = multispecies_equi(pigments.real, sing_pig = False, itera = 1000)
 plt_ncoex(equis_manypigs) # many species hardly coexist in one community
 #with this many species there's not a large difference between sing_pig = True or not
 

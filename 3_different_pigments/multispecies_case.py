@@ -118,6 +118,8 @@ def plt_ncoex(equis):
         import load_pigments as pigments
         plt_ncoex(multispecies_equi(pigments.real))"""
     spec_num = [np.count_nonzero(i) for i in equis]
+    fig = plt.figure()
     plt.plot(np.linspace(0,100, len(spec_num)),sorted(spec_num))
     plt.ylabel("number coexisting species")
     plt.xlabel("percent")
+    return fig
