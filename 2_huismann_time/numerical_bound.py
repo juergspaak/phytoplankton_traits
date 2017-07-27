@@ -11,7 +11,7 @@ Species: Method to create species and compute their boundary growth rates
 
 `r_i` numerically computes the growth rate in one period
 
-`dwdt`right hand side of the differential equation
+`dwdt` right hand side of the differential equation
 
 `test_r_i_av` alternative (randomize) way to compute r_i
 """

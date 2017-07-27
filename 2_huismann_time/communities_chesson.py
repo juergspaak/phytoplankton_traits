@@ -135,7 +135,7 @@ def sat_carbon_par(num = 1000, factor=4,Im = 50.0, IM = 200.0):
         return spec[2]*I/(spec[1]+I)
     return species, carbon, np.array([Im, IM])
     
-def photoinhibition_par(num = 1000, factor=4, Im = 100, IM = 500):
+def photoinhibition_par(num = 1000, factor=4, Im = 100., IM = 500.):
     """ returns random parameters for the model
     
     the carbon uptake function suffers from photoinhibition
@@ -145,17 +145,17 @@ def photoinhibition_par(num = 1000, factor=4, Im = 100, IM = 500):
     carbon = [carbon[0], carbon[1]] the carbon uptake functions
     I_r = [Im, IM] the minimum and maximum incident light"""
     fac = np.sqrt(factor)
-    k = uni(0.002/fac, fac*0.002,num)
-    p_max = uni(1/fac, fac*1,num)
-    I_k = uni(40/fac, fac*40,num)
-    I_opt = uni(100/fac, fac*100,num)
-    l = uni(0.5/fac, 0.5*fac,num)  # carbon loss
+    k = uni(0.002/fac, fac*0.002,(2,num))
+    p_max = uni(1/fac, fac*1,(2,num))
+    I_k = uni(40/fac, fac*40,(2,num))
+    I_opt = uni(100/fac, fac*100,(2,num))
+    l = uni(0.5/fac, 0.5*fac,(2,num))  # carbon loss
     species = np.array([k,p_max,I_k, I_opt, l])
     def carbon(spec, I):
         a = spec[2]/spec[3]**2
         b = 1-2*spec[2]/spec[3]
-        return I*spec[0]/(a*I**2+b*I+I_k)
-    return species, carbon, [Im, IM]
+        return I*spec[0]/(a*I**2+b*I+spec[2])
+    return species, carbon, np.array([Im, IM])
 
 def find_balance(species, carbon,I_r):
     """finds the incoming light, at which both species have the same I_out*
@@ -180,6 +180,7 @@ def find_balance(species, carbon,I_r):
         light_M = light_M+(inequal!=dominance)*(I_in-light_M)
         I_in  = 0.5*(light_m+light_M)
     return I_in
-
 spec, carb, I_r = gen_species(sat_carbon_par, num = 5000)
+print("fine")
+spec, carb, I_r = gen_species(photoinhibition_par, num = 5000)
 plt.plot(sorted(find_balance(spec, carb, I_r)))
