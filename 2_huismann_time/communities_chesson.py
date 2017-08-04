@@ -18,7 +18,7 @@ import numpy as np
 from numpy.random import uniform as uni
 from scipy.integrate import simps
 
-def gen_species(parameter_generator, num = 10):
+def gen_species(parameter_generator, num = 1000):
     """returns two species, for which dominance depends on I_in
     
     parameter_generator: sat_carbon_par or photoinhibition_par
@@ -39,6 +39,10 @@ def gen_species(parameter_generator, num = 10):
             spec = [par.reshape(par.shape+I_shape) for par in spec]
         elif mode == 'generating':
             spec = np.expand_dims(spec,-1)
+        elif mode == 'special':
+            spec = spec.reshape(spec.shape+(1,1)).swapaxes(-3,-2)
+            I = np.rollaxis(I,1,2)
+            I = I.reshape((1,)+I.shape)
         return carb(spec, I)
     Im, IM = I_r
     k = species[0]
@@ -81,7 +85,7 @@ def equilibrium(spec,carbon,I_in,mode = 'full', approx = False):
     
     k,l = spec[[0,-1]]
     # carbon uptake
-    carb_up = lambda I,mode=None: carbon(spec,I,mode)/(np.expand_dims(k,-1)*I)
+    carb_up = lambda I: carbon(spec,I,'generating')/(np.expand_dims(k,-1)*I)
     
     # relative light, needed for integration
     rel_I,dx = np.linspace(1e-10,1,21,retstep = True)
@@ -93,8 +97,7 @@ def equilibrium(spec,carbon,I_in,mode = 'full', approx = False):
         # effective lights (linear transformation)
         I_eff = np.expand_dims(I_in-I_out,-1)*rel_I+np.expand_dims(I_out,-1)
         #integrate carbonuptake, integral computet with linear trans.
-        return simps(carb_up(I_eff, 'generating'),dx = dx,axis=-1)\
-                            *(I_in-I_out)
+        return simps(carb_up(I_eff),dx = dx,axis=-1)*(I_in-I_out)
     
     # approximated starting density, assumes I_out = 0
     start = growth(np.inf*np.ones(k.shape))/l
@@ -180,7 +183,5 @@ def find_balance(species, carbon,I_r):
         light_M = light_M+(inequal!=dominance)*(I_in-light_M)
         I_in  = 0.5*(light_m+light_M)
     return I_in
-spec, carb, I_r = gen_species(sat_carbon_par, num = 5000)
-print("fine")
-spec, carb, I_r = gen_species(photoinhibition_par, num = 5000)
-plt.plot(sorted(find_balance(spec, carb, I_r)))
+    
+spec, carb, I_r = gen_species(sat_carbon_par, num = 500)
