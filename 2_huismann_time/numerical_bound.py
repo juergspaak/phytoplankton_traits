@@ -104,7 +104,7 @@ def bound_growth(spec, carbon,I_r ,P):
     print(simps_C.shape, "simps_shap")
     print(ches.equilibrium(spec, carbon, I_eff[:,0], 'simple').shape, "equi_check")
     print(I_eff[:,0].shape, E_star.shape, "check E_star, I_EFF")
-    curl_E(I_eff[:,0], True)/(IM-Im)
+    curl_E(I_eff[:,0])/(IM-Im)
     for i in range(acc_rel_I):
         simps_C[i] = integrand_C(I_eff[:,i])
         simps_E[i] = integrand_E(I_eff[:,i])
@@ -114,11 +114,12 @@ def bound_growth(spec, carbon,I_r ,P):
     ave_C = simps(simps_C, dx = dx, axis = 0)
     ave_E = simps(simps_E, dx = dx, axis = 0)
     print(ave_C.shape, ave_E.shape, "aves")
+    """
     integrand_stor = lambda I_y, I_x: integrand_C(I_x)*integrand_E(I_y)
     Im_fun = lambda x: Im
     IM_fun = lambda x: IM
     stor = 0#dblquad(integrand_stor, Im, IM, Im_fun, IM_fun)[0]
-    gamma =  0#gamma_fun(lambda C,E: r_i(C,E,species, P))(C_star, E_star)
+    gamma =  0#gamma_fun(lambda C,E: r_i(C,E,species, P))(C_star, E_star)"""
     return ave_C, ave_E,ave_E-ave_C
 
 
@@ -131,48 +132,6 @@ def equi_point(species, carbon,I_r):
     E_star = ches.find_balance(species, carbon, I_r)
     C_star = ches.equilibrium(species, carbon, E_star, 'simple')
     return E_star, C_star
-    
-def test_r_i(C,E, species,P,carbon):
-    """computes r_i for the species[:,0] assuming species[:,1] at equilibrium
-    
-    does this by solving the differential equations
-    C should be the density of the resident species, E the incomming light
-    P the period length, carbon = [carbon[0],carbon[1]] the carbon uptake 
-    functions of both species
-    
-    returns r_i for this period"""
-
-    time = np.linspace(0,P,50)
-    sol = odeint(dwdt, np.array([np.ones(C.shape),C]).reshape(-1), time, 
-                        (species, E, carbon))
-    sol = sol.reshape(50,2,2,-1)
-    i = np.random.randint(sol.shape[-1])
-    i = 0
-    equis = sol[-1,1,:,i]
-    
-    print(equis, "equiiis")
-    equis = ches.equilibrium(species, carbon, E)
-    print(dwdt(sol[-1].reshape(-1), 0,spec,E,carbon).reshape([2,2,-1])[1], "\n")
-    print(dwdt(np.array([np.ones(equis.shape), equis]).reshape(-1), 0,spec,E,carbon).reshape([2,2,-1])[1])
-    plt.figure()
-    res = 0
-    inv = int(not res)
-    equis = ches.equilibrium(species, carbon, E)[:,i]
-    W_p = C[res,i]
-    test = equis[res] -(equis[res]-W_p)*np.exp(-time*spec[-1,res,i])
-    plt.plot(sol[:,1,res,i])
-    plt.plot(test,'o')
-    plt.figure()
-    abso = spec[0,:,i]*equis
-    print(abso, C[inv,i].shape)
-    
-    plt.plot(sol[:,0,inv,i])
-    plt.plot(sol[:,0,res,i])
-    W_I = 1*np.exp((abso[inv]/abso[res]-1)*spec[-1,inv,i]*time)\
-                    *(test/W_p)**(abso[inv]/abso[res]*spec[-1,inv,i]/spec[-1,res,i])
-    print(C[inv,i], test[0]==W_p, "C_inv")
-    plt.figure()
-    plt.plot(W_I)
 
 def r_i(C,E, species,P,carbon):
     """computes r_i for the species[:,0] assuming species[:,1] at equilibrium
@@ -185,8 +144,8 @@ def r_i(C,E, species,P,carbon):
     returns r_i for this period"""
     sol = odeint(dwdt, np.array([np.ones(C.shape),C]).reshape(-1), [0,P], 
                                 (species, E, carbon))
-    sol = sol.reshape(2,2,2,-1)
-    return np.log(sol[1,:,0]/1)/P #divide by P, to compare different period length
+    sol = sol.reshape(2,2,2,-1) 
+    return np.log(sol[1,0,:]/1)/P #divide by P, to compare different period length
         
 def dwdt(W,t,species, I_in,carbon):
     """computes the derivative, either for one species or for two
@@ -196,15 +155,13 @@ def dwdt(W,t,species, I_in,carbon):
     if W.ndim == 1:
         W = W.reshape(2,2,-1)
     k,l = species[[0,-1]]
-    
-    abso = k[:,None]*W # absorption coefficient
     rel_abso = np.ones(W.shape)
     res_abso = k*W[1]
     rel_abso[1,0] = W[0,0]*k[1]/(k[0]*W[1,0])
     rel_abso[0,1] = W[0,1]*k[0]/(k[1]*W[1,1])
-    if np.amin(rel_abso)<0:
-        print(np.amin(rel_abso), "error in absorption")
-        print(np.amin(W))
+    #if np.amin(rel_abso)<0:
+    #    print(np.amin(rel_abso), "error in absorption")
+    #    print(np.amin(W))
         
     carb_up = lambda I: carbon(species,I,'special')/(np.expand_dims(k,-1)*I)
     def carb_up(I):
@@ -221,54 +178,26 @@ def dwdt(W,t,species, I_in,carbon):
     def growth(W):
         #integrate carbonuptake, integral computet with linear trans.
         return simps(carb_up(I_eff),dx = dx,axis=-1)\
-                            *(I_in-I_out)
-    a = l*W
-    loss = a.copy()
-    loss[0,0] = a[1,0]
-    loss[0,1] = a[0,0]
-    loss[1,0] = a[0,1]
-    dwdt2 = rel_abso*growth(W)-loss
-    new = dwdt2.copy()
-    new[0,1] = dwdt2[1,0]
-    new[1,0] = dwdt2[0,0]
-    new[0,0] = dwdt2[0,1]
-    return new.reshape(-1)
-
-def test_r_i_av(species, P,carbon):
-    """computes av(r_i), the average boundary_growth rate
+                           *(I_in-I_out)
     
-    species, carbon should be the species parameters, computed by gen_species
-    P is the period length
-    Averaging is done by taking the outcomes of different starting C and E
-    """
-    r_i_val = []
-    mini = ches.equilibrium(50, species[:,1],carbon[1])
-    maxi = ches.equilibrium(200, species[:,1],carbon[1])
-    for C in np.linspace(mini, maxi, 10):
-        print(C)
-        for E in np.linspace(50,200,10):
-            r_i_val.append(r_i(C,E,species,P,carbon))
-    return np.average(r_i_val)
+    #print((rel_abso*growth(W))[...,i], "multi\n")
+    loss = np.array([[l[1],l[0]],[l[0],l[1]]])*W
+    reloss = loss.copy()
+    reloss[0,0], reloss[1,0] = loss[1,0], loss[0,0]
+    new = rel_abso*growth(W)-reloss
+    dwdt = new.copy()
+    dwdt[1,0] = new[0,0]
+    dwdt[0,0] = new[1,0]
+    dwdt[0,1] = new[0,1]
+    return dwdt.reshape(-1)
+
+
 
 counter0 = 0
-spec, carb, I_r = ches.gen_species(ches.sat_carbon_par, num = 500)
+spec, carb, I_r = ches.gen_species(ches.sat_carbon_par, num = 50000)
 print(spec.shape)
-E_star, C_star = equi_point(spec, carb, I_r)
-print(E_star.shape, C_star.shape, "equi_points")
-P = 10
-if (C_star <1).any():
-    print("printed by bound_growth",np.amin( C_star))
-curl_C = lambda C: test_r_i(C, E_star, spec, P,carb)
-curl_E = lambda E: test_r_i(C_star, E, spec, P,carb)
-acc_rel_I = 11
-rel_I,dx = np.linspace(1e-10,1,acc_rel_I,retstep = True)
-rel_I = rel_I.reshape((1,-1))
-I_eff = np.expand_dims(200-50,-1)*rel_I+np.expand_dims(50,-1)
-i = 0
-integrand_C = lambda I: curl_C(ches.equilibrium(spec, carb, I, 'simple'))
-integrand_E = lambda I: curl_E(I)
-a = integrand_C(I_eff[:,i])
-#v = integrand_E(I_eff[:,i])
-#a,b,c = bound_growth(spec[:,:,:10], carb, I_r,10)
-# print(np.sum(~np.isnan(c)), np.amin(c), "finla")
-#plit(*c)
+
+
+a,b,c = bound_growth(spec[:,:,:], carb, I_r,50)
+print(np.sum(~np.isnan(c)), np.amin(c), "finla")
+plit(*c)
