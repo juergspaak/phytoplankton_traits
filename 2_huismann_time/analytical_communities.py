@@ -5,7 +5,7 @@ Created on Fri Jan  6 12:27:19 2017
 @author: Jurg
 Generates random environments and checks whether this environment allows existence
 """
-import numpy as np
+import autograd.numpy as np
 
 from warnings import warn
 from numpy.random import uniform as uni
@@ -34,7 +34,7 @@ def find_species(ncoms = 1000, I_r = np.array([50,200,5])):
     pot_specs = specs[:,:, div_dom] #choose the ones with different dominance
     if pot_specs.shape[-1]<ncoms:
         warn("less species have been returned than asked")
-    return pot_specs[:,:,:ncoms]
+    return pot_specs[:,:,:ncoms].copy() #copy to empty memory
 
 def random_par(nspecies = (2,100),factor=100, Im = 50):
     """ returns random parameters for the model

@@ -42,7 +42,7 @@ def exact_r_i(species, P, I_r, itera = 20000):
     I_av = (I_r[0]+I_r[1])/2 #average = balance point of I_in
     Wav = com.equilibrium(species,I_av,'simple') # density at average i_in
     
-    # W_r_ef[:,i,j] is a serie of densities for species i, repkicate j
+    # W_r_ef[:,i,j] is a serie of densities for species i, replicate j
     # similar for W_r_eq, W_r_eq[i] corresponds to lights[i]
     W_r_eq, W_r_ef, lights = dist_resident(species,  P, I_r, Wav, False, itera)
 
@@ -124,11 +124,11 @@ def mp_approx_r_i(species, P, I_r):
     Is identical to lin_approx, except the computation of Wm,WM
     Parameters and return same as exact_r_i"""
     k,H,p,lr = species #parameters of the species
-    li = np.array([lr[1],lr[0]]) #invader value
+    li = lr[::-1] #invader values
     I_av = (I_r[0]+I_r[1])/2 #average = balance point of I_in
 
     # E(environment)
-    E_envi = np.zeros(species[0].shape) 
+    E_envi = np.zeros(species[0].shape)
     
     # E(competition)
     mc,qc = linear_comp(species, I_r) # 1/C = mc*I+qc-1 
@@ -234,16 +234,14 @@ def linear_comp(species, I_r = [50,200], itera = 151):
     lights = I_r[0]+(I_r[1]-I_r[0])*rel_lights[:,np.newaxis]
     #find equilibria for all species
     equis = com.equilibrium(species, lights, 'partial')
-
     k = species[0]
-    kW = k[np.newaxis, :,:]*equis #absorption
+    kW = k*equis #absorption
     # kW_i/kW_r = 1/C
     kW_div = np.array([kW[:,1]/kW[:,0],kW[:,0]/kW[:,1]])
 
     #linear regression
     light_av = np.average(rel_lights)
     kW_av = np.average(kW_div, axis = 1)
-
     kW_centered = kW_div-kW_av[:,np.newaxis,:]
     
     # variance of lights
@@ -255,5 +253,3 @@ def linear_comp(species, I_r = [50,200], itera = 151):
     slope = Sxy/(Sxx*(I_r[1]-I_r[0]))
     intercept = kW_av-slope*np.average(I_r, axis = 0)
     return slope, intercept
-
-    spec, P, I_r = com.generate_com(1000)
