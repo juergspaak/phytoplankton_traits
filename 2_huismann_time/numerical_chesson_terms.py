@@ -26,9 +26,9 @@ def bound_growth(spec, carbon,I_r ,P):
     species, carbon, I_r should be outputs of gen_species
     I_r should be the range in which I_in fluctuates
     
-    returns deltaC, delta E, r_i = deltaE-deltaC
+    returns ave_C, ave_E, r_i = ave_E-ave_C
     
-    delta E is assumed to be very small"""
+    ave_E is assumed to be very small"""
     if I_r.ndim == 1:
         I_r = np.ones((1,spec.shape[-1]))*I_r[:,np.newaxis]
                        
@@ -92,11 +92,12 @@ def r_i(C,E, species,P,carbon):
     # first axis is for invader/resident, second for the two species
     start_dens = np.array([np.ones(C.shape),C])
     #compute the growth of the two species
-    sol = odeint(dwdt, start_dens.reshape(-1), [0,P], 
-                                (species, E, carbon))
-    sol = sol.reshape(2,2,2,-1) #odeint only alows 1-dim arrays
+    sol = odeint(dwdt, start_dens.reshape(-1), [0,P],args = (species, E, carbon))
+    sol.shape =  2,2,2,-1 #odeint only alows 1-dim arrays        
     #divide by P, to compare different period length
-    return np.log(sol[1,0,:]/1)/P 
+    return np.log(sol[1,0,[1,0]]/1)/P #return in different order, because species are swapped
+
+
         
 def dwdt(W,t,species, I_in,carbon):
     """computes the derivative, either for one species or for two
@@ -132,20 +133,19 @@ def dwdt(W,t,species, I_in,carbon):
     loss = np.array([[l[1],l[0]],[l[0],l[1]]])*W
     reloss = loss.copy()
     reloss[0,0], reloss[1,0] = loss[1,0], loss[0,0]
-    new = rel_abso*growth-reloss
+    new = rel_abso*growth-reloss #rearanging to meet requirements
     dwdt = new.copy()
     dwdt[1,0] = new[0,0]
     dwdt[0,0] = new[1,0]
     dwdt[0,1] = new[0,1]
     return dwdt.reshape(-1)
+    
+if False: #generate species and compute bound growth
+    spec, carb, I_r = ches.gen_species(ches.sat_carbon_par, num = 5000)
+    a,b,c = bound_growth(spec, carb, I_r,50)    
+    
+if False: # check r_i is doing a good job
+    I = np.random.uniform(50,200, spec.shape[-1])
+    r_i(ches.equilibrium(spec, carb, I), I,spec, 10, carb, True)
+    
 
-
-
-counter0 = 0
-spec, carb, I_r = ches.gen_species(ches.sat_carbon_par, num = 5000)
-print(spec.shape)
-
-
-a,b,c = bound_growth(spec, carb, I_r,50)
-print(np.sum(~np.isnan(c)), np.amin(c), "finla")
-plit(*c)
