@@ -45,6 +45,9 @@ def bound_growth(spec, carbon,I_r ,P):
     simps_C = np.zeros((acc_rel_I,)+spec.shape[1:])
     simps_E = np.zeros((acc_rel_I,)+spec.shape[1:])
     for i in range(acc_rel_I):
+        print("please read comments on line 48ff")
+        """ this lines compute the boundary growth rate, but it has to be multiplied
+        with the partial differential: r_i(E,C) = dr/dC*(C-C^*)..."""
         simps_C[i] = curl_C(I_eff[:,i])
         simps_E[i] = curl_E(I_eff[:,i])
     
