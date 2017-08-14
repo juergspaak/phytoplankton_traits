@@ -5,14 +5,20 @@ Contains functions to compute the boundary growth rate of species
 
 Species: Method to create species and compute their boundary growth rates
 
-Most functions are similar to numerical_r_i, adapt these to include chesson terms
+`bound_growth` function to compute the boundary growth rate numerically
+
+`equi_point` function to compute the instable equilibrium
+
+`r_i` numerically computes the growth rate in one period
+
+`dwdt` right hand side of the differential equation
 """
 
 import numpy as np
 from scipy.integrate import simps,odeint
-import communities_chesson as ches
+import numerical_communities as com
 
-def bound_growth(spec, carbon,I_r ,P):
+def bound_growth(species, carbon,I_r ,P):
     """computes av(r_i) for species
     
     species, carbon, I_r should be outputs of gen_species
@@ -22,55 +28,27 @@ def bound_growth(spec, carbon,I_r ,P):
     
     ave_E is assumed to be very small"""
     if I_r.ndim == 1:
-        I_r = np.ones((1,spec.shape[-1]))*I_r[:,np.newaxis]
-                       
-    # compute unstable equilibrium point
-    E_star, C_star = equi_point(spec, carbon, I_r)
+        I_r = np.ones((1,species.shape[-1]))*I_r[:,np.newaxis]
     
     Im, IM = I_r #light range
     # density in dependence of incoming light
-    C = lambda I: ches.equilibrium(spec, carbon, I, 'simple')
-    # growth in one period
-    curl_C = lambda I: -r_i(C(I), E_star, spec, P,carbon)
-    curl_E = lambda I: r_i(C_star, I, spec, P,carbon)
-
-    acc_rel_I = 21 # number used for simpson integration
+    acc_rel_I = 1000 # number used for simpson integration
     # uniform distribution in 0,1, used for integration
-    rel_I,dx = np.linspace(1e-10,1,acc_rel_I,retstep = True)
-    rel_I.shape = 1,-1
-    
+    rel_I_prev = np.sort(np.random.random((acc_rel_I,1)))
+    rel_I_now = np.random.random((acc_rel_I,1)) 
     # Effective light used for integration
-    I_eff = np.expand_dims(IM-Im,-1)*rel_I+np.expand_dims(Im,-1)
-    # x-values used for simpson rule
-    simps_C = np.zeros((acc_rel_I,)+spec.shape[1:])
-    simps_E = np.zeros((acc_rel_I,)+spec.shape[1:])
+    I_prev = (IM-Im)*rel_I_prev+Im
+    I_now = (IM-Im)*rel_I_now+Im
+    start = timer()
+    dens_prev = com.equilibrium(species, carbon, I_prev, "partial")
+    mid = timer()
+    r_is = np.empty((acc_rel_I,2,species.shape[-1]))
+    mido = timer()
     for i in range(acc_rel_I):
-        simps_C[i] = curl_C(I_eff[:,i])
-        simps_E[i] = curl_E(I_eff[:,i])
-    
-    # integrate, divide by light range because of variable transformation   
-    ave_C = simps(simps_C, dx = dx, axis = 0)/(IM-Im)
-    ave_E = simps(simps_E, dx = dx, axis = 0)/(IM-Im)
-    """
-    integrand_stor = lambda I_y, I_x: integrand_C(I_x)*integrand_E(I_y)
-    Im_fun = lambda x: Im
-    IM_fun = lambda x: IM
-    stor = 0#dblquad(integrand_stor, Im, IM, Im_fun, IM_fun)[0]
-    gamma =  0#gamma_fun(lambda C,E: r_i(C,E,species, P))(C_star, E_star)"""
-    return ave_C, ave_E,ave_E-ave_C
-
-
-def equi_point(species, carbon,I_r):
-    """computes the incoming light for unstable coexistence
-    
-    returns E_star, C_star
-    
-    species, carbon, I_r should be outputs of gen_species"""
-    E_star = ches.find_balance(species, carbon, I_r)
-    C_star = ches.equilibrium(species, carbon, E_star, 'simple')
-    if (C_star <1).any(): #avoid errors
-        print("printed by equi_point",np.amin( C_star))
-    return E_star, C_star
+        r_is[i] = r_i(dens_prev[:,i], I_now[i], species, P, carbon)
+    end = timer()
+    print(end-mido, mid-start)
+    return np.average(r_is, axis = 0)
 
 def r_i(C,E, species,P,carbon):
     """computes r_i for the species[:,0] assuming species[:,1] at equilibrium
@@ -84,12 +62,35 @@ def r_i(C,E, species,P,carbon):
     # first axis is for invader/resident, second for the two species
     start_dens = np.array([np.ones(C.shape),C])
     #compute the growth of the two species
-    sol = odeint(dwdt, start_dens.reshape(-1), [0,P],args = (species, E, carbon))
-    sol.shape =  2,2,2,-1 #odeint only alows 1-dim arrays        
+    dwdt_use = lambda W, t: dwdt(W,t,species, E, carbon)
+    steps = 2*P
+    sol = own_ode(dwdt_use, start_dens.reshape(-1), [0,P],steps)
+    sol.shape =  steps,2,2,-1 #odeint only alows 1-dim arrays        
     #divide by P, to compare different period length
-    return np.log(sol[1,0,[1,0]]/1)/P #return in different order, because species are swapped
-
-
+    return np.log(sol[-1,0,[1,0]]/1)/P #return in different order, because species are swapped
+    
+    
+def own_ode(f,y0,t, steps = 10, s = 2):
+    # coefficients for method:
+    coefs = [[1],
+             [-1/2,3/2],
+             [5/12, -4/3, 23/12],
+             [-3/8, 37/24, -59/24, 55/24],
+             [251/720, -637/360, 109/30, -1387/360, 1901/720]]
+    coefs = np.array(coefs[s-1])
+    ts, h = np.linspace(*t, steps, retstep = True)
+    sol = np.empty((steps,)+ y0.shape)
+    dy = np.empty((steps,)+ y0.shape)
+    sol[0] = y0
+    dy[0] = f(y0, ts[0])
+    for i in range(s-1):
+        sol_help = sol[i]+h/2*f(sol[i],ts[i])
+        sol[i+1] = sol_help+h/2*f(sol_help,ts[i]+h/2)
+        dy[i+1] = f(sol[i+1], ts[i+1])
+    for i in range(steps-s):
+        sol[i+s] = sol[i+s-1]+h*np.einsum('i,i...->...', coefs, dy[i:i+s])
+        dy[i+s] = f(sol[i+s], ts[i+s])
+    return sol                
         
 def dwdt(W,t,species, I_in,carbon):
     """computes the derivative, either for one species or for two
@@ -133,11 +134,15 @@ def dwdt(W,t,species, I_in,carbon):
     return dwdt.reshape(-1)
     
 if False: #generate species and compute bound growth
-    spec, carb, I_r = ches.gen_species(ches.sat_carbon_par, num = 5000)
-    a,b,c = bound_growth(spec, carb, I_r,50)    
+    spec, carbon, I_r = com.gen_species(com.sat_carbon_par, num = 5000)
+    a,b,c = bound_growth(spec, carbon, I_r,50)    
     
 if False: # check r_i is doing a good job
     I = np.random.uniform(50,200, spec.shape[-1])
-    r_i(ches.equilibrium(spec, carb, I), I,spec, 10, carb, True)
+    r_i(com.equilibrium(spec, carbon, I), I,spec, 10, carbon, True)
     
-
+#spec, carbon, I_r = com.gen_species(com.photoinhibition_par, num = 500000)
+plit(*save, save = "different carbon_uptake")    
+#save = bound_growth(spec[:,:,:1000], carbon,I_r ,10)
+#print(np.abs(save[0]-r_i3[1,:10])/np.max(np.abs([save[0],r_i3[1,:10]]), axis = 0))
+#print(save[0])
