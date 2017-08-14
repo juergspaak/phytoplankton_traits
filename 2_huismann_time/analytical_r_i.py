@@ -2,7 +2,6 @@ import analytical_communities as com
 import numpy as np
 
 """
-    
 #example:
 spec, P, I_r = com.generate_com(1000)
 k,p,H,l = spec

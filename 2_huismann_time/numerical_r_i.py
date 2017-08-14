@@ -21,82 +21,112 @@ import numerical_communities as com
 def bound_growth(species, carbon,I_r ,P):
     """computes av(r_i) for species
     
-    species, carbon, I_r should be outputs of gen_species
-    I_r should be the range in which I_in fluctuates
+    species, carbon, I_r should be outputs of com.gen_species
+    P is the period length
     
-    returns ave_C, ave_E, r_i = ave_E-ave_C
-    
-    ave_E is assumed to be very small"""
+    returns r_i, the boundary growth rate of the two species"""
     if I_r.ndim == 1:
         I_r = np.ones((1,species.shape[-1]))*I_r[:,np.newaxis]
     
     Im, IM = I_r #light range
-    # density in dependence of incoming light
-    acc_rel_I = 1000 # number used for simpson integration
-    # uniform distribution in 0,1, used for integration
-    rel_I_prev = np.sort(np.random.random((acc_rel_I,1)))
-    rel_I_now = np.random.random((acc_rel_I,1)) 
-    # Effective light used for integration
+
+    acc_rel_I = 1000 # number of simulated lights
+    # relative distribution of incoming light
+    rel_I_prev = np.sort(np.random.random((acc_rel_I,1))) #light in prev period
+    rel_I_now = np.random.random((acc_rel_I,1)) #light in current period
+    # Effective light, linear transformation
     I_prev = (IM-Im)*rel_I_prev+Im
     I_now = (IM-Im)*rel_I_now+Im
-    start = timer()
+    
+    # equilibrium densitiy of resident in previous period
     dens_prev = com.equilibrium(species, carbon, I_prev, "partial")
-    mid = timer()
+    #save the growth rates in the periods
     r_is = np.empty((acc_rel_I,2,species.shape[-1]))
-    mido = timer()
-    for i in range(acc_rel_I):
+    
+    for i in range(acc_rel_I): #compute the growth rates for each period
         r_is[i] = r_i(dens_prev[:,i], I_now[i], species, P, carbon)
-    end = timer()
-    print(end-mido, mid-start)
+    
+    #return the average of the growth rates
     return np.average(r_is, axis = 0)
 
 def r_i(C,E, species,P,carbon):
-    """computes r_i for the species[:,0] assuming species[:,1] at equilibrium
+    """computes r_i for one period, assuming that resident is a equilibrium
     
-    does this by solving the differential equations
-    C should be the density of the resident species, E the incomming light
-    P the period length, carbon = [carbon[0],carbon[1]] the carbon uptake 
-    functions of both species
+    C: equilibrium density of resident at start of period
+    E: incoming light during the period
+    P: period length
+    species, carbon: outputs of com.gen_species
     
     returns r_i for this period"""
     # first axis is for invader/resident, second for the two species
     start_dens = np.array([np.ones(C.shape),C])
-    #compute the growth of the two species
+    
     dwdt_use = lambda W, t: dwdt(W,t,species, E, carbon)
-    steps = 2*P
+    steps = 2*P #number of steps for adams method
+    # simulate the growth for the species
     sol = own_ode(dwdt_use, start_dens.reshape(-1), [0,P],steps)
-    sol.shape =  steps,2,2,-1 #odeint only alows 1-dim arrays        
+    sol.shape =  steps,2,2,-1 #own_ode only alows 1-dim arrays        
     #divide by P, to compare different period length
     return np.log(sol[-1,0,[1,0]]/1)/P #return in different order, because species are swapped
     
     
 def own_ode(f,y0,t, steps = 10, s = 2):
+    """uses adam bashforth method to solve an ODE
+    
+    Parameters:
+        func : callable(y, t0, ...)
+            Computes the derivative of y at t0.
+        y0 : array
+            Initial condition on y (can be a vector).
+        t : array
+            A sequence of time points for which to solve for y. 
+            The initial value point should be the first element of this sequence.
+        args : tuple, optional
+            Extra arguments to pass to function.
+            
+    Returns:
+        y : array, shape (steps, len(y0))
+            Array containing the value of y for each desired time in t,
+            with the initial value y0 in the first row."""
     # coefficients for method:
-    coefs = [[1],
-             [-1/2,3/2],
-             [5/12, -4/3, 23/12],
-             [-3/8, 37/24, -59/24, 55/24],
-             [251/720, -637/360, 109/30, -1387/360, 1901/720]]
-    coefs = np.array(coefs[s-1])
-    ts, h = np.linspace(*t, steps, retstep = True)
+    coefs = [[1], # s = 1
+             [-1/2,3/2],  # s = 2
+             [5/12, -4/3, 23/12], # s = 3
+             [-3/8, 37/24, -59/24, 55/24], # s = 4
+             [251/720, -637/360, 109/30, -1387/360, 1901/720]] # s = 5
+    coefs = np.array(coefs[s-1]) #choose the coefficients
+    ts, h = np.linspace(*t, steps, retstep = True) # timesteps
+    # to save the solution and the function values at these points
     sol = np.empty((steps,)+ y0.shape)
     dy = np.empty((steps,)+ y0.shape)
+    #set starting conditions
     sol[0] = y0
     dy[0] = f(y0, ts[0])
-    for i in range(s-1):
+    # number of points until iteration can start is s
+    for i in range(s-1): #use Euler with double precision
         sol_help = sol[i]+h/2*f(sol[i],ts[i])
         sol[i+1] = sol_help+h/2*f(sol_help,ts[i]+h/2)
         dy[i+1] = f(sol[i+1], ts[i+1])
+        
+    #actual Adams-Method
     for i in range(steps-s):
         sol[i+s] = sol[i+s-1]+h*np.einsum('i,i...->...', coefs, dy[i:i+s])
         dy[i+s] = f(sol[i+s], ts[i+s])
     return sol                
         
 def dwdt(W,t,species, I_in,carbon):
-    """computes the derivative, either for one species or for two
-    biomass is the densities of the two species,
-    species contains their parameters
-    light0 is the incomming light at this given time"""
+    """computes the derivative of the species
+    
+    Parameters:
+        W: array, 
+            densities of the species (shape = (2,2,ncom))
+        t: not used, allows to be called by odeint
+        species, carbon: return values of com.gen_species
+        I_in current incoming light
+    
+    Returns:
+        Growth rate of the species
+        """
     if W.ndim == 1: #reshape into usable shape
         W = W.reshape(2,2,-1)
     k,l = species[[0,-1]]
@@ -106,8 +136,6 @@ def dwdt(W,t,species, I_in,carbon):
     rel_abso[1,0] = W[0,0]*k[1]/(k[0]*W[1,0])
     rel_abso[0,1] = W[0,1]*k[0]/(k[1]*W[1,1])
     
-    
-        
     # relative light, needed for integration
     rel_I,dx = np.linspace(1e-10,1,21,retstep = True)
     rel_I = rel_I.reshape((1,1,-1))
@@ -140,9 +168,3 @@ if False: #generate species and compute bound growth
 if False: # check r_i is doing a good job
     I = np.random.uniform(50,200, spec.shape[-1])
     r_i(com.equilibrium(spec, carbon, I), I,spec, 10, carbon, True)
-    
-#spec, carbon, I_r = com.gen_species(com.photoinhibition_par, num = 500000)
-plit(*save, save = "different carbon_uptake")    
-#save = bound_growth(spec[:,:,:1000], carbon,I_r ,10)
-#print(np.abs(save[0]-r_i3[1,:10])/np.max(np.abs([save[0],r_i3[1,:10]]), axis = 0))
-#print(save[0])
