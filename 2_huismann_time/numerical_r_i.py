@@ -15,7 +15,7 @@ Species: Method to create species and compute their boundary growth rates
 """
 
 import numpy as np
-from scipy.integrate import simps,odeint
+from scipy.integrate import simps
 import numerical_communities as com
 
 def bound_growth(species, carbon,I_r ,P):
@@ -30,7 +30,7 @@ def bound_growth(species, carbon,I_r ,P):
     
     Im, IM = I_r #light range
 
-    acc_rel_I = 1000 # number of simulated lights
+    acc_rel_I = 500 # number of simulated lights
     # relative distribution of incoming light
     rel_I_prev = np.sort(np.random.random((acc_rel_I,1))) #light in prev period
     rel_I_now = np.random.random((acc_rel_I,1)) #light in current period
@@ -44,6 +44,8 @@ def bound_growth(species, carbon,I_r ,P):
     r_is = np.empty((acc_rel_I,2,species.shape[-1]))
     
     for i in range(acc_rel_I): #compute the growth rates for each period
+        if i %10 ==0:
+            print(i)
         r_is[i] = r_i(dens_prev[:,i], I_now[i], species, P, carbon)
     
     #return the average of the growth rates
@@ -162,9 +164,12 @@ def dwdt(W,t,species, I_in,carbon):
     return dwdt.reshape(-1)
     
 if False: #generate species and compute bound growth
-    spec, carbon, I_r = com.gen_species(com.sat_carbon_par, num = 5000)
-    a,b,c = bound_growth(spec, carbon, I_r,50)    
-    
-if False: # check r_i is doing a good job
-    I = np.random.uniform(50,200, spec.shape[-1])
-    r_i(com.equilibrium(spec, carbon, I), I,spec, 10, carbon, True)
+    from timeit import default_timer as timer
+    from analytical_r_i import mp_approx_r_i
+    start = timer()
+    species, carbon, I_r = com.gen_species(com.sat_carbon_par, num = 5000)
+    print(timer()-start)
+    P = 50
+    av_r_i = bound_growth(species, carbon, I_r,P)
+    print(timer()-start)
+    a,b,c,d = mp_approx_r_i(species, P, I_r)
