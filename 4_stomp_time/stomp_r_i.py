@@ -88,6 +88,7 @@ I_in = lambda lam: 25/300*np.ones(lam.shape)
 species, k_spec, g_spec, pigments, a = com.stomp_par(richness = 3, num = 1000)
 sol = r_i(1000*np.ones(species[0].shape), I_in,
           species, g_spec, k_spec,10000)
+sol2 = com.multispecies_equi(k_spec, species, I_in).swapaxes(0,1)
 print(np.nanargmin(sol[-1]))
 """
 I_in = lambda lam: 100/300*np.ones(lam.shape)
