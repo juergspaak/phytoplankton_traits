@@ -21,7 +21,7 @@ def random_pigments(n):
     # location of peaks
     peak = [np.random.uniform(400,700,(1,npeak[i])) for i in range(n)]
     # shape of peack
-    sigma = [np.random.uniform(50,800, size = (1,npeak[i])) for i in range(n)]
+    sigma = [np.random.uniform(100,900, size = (1,npeak[i])) for i in range(n)]
     # magnitude of peak
     gamma = [np.random.uniform(0,1, size = (1,npeak[i])) for i in range(n)]
     pigs = []
