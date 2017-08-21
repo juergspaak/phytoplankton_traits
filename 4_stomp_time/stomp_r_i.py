@@ -5,7 +5,7 @@ Created on Thu Aug 17 10:27:36 2017
 @author: spaakjue
 """
 import numpy as np
-import communities_stomp as com
+import stomp_communities as com
 
 def r_i(C,I_in, species,g_spec,k_spec, P):
     """computes r_i for one period, assuming that resident is a equilibrium
@@ -85,10 +85,10 @@ def I_out(density, k_spec, I_in):
     
 
 I_in = lambda lam: 25/300*np.ones(lam.shape)
-species, k_spec, g_spec, pigments, a = com.stomp_par(richness = 3, num = 1000)
+species, k_spec, g_spec = com.stomp_par(richness = 3, num = 1000)
 sol = r_i(1000*np.ones(species[0].shape), I_in,
           species, g_spec, k_spec,10000)
-sol2 = com.multispecies_equi(k_spec, species, I_in).swapaxes(0,1)
+sol2 = com.equilibrium(k_spec, species, I_in).swapaxes(0,1)
 print(np.nanargmin(sol[-1]))
 """
 I_in = lambda lam: 100/300*np.ones(lam.shape)
