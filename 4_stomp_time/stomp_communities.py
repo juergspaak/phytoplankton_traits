@@ -18,11 +18,16 @@ import numpy as np
 from scipy.integrate import simps
 from timeit import default_timer as timer
 
-I_in_def = lambda lux: lambda lam: np.full(lam.shape, lux)
-
-def gen_species(num = 20, I_in1 = I_in_def(50/300), I_in2=I_in_def(25/300), richness = 3):
+def I_in_def(lux, loc = 550, sigma = 0):
+    if sigma == 0:
+        return lambda lam: np.full(lam.shape, lux)
+    else:
+        return lambda lam: lux*np.exp(-(lam-loc)**2/sigma)
+        
+        
+def gen_species(num = 20, I_in1 = I_in_def(100/300), I_in2=I_in_def(25/300), richness = 3):
     found = 0
-    itera = 100
+    itera = 1000
     equi = np.empty((2,3,itera))
     species_f = np.empty((2,richness,num))
     
@@ -30,6 +35,7 @@ def gen_species(num = 20, I_in1 = I_in_def(50/300), I_in2=I_in_def(25/300), rich
         start = timer()
         # generating the species
         species, k_spec, g_spec = stomp_par(num = itera, richness = 3)
+        print(np.amax(species[1])/np.amin(species[1]))
         # computing the equilibrium densities
         equi[0] = equilibrium(k_spec, species, I_in1)
         equi[1] = equilibrium(k_spec, species, I_in2)
@@ -46,7 +52,7 @@ def gen_species(num = 20, I_in1 = I_in_def(50/300), I_in2=I_in_def(25/300), rich
         
     
 
-def stomp_par(num = 1000,richness = 3, fac = 4):
+def stomp_par(num = 1000,richness = 3, fac = 10):
     """ returns random parameters for the model
     
     the generated parameters are ensured to survive
@@ -63,7 +69,6 @@ def stomp_par(num = 1000,richness = 3, fac = 4):
     pigments = random_pigments(num, richness-1, fac)
     # raise by
     pig_ratio = np.random.beta(0.1,0.1, (richness-1,richness, num))
-    pig_ratio = pig_ratio/np.sum(pig_ratio, axis = 0)
     k_spec = lambda lam: np.einsum('psn,lpn->lsn', pig_ratio, pigments(lam))
     k_spec.pigments = pigments
     k_spec.pig_ratio = pig_ratio
@@ -77,17 +82,13 @@ def stomp_par(num = 1000,richness = 3, fac = 4):
         absor = density*k_spec(lambs)
         tot_abs = np.sum(absor, axis = 1) # \sum_i  k_i(lam)*N_i
         rel_absor = absor/tot_abs.reshape(-1,1,ncom) #relative absorption
-        if False and np.isnan(tot_abs).any():
-            a = np.isnan(tot_abs)
-            print(absor[0,:,a[0]])
-            print(density[:,a[0]], k_spec(lambs)[0,:,a[0]])
-            
+        
         I_in = I_in(lambs).reshape(-1,1)
         # integrate_400^700 rel_absor*I_in(lambda)*(1-e^(-absorption)) dlambda
         energy = I_in*(1-np.exp(-tot_abs))
         dx = lambs[1]-lambs[0]
         energy = simps(rel_absor*energy.reshape(-1,1,ncom),dx = dx, axis = 0)
-        #return phi*integral(absorbtion)- l*N
+        # phi*integral(absorbtion)- l*N
         return species[0]*energy-species[1]*density
     
     return np.array([phi, l]), k_spec, g_spec
@@ -105,7 +106,7 @@ def random_pigments(num, richness, n_peak_max = 3):
     
     # number of peaks for each pigment:
     n_peaks = np.random.binomial(1,0.5,shape)
-    n_peaks[0] = 1 #each phytoplankton has at least 2 peaks
+    n_peaks[0] = 1 #each phytoplankton has at least 1 peak
     # location of peaks
     l_p = np.random.uniform(400,700,shape)
     # shape of peak
@@ -130,7 +131,7 @@ def random_pigments(num, richness, n_peak_max = 3):
     pigments.parameters = {'gamma_p': gamma_p, 'l_p': l_p, 'sigma_p': sigma_p}
     return pigments
     
-def equilibrium_new(k_spec, species, I_in = lambda lam: 40/300*np.ones(lam.shape)
+def equilibrium(k_spec, species, I_in = lambda lam: 40/300*np.ones(lam.shape)
                     ,runs = 100):
     """Compute the equilibrium density for several species with its pigments
     
@@ -162,6 +163,7 @@ def equilibrium_new(k_spec, species, I_in = lambda lam: 40/300*np.ones(lam.shape
     equis:
         Equilibrium densitiy of all species, that reached equilibrium      
     """
+    
     # asign a fitness to all species, shape = (npi, itera)
     fitness = species[0]/species[1]
     
@@ -172,7 +174,7 @@ def equilibrium_new(k_spec, species, I_in = lambda lam: 40/300*np.ones(lam.shape
     lam, dx = np.linspace(400,700,51, retstep = True) #points for integration
     # k_spec(lam), shape = (len(lam), richness, ncom)
     abs_points = k_spec(lam)
-    I_in = I_in(lam)
+    I_in = I_in(lam)[:,np.newaxis]
     unfixed = np.full(species.shape[-1], True, dtype = bool)
     n = 20
     #print(equis.shape, equis_fix.shape, fitness.shape, np.sum(unfixed), abs_points.shape)
@@ -182,7 +184,7 @@ def equilibrium_new(k_spec, species, I_in = lambda lam: 40/300*np.ones(lam.shape
         # N_j*k_j(lam), shape = (npi, len(lam), itera)
         all_abs = equis*abs_points #np.einsum('ni,li->nli', equis, abs_points)
         # N_j*k_j(lam)/sum_j(N_j*k_j)*(1-e^(-sum_j(N_j*k_j))), shape =(npi, len(lam), itera)
-        y_simps = all_abs*(I_in[:,np.newaxis]/tot_abs*(1-np.exp(-tot_abs)))[:,np.newaxis]
+        y_simps = all_abs*(I_in/tot_abs*(1-np.exp(-tot_abs)))[:,np.newaxis]
         # fit*int(y_simps)
         equis = fitness*simps(y_simps, dx = dx, axis = 0)
         # remove rare species
@@ -201,8 +203,10 @@ def equilibrium_new(k_spec, species, I_in = lambda lam: 40/300*np.ones(lam.shape
             abs_points = abs_points[...,cond]
             fitness = fitness[:,cond]
     # species not found equilibrium are not considered further        
-    equis_fix[:,cond] = np.nan 
+    equis_fix[:,unfixed] = np.nan 
     return equis_fix
+    
+#gen_species()
 """
 species, k_spec, g_spec = stomp_par(num = 1000, richness = 3)
 # computing the equilibrium densities

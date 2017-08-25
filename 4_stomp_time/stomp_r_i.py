@@ -83,13 +83,65 @@ def I_out(density, k_spec, I_in):
     plt.figure()
     plt.plot(np.linspace(400,700,151),k_spec(np.linspace(400,700,151))[:,:,0])
     
+def pigment_fraction(N, pigment,k_spec, I_in = com.I_in_def(40/300)):
+    lams,dx = np.linspace(400,700,51, retstep = True)
+    abs_points = k_spec(lams) 
+    tot_abs = np.einsum('ni,lni->li', N, abs_points)
+    p_lam = pigment(lams)
+    I_lam = I_in(lams)[:,np.newaxis]
+    y_simps = p_lam*(I_lam/tot_abs*(1-np.exp(-tot_abs)))[:,np.newaxis]
+    return simps(y_simps, dx = dx, axis = 0)
+    
+    
+def pigments_equal():    
+    """this code snippet proves, that independent of the incoming light, the 
+    energy produced by one pigment is always the same at equilibrium"""
+    species, k_spec, g_spec = com.stomp_par(richness = 3, num = 1000)
+    lux = np.random.uniform(10/300, 300/300,2)
+    sigma = np.random.uniform(5000,50000,2)
+    loc = np.random.uniform(400,700,2)
+    I_in0 = com.I_in_def(lux[0], loc[0], sigma[0])
+    I_in2 = com.I_in_def(lux[1], loc[1], sigma[1])
+    equi0  = com.equilibrium(k_spec, species, I_in0)
+    equi2  = com.equilibrium(k_spec, species, I_in2)
+    surv0 = equi0>0
+    surv2 = equi2>0
+    pig_f0 = pigment_fraction(equi0, k_spec.pigments, k_spec,I_in0)
+    pig_f2 = pigment_fraction(equi2, k_spec.pigments, k_spec,I_in2)
+    
+    interest = np.logical_and(np.sum(surv0,0)==2, np.sum(surv2,0)==2)
+    print(interest.sum())
+    print(pig_f0[:,interest])
+    print(pig_f2[:,interest])
+    print(np.amax(np.abs(pig_f0[:,interest]-pig_f2[:,interest])/pig_f0[:,interest]))
+    lambs = np.linspace(400,700,151)
+    plt.plot(lambs, I_in0(lambs))
+    plt.plot(lambs, I_in2(lambs))
+    
+species, k_spec, g_spec = com.stomp_par(richness = 3, num = 1000)
+lux = np.random.uniform(10/300, 300/300,2)
+sigma = np.random.uniform(5000,50000,2)
+loc = np.random.uniform(400,700,2)
+I_in0 = com.I_in_def(lux[0], loc[0], sigma[0])   
+equi0  = com.equilibrium(k_spec, species, I_in0)
+surv0 = equi0>0
+interest = np.sum(surv0,0)==2
+fit = (species[0]/species[1])[:,interest]
+inv = np.argmax(fit,0)
+inv2 = np.argmin(fit,0)
+surv = surv0[:,interest]
 
+print([surv[inv[i],i] for i in range(len(inv))])
+new = ~np.array([surv[inv[i],i] for i in range(len(inv))])
+print(fit[:,new])
+print(np.sum(new), new.size)
+"""    
 I_in = lambda lam: 25/300*np.ones(lam.shape)
 species, k_spec, g_spec = com.stomp_par(richness = 3, num = 1000)
 sol = r_i(1000*np.ones(species[0].shape), I_in,
           species, g_spec, k_spec,10000)
 sol2 = com.equilibrium(k_spec, species, I_in).swapaxes(0,1)
-print(np.nanargmin(sol[-1]))
+print(np.nanargmin(sol[-1]))"""
 """
 I_in = lambda lam: 100/300*np.ones(lam.shape)
 sol2 = r_i(1000*np.ones(species[0].shape), I_in,
