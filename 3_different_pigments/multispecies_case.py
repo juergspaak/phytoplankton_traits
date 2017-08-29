@@ -48,7 +48,7 @@ def spectrum_species(pigments, r_pig, r_spec, n_com, r_pig_spec = 2):
     k_spec = np.einsum('psc,pcl->lsc', alpha,pig_lam[pigs_present_com])
     return k_spec
 
-def multispecies_equi(fitness, k_spec, I_in = I_in_def(40/300),runs = 5000):
+def multispecies_equi(fitness, k_spec, I_in = I_in_def(400/300),runs = 5000):
     """Compute the equilibrium density for several species with its pigments
     
     Computes `itera` randomly selected communities, each community contains
@@ -142,3 +142,30 @@ def plt_ncoex(equis):
     plt.xlabel("percent")
     plt.show()
     return fig
+    
+equis = []
+pigs_richness = np.arange(2,10)
+for i in pigs_richness:
+    n_com = 500 # number of communities
+    r_spec = 5+i # richness of species, regional richness
+    r_pig = i #richness of pigments in community
+    r_pig_spec = 2 #richness of pigments in each species
+    fac = 2 #factor by which fitness can differ
+    phi = 2*1e8*np.random.uniform(1/fac, 1*fac,(r_spec,n_com)) #photosynthetic efficiency
+    l = 0.014*np.random.uniform(1/fac, 1*fac,(r_spec,n_com)) # specific loss rate
+    fitness = phi/l # fitness
+    k_spec = spectrum_species(real, r_pig, r_spec, n_com) #spectrum of the species
+    
+    equis.append(multispecies_equi(fitness, k_spec)) #equilibrium density
+    plt_ncoex(equis[-1])
+    print(i)
+spec_nums = [np.sum(equi>0,0) for equi in equis]    
+percents = np.array([[int(np.percentile(spec_num,per)) for per in [5,25,50,75,95]] for
+             spec_num in spec_nums])
+fig, ax = plt.subplots()
+leg = plt.plot(pigs_richness,percents)
+ax.set_ylabel("number of coexisting species")
+ax.set_xlabel("number of pigments in the community")
+ax.legend(leg, ["5%","25%","50%","75%","95%"], loc = "upperleft")
+plt.figure()
+plt.plot(k_spec[:,:,0]) #plot a representative of the spectrum
