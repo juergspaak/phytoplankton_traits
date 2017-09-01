@@ -80,7 +80,7 @@ def multispecies_equi(fitness, k_spec, I_in = I_in_def(40/300),runs = 5000):
         Equilibrium densitiy of all species, that reached equilibrium      
     """
     # starting densities for iteration, shape = (npi, itera)
-    equis = np.full(fitness.shape, 1e10) # start of iteration
+    equis = np.full(fitness.shape, 1e12) # start of iteration
     equis_fix = np.zeros(equis.shape)
 
     lam, dx = np.linspace(400,700,101, retstep = True) #points for integration
@@ -147,28 +147,32 @@ def plot_percentile_curves():
     """plots the percentile curves (5,25,50,75 and 95), of the number of coexisting
     species in dependence of the number of pigments"""
     equis = []
-    pigs_richness = np.arange(2,10)
+    unfixeds = []
+    pigs_richness = np.arange(2,21,2)
     for i in pigs_richness:
         n_com = 500 # number of communities
-        r_spec = 5+i # richness of species, regional richness
+        r_spec = 2*i # richness of species, regional richness
         r_pig = i #richness of pigments in community
-        r_pig_spec = 2 #richness of pigments in each species
+        r_pig_spec = min(i,5) #richness of pigments in each species
         fac = 2 #factor by which fitness can differ
         phi = 2*1e8*np.random.uniform(1/fac, 1*fac,(r_spec,n_com)) #photosynthetic efficiency
         l = 0.014*np.random.uniform(1/fac, 1*fac,(r_spec,n_com)) # specific loss rate
         fitness = phi/l # fitness
-        k_spec,alpha = spectrum_species(real, r_pig, r_spec, n_com) #spectrum of the species
-        equi, unfixd = multispecies_equi(fitness, k_spec)
+        k_spec,alpha = spectrum_species(rand, r_pig, r_spec, n_com, r_pig_spec) #spectrum of the species
+        equi, unfixed = multispecies_equi(fitness, k_spec)
         equis.append(equi[:,np.logical_not(unfixed)]) #equilibrium density
+        unfixeds.append(unfixed)
         plt_ncoex(equis[-1])
         print(i)
     spec_nums = [np.sum(equi>0,0) for equi in equis]    
     percents = np.array([[int(np.percentile(spec_num,per)) for per in [5,25,50,75,95]] for
                  spec_num in spec_nums])
     fig, ax = plt.subplots()
-    leg = plt.plot(pigs_richness,percents)
+    leg = plt.plot(pigs_richness,percents, '.')
     ax.set_ylabel("number of coexisting species")
     ax.set_xlabel("number of pigments in the community")
-    ax.legend(leg, ["5%","25%","50%","75%","95%"], loc = "upperleft")
+    ax.legend(leg, ["5%","25%","50%","75%","95%"], loc = "upper left")
+    ax.set_ybound(np.amin(percents)-0.1, np.amax(percents)+0.1)
     plt.figure()
     plt.plot(k_spec[:,:,0]) #plot a representative of the spectrum
+    return equis, unfixeds, percents
