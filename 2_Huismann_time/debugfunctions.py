@@ -103,3 +103,10 @@ def I_out_zero_approx():
                   (W_rt[:,res]/C[res])**(abso[inv]*l[inv]/l[res])
     plt.plot(t, W_it[:,0, rep], '.')
     plt.plot(t, W_it[:,1, rep], '.')
+
+    
+"""functions to include:
+    
+    compare different r_i functions
+    compare r_i analytical with r_i numerical with sat_carbon
+    Adapt photo_inh pars to fit -sat pars to compare solutions"""
