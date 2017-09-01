@@ -8,7 +8,8 @@ for this call show_I_out()
 import numpy as np
 from scipy.integrate import odeint, simps
 from numerical_r_i import dwdt as dwdt
-import communities_chesson as ches
+import numerical_communities as numcom
+import analytical_communities as anacom
 
 def r_i(C,E, species,P,carbon, test = False):
     """computes r_i for the species[:,0] assuming species[:,1] at equilibrium
@@ -21,7 +22,7 @@ def r_i(C,E, species,P,carbon, test = False):
     returns r_i for this period"""
     # first axis is for invader/resident, second for the two species
 
-    C = ches.equilibrium(species, carbon, np.random.uniform(50,200))
+    C = numcom.equilibrium(species, carbon, np.random.uniform(50,200))
     start_dens = np.array([np.ones(C.shape), C])
     E = np.random.uniform(50,200)
     t = np.linspace(0,P,50)
@@ -30,7 +31,7 @@ def r_i(C,E, species,P,carbon, test = False):
     rep = np.random.randint(species.shape[-1])
     #### Resident check:
     k,l = species[[0,-1]]
-    equi = com.equilibrium(species, E, "simple")
+    equi = anacom.equilibrium(species, E, "simple")
     W_rt = equi-(equi-C)*np.exp(-l*t[:, None, None])
     fig,ax = plt.subplots()
     plt.plot(t,W_rt[:, 0,rep],'.')
@@ -57,6 +58,6 @@ def r_i(C,E, species,P,carbon, test = False):
     #divide by P, to compare different period length
     return np.log(sol[1,0,[1,0]]/1)/P #return in different order, because species are swapped
     
-spec, carb, I_r = ches.gen_species(ches.sat_carbon_par, num = 5000)
+spec, carb, I_r = numcom.gen_species(numcom.sat_carbon_par, num = 5000)
 I = np.random.uniform(50,200, spec.shape[-1])
-r_i(ches.equilibrium(spec, carb, I), I,spec, 25, carb, True)
+r_i(numcom.equilibrium(spec, carb, I), I,spec, 25, carb, True)

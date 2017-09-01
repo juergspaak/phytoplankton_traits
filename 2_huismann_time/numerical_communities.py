@@ -44,7 +44,7 @@ def gen_species(parameter_generator, num = 1000):
         elif mode == 'full':
             I_shape = I.ndim*(1,)
             species = [par.reshape(par.shape+I_shape) for par in species]
-            I = I.reshape(spec[0].ndim*(1,)+I.shape)
+            I = I.reshape(species[0].ndim*(1,)+I.shape)
         elif mode == 'partial':
             I_shape = (I.ndim-1)*(1,)
             I = I.reshape((1,)+I.shape[::-1])
@@ -52,7 +52,7 @@ def gen_species(parameter_generator, num = 1000):
         elif mode == 'generating':
             species = np.expand_dims(species,-1)
         elif mode == 'special':
-            species = spec.reshape(species.shape+(1,1)).swapaxes(-3,-2)
+            species = species.reshape(species.shape+(1,1)).swapaxes(-3,-2)
             I = np.rollaxis(I,1,2)
             I = I.reshape((1,)+I.shape)
         return carb(species, I)
@@ -151,15 +151,15 @@ def equilibrium(species,carbon,I_in,mode = 'full', approx = False):
     # distinguish different cases:
     if isinstance(I_in,(int, float, np.int32, np.float)):
         rel_I_shape = (1,1,-1)
-    elif mode == 'simple' or (I_in.ndim==1 and len(I_in)==spec.shape[-1]):
+    elif mode == 'simple' or (I_in.ndim==1 and len(I_in)==species.shape[-1]):
         I_in = I_in*np.ones(species[0].shape)
         rel_I_shape = (1,1,-1)
-    elif mode=='partial' or (I_in.ndim==2 and I_in.shape[-1]==spec.shape[-1]):
+    elif mode=='partial' or (I_in.ndim==2 and I_in.shape[-1]==species.shape[-1]):
         I_shape = I_in.ndim*(1,)
         I_in = I_in.reshape((species[0].ndim-1)*(1,)+I_in.shape).swapaxes(1,2)
         species = np.array([par.reshape(par.shape+(1,)) for par in species])
         rel_I_shape = (1,1,1,-1)
-    elif mode == 'full' or (I_in.ndim==1 and len(I_in)!=spec.shape[-1]):
+    elif mode == 'full' or (I_in.ndim==1 and len(I_in)!=species.shape[-1]):
         I_shape = I_in.ndim*(1,)
         I_in = I_in.reshape(species[0].ndim*(1,)+I_in.shape)
         species = np.array([par.reshape(par.shape+I_shape) for par in species])
