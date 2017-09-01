@@ -3,38 +3,52 @@
 Created on Fri Jan  6 12:27:19 2017
 
 @author: Jurg
-Generates random environments and checks whether this environment allows existence
+Generates random environments and checks whether this environment 
+allows existence
+
+This file is equivalent to numerical_communities. Functions with the same
+name serve the same purpose. The functions in this file serve for analytical_r_i
+
+`gen_species` returns two random species
+
+`random_par`: rand. generate two species with saturating carbon uptake
+    functions
+    
+`equilibrium` computes the equilibrium density of the species
+
+`find_balance`: Find the incoming light intensity where both species would be
+    able to coexist (instable)
+
+
 """
 import autograd.numpy as np
 
 from warnings import warn
 from numpy.random import uniform as uni
 
-def generate_com(ncoms = int(1e3), I_r = np.array([50,200])):
-    """generates a community"""
-    species = find_species(ncoms, I_r)
-    balance = find_balance(species, I_r)
-    light_range = np.amax([10*np.ones(ncoms),
-                   np.amin([balance-I_r[0], I_r[1]-balance],0)],0)
-    I_r = np.array([balance-light_range, balance+light_range])
-    period = np.random.uniform(1,200,ncoms)
-    return species, period, I_r
         
-def find_species(ncoms = 1000, I_r = np.array([50,200,5])):
-    """finds species such that one dominates at I_r[0], the other at I_r[1]"""
-    # only about 3.7% fullfill conditions, create to many species
-    specs = random_par((2,int(ncoms/0.02))) #randomly generate species
+def gen_species(num = 1000, I_r = np.array([50,200])):
+    """returns two species, for which dominance depends on I_in
     
-    equis = equilibrium(specs, I_r) #compute their equilibria
-
-    I_out_equiv = specs[0].reshape((1,)+specs[0].shape)*equis#equivalent to I_out
+    parameters:
+        num: int, number of communities to construct
+        I_r: array, minimal and maximal incoming light
+    
+    Returns:
+        same values as random_par"""
+    # only about 3.7% fullfill conditions, create to many species
+    species = random_par((2,int(num/0.02))) #randomly generate species
+    
+    equis = equilibrium(species, I_r) #compute their equilibria
+    #equivalent to I_out
+    I_out_equiv = species[0].reshape((1,)+species[0].shape)*equis
     #check that species are dominant at different light conditions
     div_dom = np.logical_xor(I_out_equiv[0,0]>I_out_equiv[0,1],
                              I_out_equiv[1,0]>I_out_equiv[1,1])
-    pot_specs = specs[:,:, div_dom] #choose the ones with different dominance
-    if pot_specs.shape[-1]<ncoms:
+    pot_species = species[:,:, div_dom] #choose the ones with different dominance
+    if pot_species.shape[-1]<num:
         warn("less species have been returned than asked")
-    return pot_specs[:,:,:ncoms].copy() #copy to empty memory
+    return pot_species[:,:,:num].copy() #copy to empty memory
 
 def random_par(nspecies = (2,100),factor=100, Im = 50):
     """ returns random parameters for the model
@@ -45,7 +59,10 @@ def random_par(nspecies = (2,100),factor=100, Im = 50):
         factor: float
             maximal quotient of two parameters of species
     
-    the generated parameters are ensured to survive"""
+    Returns:
+        species = np.array([k,H,p_max, l])
+            absorption coefficient, halfsaturating constant of carbon uptake,
+            maxiaml carbon uptake, specific loss rate"""
     factor = factor**0.5
     nspec = int(np.prod(np.array(nspecies)))
     #create twice as many as needed in case some are not able to survive
@@ -61,40 +78,47 @@ def random_par(nspecies = (2,100),factor=100, Im = 50):
     l = (l[surv][:nspec]).reshape(nspecies)
     return np.array([k,H,p_max, l])
                 
-def equilibrium(specs, light, mode = 'full'):
+def equilibrium(species, I_in, mode = 'full'):
     """returns the equilibrium of species with incoming light `light`
     
     Assumes that I_out = 0
     
-    species: array
-        An array filled with parameters of (several) species
-    light: float or array
-        If light is an array the equilibrium density for each species will be
-        returned for each light regime
+    Parameters:
+        species: return value of random_par
+        I_in: float or array
+            If light is an array the equilibrium density for each species 
+            will be returned for each light regime
+        mode: None, 'simple, 'partial' or 'full'
+            Determines the shape of return value
     
     Returns:
-        euilibrium: array, shape = (species.shape[1:], len(light))
-        Equilibrium density of each species for each incoming lightintensity
+        equi: array
+            equilibrium of species at I_in
     """
-    k,H,p_max,l = specs
+    k,H,p_max,l = species
     fit = p_max/(l*k)
-    if type(light) == float or type(light) == int or mode == 'simple':
+    if type(I_in) == float or type(I_in) == int or mode == 'simple':
         pass
     elif mode == 'full':
-        light = light.reshape([len(light)]+len(k.shape)*[1])
+        I_in = I_in.reshape([len(I_in)]+len(k.shape)*[1])
     elif mode == 'partial':
         fit = fit.reshape((1,)+k.shape) #fitness
         H = H.reshape((1,)+k.shape)
-        light = light.reshape((light.shape[0],1,light.shape[-1]))
+        I_in = I_in.reshape((I_in.shape[0],1,I_in.shape[-1]))
         
-    return fit*np.log(1+light/H)    
+    return fit*np.log(1+I_in/H)    
 
         
-def find_balance(specs, I_r = np.array([50,200])):
+def find_balance(species, I_r = np.array([50,200])):
     """finds the incoming light, at which both species have the same I_out*
     
-    does this by intervall searching"""
-    k,H,p_max,l = specs
+    Parameters:
+        species: return values of random_par
+    
+    Returns:
+        I_in: array
+        Incoming light at which nonstable coexistence occurs"""
+    k,H,p_max,l = species
     fit = p_max/l # fitness of species
     
     # function to determine the dominance of the species
@@ -106,7 +130,7 @@ def find_balance(specs, I_r = np.array([50,200])):
     decrease_I_inb = lambda I: np.logical_xor(dom_Im, dom(I))
     I_min = I_r[0]*np.ones(k.shape[-1]) 
     I_max = I_r[1]*np.ones(k.shape[-1])
-    #number of iterations needed to reach an error in balance of 0.1
+    # number of iterations needed to reach an error in balance of 0.1
     itera = int(np.log((I_r[1]-I_r[0])/0.1)/np.log(2))+1
     for i in range(itera):
         I_inb = (I_min+I_max)/2 #new guess for I_in balance

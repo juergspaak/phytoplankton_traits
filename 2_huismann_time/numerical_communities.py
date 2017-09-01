@@ -1,7 +1,10 @@
 """
 @author: J.W.Spaak
 
-Generates random species
+This file is equivalent to analytical_communities. Functions with the same
+name serve the same purpose. The functions in this file serve for numerical_r_i
+
+Generates random species, that can be used for numerical_r_i
 
 `gen_species` returns two random species
 
@@ -12,45 +15,54 @@ Generates random species
     
 `equilibrium` computes the equilibrium density of the species
 
+`find_balance`: Find the incoming light intensity where both species would be
+    able to coexist (instable)
 
 """
 import numpy as np
 from numpy.random import uniform as uni
 from scipy.integrate import simps
 
+###############################
+# equivalent to gen_species in analytical_communities
+###############################
+
 def gen_species(parameter_generator, num = 1000):
     """returns two species, for which dominance depends on I_in
     
-    parameter_generator: sat_carbon_par or photoinhibition_par
+    Parameters:
+        parameter_generator: sat_carbon_par or photoinhibition_par
+        num: int, number of communities to construct. Will only return species
+            that might coexist. This may be less than num
     
     returns:
         same values as parameter_generator"""
-    species, carb,I_r = parameter_generator(num)
-    def carbon(spec, I, mode = 'full'):
+    species, carb, I_r = parameter_generator(num)
+    def carbon(species, I, mode = 'full'):
         if isinstance(I,(int, float)) or mode == 'simple':
             pass
         elif mode == 'full':
             I_shape = I.ndim*(1,)
-            spec = [par.reshape(par.shape+I_shape) for par in spec]
+            species = [par.reshape(par.shape+I_shape) for par in species]
             I = I.reshape(spec[0].ndim*(1,)+I.shape)
         elif mode == 'partial':
             I_shape = (I.ndim-1)*(1,)
             I = I.reshape((1,)+I.shape[::-1])
-            spec = [par.reshape(par.shape+I_shape) for par in spec]
+            species = [par.reshape(par.shape+I_shape) for par in species]
         elif mode == 'generating':
-            spec = np.expand_dims(spec,-1)
+            species = np.expand_dims(species,-1)
         elif mode == 'special':
-            spec = spec.reshape(spec.shape+(1,1)).swapaxes(-3,-2)
+            species = spec.reshape(species.shape+(1,1)).swapaxes(-3,-2)
             I = np.rollaxis(I,1,2)
             I = I.reshape((1,)+I.shape)
-        return carb(spec, I)
+        return carb(species, I)
     Im, IM = I_r
     k = species[0]
 
     # compute absorption of both species (equivalent to I_out)
     equis = equilibrium(species, carbon, I_r, 'full')
-    k[0,np.newaxis]*equis[0]
-    dominance = k[0,np.newaxis]*equis[0]>k[1,np.newaxis]*equis[1] #dominance of species
+    #dominance of species
+    dominance = k[0,np.newaxis]*equis[0]>k[1,np.newaxis]*equis[1] 
     # balanced if dominance changes
     balanced = np.logical_xor(dominance[0], dominance[1])
     # species must have positive aboundancies
@@ -59,33 +71,104 @@ def gen_species(parameter_generator, num = 1000):
     good = np.logical_and(balanced, np.logical_and(survive[0], survive[1]))
     return species[:,:,good], carbon, I_r
 
+###############################
+# equivalent to random_par in analytical_communities
+###############################
+    
+def sat_carbon_par(num = 1000, factor=4, I_r = np.array([50,200])):
+    """ returns random parameters for the model p(I) = p_max*I/(I+H)
+    
+    Paramters:
+        num: int, number of communities to generate
+        factor: maximal quotient two species have in one parameter
+        I_r: array, minimal and maximal incident light
+    
+    Returns:
+        species = np.array([k,H,p_max, l])
+            absorption coefficient, halfsaturating constant of carbon uptake,
+            maxiaml carbon uptake, specific loss rate
+        carbon: callable
+            carbon(I) = p_max*I/(I+H)
+        I_r: array, minimal and maximal incident light
+    """
+    fac = np.sqrt(factor)
+    k = uni(0.004/fac, 0.004*fac,(2,num)) # absorption coefficient [m^2/g]
+    H = uni(100/fac, 100*fac,(2,num)) # halfsaturation for carbon uptake [J/(m^2 s)]
+    p_max = uni(9/fac, 9*fac,(2,num)) # maximal absorbtion of carbon [s^-1]
+    l = uni(0.5/fac, 0.5*fac,(2,num))  # carbon loss [s^-1]
+    species = np.array([k,H,p_max,l])
+    def carbon(species, I):
+        return species[2]*I/(species[1]+I)
+    return species, carbon, I_r
+    
+def photoinhibition_par(num = 1000, factor=4, I_r = np.array([100.,1000.])):
+    """ returns random parameters for the model with photoinhibition
+    
+    Paramters:
+        num: int, number of communities to generate
+        factor: maximal quotient two species have in one parameter
+        I_r: array, minimal and maximal incident light
+    
+    Returns:
+        species = np.array([k,p_max,I_k, I_opt, l])
+            absorption coefficient,  maximal carbon uptake, I_k = dp/dI|I=0,
+            optimal incicdent light, specific loss rate
+        carbon: callable
+            carbon(I) = carbon uptake of species
+        I_r: array, minimal and maximal incident light
+    """
+    fac = np.sqrt(factor)
+    k = uni(0.002/fac, fac*0.002,(2,num)) #values from gerla et al 2011
+    p_max = uni(5/fac, fac*5,(2,num))
+    I_k = uni(40/fac, fac*40,(2,num))
+    I_opt = uni(200/fac, fac*200,(2,num))
+    l = uni(0.5/fac, 0.5*fac,(2,num))  # carbon loss
+    species = np.array([k,p_max,I_k, I_opt, l])
+    def carbon(species, I):
+        a = species[2]/species[3]**2
+        b = 1-2*species[2]/species[3]
+        return species[1]*I/(a*I**2+b*I+species[2])
+    return species, carbon, I_r
 
-                  
-def equilibrium(spec,carbon,I_in,mode = 'full', approx = False):
-    """returns the equilibrium of species under light_0
-    species and light_0 can either be an array or a number
-    light_0 needs the same dimention as species"""
+###############################
+# equivalent to equilibrium in analytical_communities
+###############################
+    
+def equilibrium(species,carbon,I_in,mode = 'full', approx = False):
+    """returns the equilibrium of species under I_in
+    
+    Parameters:
+        species, carbon, I_in: return values of *_par
+        mode: None, 'simple, 'partial' or 'full'
+            Determines the shape of return value
+        approx: boolean
+            If False the equilibrium will be calculated with I_out = 0
+            
+    Returns:
+        equi: array
+            equilibrium of species at I_in
+    """
     # distinguish different cases:
     if isinstance(I_in,(int, float, np.int32, np.float)):
         rel_I_shape = (1,1,-1)
     elif mode == 'simple' or (I_in.ndim==1 and len(I_in)==spec.shape[-1]):
-        I_in = I_in*np.ones(spec[0].shape)
+        I_in = I_in*np.ones(species[0].shape)
         rel_I_shape = (1,1,-1)
     elif mode=='partial' or (I_in.ndim==2 and I_in.shape[-1]==spec.shape[-1]):
         I_shape = I_in.ndim*(1,)
-        I_in = I_in.reshape((spec[0].ndim-1)*(1,)+I_in.shape).swapaxes(1,2)
-        spec = np.array([par.reshape(par.shape+(1,)) for par in spec])
+        I_in = I_in.reshape((species[0].ndim-1)*(1,)+I_in.shape).swapaxes(1,2)
+        species = np.array([par.reshape(par.shape+(1,)) for par in species])
         rel_I_shape = (1,1,1,-1)
     elif mode == 'full' or (I_in.ndim==1 and len(I_in)!=spec.shape[-1]):
         I_shape = I_in.ndim*(1,)
-        I_in = I_in.reshape(spec[0].ndim*(1,)+I_in.shape)
-        spec = np.array([par.reshape(par.shape+I_shape) for par in spec])
+        I_in = I_in.reshape(species[0].ndim*(1,)+I_in.shape)
+        species = np.array([par.reshape(par.shape+I_shape) for par in species])
         rel_I_shape = (1,1,1,-1)
     
     
-    k,l = spec[[0,-1]]
+    k,l = species[[0,-1]]
     # carbon uptake
-    carb_up = lambda I: carbon(spec,I,'generating')/(np.expand_dims(k,-1)*I)
+    carb_up = lambda I: carbon(species,I,'generating')/(np.expand_dims(k,-1)*I)
     
     # relative light, needed for integration
     rel_I,dx = np.linspace(1e-10,1,21,retstep = True)
@@ -116,59 +199,20 @@ def equilibrium(spec,carbon,I_in,mode = 'full', approx = False):
     equi = (min_equi+max_equi)/2 #return equilibria
     if equi.ndim == 3:
         return equi.swapaxes(1,2)
-    return equi
-
-def sat_carbon_par(num = 1000, factor=4,Im = 50.0, IM = 200.0):
-    """ returns random parameters for the model
-    the generated parameters are ensured to survive
+    return equi    
     
-    the carbon uptake function is saturating (no photoinhibition)
+###############################
+# equivalent to find_balance in analytical_communities
+###############################    
     
-    returns species, which contain the different parameters of the species
-    species_x = species[:,x]
-    carbon = [carbon[0], carbon[1]] the carbon uptake functions
-    I_r = [Im, IM] the minimum and maximum incident light"""
-    fac = np.sqrt(factor)
-    k = uni(0.004/fac, 0.004*fac,(2,num)) # absorption coefficient [m^2/g]
-    H = uni(100/fac, 100*fac,(2,num)) # halfsaturation for carbon uptake [J/(m^2 s)]
-    p_max = uni(9/fac, 9*fac,(2,num)) # maximal absorbtion of carbon [s^-1]
-    l = uni(0.5/fac, 0.5*fac,(2,num))  # carbon loss [s^-1]
-    species = np.array([k,H,p_max,l])
-    def carbon(spec, I):
-        return spec[2]*I/(spec[1]+I)
-    return species, carbon, np.array([Im, IM])
-    
-def photoinhibition_par(num = 1000, factor=4, Im = 100., IM = 1000.):
-    """ returns random parameters for the model
-    
-    the carbon uptake function suffers from photoinhibition
-    
-    returns species, which contain the different parameters of the species
-    species_x = species[:,x]
-    carbon = [carbon[0], carbon[1]] the carbon uptake functions
-    I_r = [Im, IM] the minimum and maximum incident light"""
-    fac = np.sqrt(factor)
-    k = uni(0.002/fac, fac*0.002,(2,num)) #values from gerla et al 2011
-    p_max = uni(5/fac, fac*5,(2,num))
-    I_k = uni(40/fac, fac*40,(2,num))
-    I_opt = uni(200/fac, fac*200,(2,num))
-    l = uni(0.5/fac, 0.5*fac,(2,num))  # carbon loss
-    species = np.array([k,p_max,I_k, I_opt, l])
-    def carbon(spec, I):
-        a = spec[2]/spec[3]**2
-        b = 1-2*spec[2]/spec[3]
-        return spec[1]*I/(a*I**2+b*I+spec[2])
-    return species, carbon, np.array([Im, IM])
-
 def find_balance(species, carbon,I_r):
     """finds the incoming light, at which both species have the same I_out*
     
     Parameters:
-        species: return value of *_par function such that one species dominates
-            at I_in = 200 and the other at I_in = 50
+        species,carbon, I_r: return value of *_par function
             
     Returns:
-        I_in: float
+        I_in: array
         Incoming light at which nonstable coexistence occurs"""
     light_m, light_M = I_r
     I_in = light_m
@@ -183,7 +227,3 @@ def find_balance(species, carbon,I_r):
         light_M = light_M+(inequal!=dominance)*(I_in-light_M)
         I_in  = 0.5*(light_m+light_M)
     return I_in
-    
-spec2, carb2, I_r2 = gen_species(sat_carbon_par, num = 5000)
-spec, carb, I_r = gen_species(photoinhibition_par, num = 5000)
-equi = equilibrium(spec, carb, I_r[0])
