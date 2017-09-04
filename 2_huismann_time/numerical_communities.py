@@ -60,13 +60,13 @@ def gen_species(parameter_generator, num = 1000):
 
     # compute absorption of both species (equivalent to I_out)
     equis = equilibrium(species, carbon, I_r, 'full')
-    #dominance of species
-    dominance = k[0,np.newaxis]*equis[0]>k[1,np.newaxis]*equis[1] 
+    # dominance of species
+    dominance = k[0]*equis[:,0]>k[1]*equis[:,1] 
     # balanced if dominance changes
     balanced = np.logical_xor(dominance[0], dominance[1])
     # species must have positive aboundancies
     survive = np.amin(equis, axis = 1)>0
-    #species that are balanced and survive
+    # species that are balanced and survive
     good = np.logical_and(balanced, np.logical_and(survive[0], survive[1]))
     return species[:,:,good], carbon, I_r
 
@@ -147,23 +147,23 @@ def equilibrium(species,carbon,I_in,mode = None, approx = False):
         equi: array
             equilibrium of species at I_in
     """
+    I_inv = I_in.view()  # to not change the shape of I_in
     # distinguish different cases:
     if isinstance(I_in,(int, float, np.int32, np.float)):
         pass
     elif mode == 'full' or (I_in.ndim==1 and len(I_in)!=species.shape[-1]):
         # equilibrium of each species[...,i] for each entry of I_in[j]
-        I_in.shape = I_in.shape+species[0].ndim*(1,)
+        I_inv.shape = I_in.shape+species[0].ndim*(1,)
     elif mode == 'simple' or (I_in.ndim==1 and len(I_in)==species.shape[-1]):
         # equilibrium of each species[...,i] for the same entry of I_in[i]
-        I_in = I_in*np.ones(species[0].shape)
+        pass
     elif mode=='partial' or (I_in.ndim==2 and I_in.shape[-1]==species.shape[-1]):
         # combination of 'simple' and 'full'. Compute the equilibria of each 
         # species[...,i] for each entry in I_in[:,i]
-        I_in.shape = len(I_in),1,species[0].shape[-1]
+        I_inv.shape = len(I_in),1,species[0].shape[-1]
     else:
         raise ValueError("""I_in must be a np.array (of dimension 1 or 2) or a 
         scalar, if possible please specify `mode`.""")
-    
     k,l = species[[0,-1]]
     # carbon uptake
     carb_up = lambda I: carbon(species,I,'generating')/(np.expand_dims(k,-1)*I)
@@ -173,11 +173,11 @@ def equilibrium(species,carbon,I_in,mode = None, approx = False):
     
     #growth rate
     def growth(W):
-        I_out = I_in*np.exp(-k*W) # outcoming light for species        
+        I_out = I_inv*np.exp(-k*W) # outcoming light for species        
         # effective lights (linear transformation)
-        I_eff = np.expand_dims(I_in-I_out,-1)*rel_I+np.expand_dims(I_out,-1)
+        I_eff = np.expand_dims(I_inv-I_out,-1)*rel_I+np.expand_dims(I_out,-1)
         #integrate carbonuptake, integral computet with linear trans.
-        return simps(carb_up(I_eff),dx = dx,axis=-1)*(I_in-I_out)
+        return simps(carb_up(I_eff),dx = dx,axis=-1)*(I_inv-I_out)
     
     # approximated starting density, assumes I_out = 0
     start = growth(np.inf*np.ones(k.shape))/l

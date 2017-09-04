@@ -50,7 +50,7 @@ def bound_growth(species, carbon,I_r ,P):
         print(i)
         rel_I_now = np.random.random((acc_rel_I,1)) #light in current period
         I_now = (IM-Im)*rel_I_now+Im
-        r_is_save = r_i(dens_prev[:,i], I_now, species, P, carbon)
+        r_is_save = r_i(dens_prev[i], I_now, species, P, carbon)
         r_is[i] = r_is_save.reshape(2,acc_rel_I,-1, order = 'F')
     print(timer()-start)
     # return the average of the growth rates, average over axis =2 represents
@@ -181,6 +181,6 @@ if False: #generate species and compute bound growth
     species, carbon, I_r = com.gen_species(com.sat_carbon_par, num = 5000)
     print(timer()-start, "generate species")
     P = 20
-    ave_r_i = bound_growth(species[:,:,:100], carbon, I_r,P)
+    ave_r_i = bound_growth(species[:,:,:10], carbon, I_r,P)
     print(timer()-start)
-    a,b,c,d = mp_approx_r_i(species[:,:,:100], P, I_r)
+    a,b,c,d = mp_approx_r_i(species[:,:,:10], P, I_r)
