@@ -56,7 +56,6 @@ def gen_species(parameter_generator, num = 1000):
             I = np.rollaxis(I,1,2)
             I = I.reshape((1,)+I.shape)
         return carb(species, I)
-    Im, IM = I_r
     k = species[0]
 
     # compute absorption of both species (equivalent to I_out)
@@ -134,7 +133,7 @@ def photoinhibition_par(num = 1000, factor=4, I_r = np.array([100.,1000.])):
 # equivalent to equilibrium in analytical_communities
 ###############################
     
-def equilibrium(species,carbon,I_in,mode = 'full', approx = False):
+def equilibrium(species,carbon,I_in,mode = None, approx = False):
     """returns the equilibrium of species under I_in
     
     Parameters:
@@ -150,21 +149,20 @@ def equilibrium(species,carbon,I_in,mode = 'full', approx = False):
     """
     # distinguish different cases:
     if isinstance(I_in,(int, float, np.int32, np.float)):
-        rel_I_shape = (1,1,-1)
-    elif mode == 'simple' or (I_in.ndim==1 and len(I_in)==species.shape[-1]):
-        I_in = I_in*np.ones(species[0].shape)
-        rel_I_shape = (1,1,-1)
-    elif mode=='partial' or (I_in.ndim==2 and I_in.shape[-1]==species.shape[-1]):
-        I_shape = I_in.ndim*(1,)
-        I_in = I_in.reshape((species[0].ndim-1)*(1,)+I_in.shape).swapaxes(1,2)
-        species = np.array([par.reshape(par.shape+(1,)) for par in species])
-        rel_I_shape = (1,1,1,-1)
+        pass
     elif mode == 'full' or (I_in.ndim==1 and len(I_in)!=species.shape[-1]):
-        I_shape = I_in.ndim*(1,)
-        I_in = I_in.reshape(species[0].ndim*(1,)+I_in.shape)
-        species = np.array([par.reshape(par.shape+I_shape) for par in species])
-        rel_I_shape = (1,1,1,-1)
-    
+        # equilibrium of each species[...,i] for each entry of I_in[j]
+        I_in.shape = I_in.shape+species[0].ndim*(1,)
+    elif mode == 'simple' or (I_in.ndim==1 and len(I_in)==species.shape[-1]):
+        # equilibrium of each species[...,i] for the same entry of I_in[i]
+        I_in = I_in*np.ones(species[0].shape)
+    elif mode=='partial' or (I_in.ndim==2 and I_in.shape[-1]==species.shape[-1]):
+        # combination of 'simple' and 'full'. Compute the equilibria of each 
+        # species[...,i] for each entry in I_in[:,i]
+        I_in.shape = len(I_in),1,species[0].shape[-1]
+    else:
+        raise ValueError("""I_in must be a np.array (of dimension 1 or 2) or a 
+        scalar, if possible please specify `mode`.""")
     
     k,l = species[[0,-1]]
     # carbon uptake
@@ -172,7 +170,6 @@ def equilibrium(species,carbon,I_in,mode = 'full', approx = False):
     
     # relative light, needed for integration
     rel_I,dx = np.linspace(1e-10,1,21,retstep = True)
-    rel_I = rel_I.reshape(rel_I_shape)
     
     #growth rate
     def growth(W):
@@ -197,10 +194,8 @@ def equilibrium(species,carbon,I_in,mode = 'full', approx = False):
         min_equi = av_equi*test + min_equi*np.logical_not(test)
         max_equi = av_equi*np.logical_not(test) + max_equi*test
     equi = (min_equi+max_equi)/2 #return equilibria
-    if equi.ndim == 3:
-        return equi.swapaxes(1,2)
-    return equi    
-    
+    return equi
+ 
 ###############################
 # equivalent to find_balance in analytical_communities
 ###############################    
@@ -217,7 +212,7 @@ def find_balance(species, carbon,I_r):
     light_m, light_M = I_r
     I_in = light_m
     k = species[0]
-    I_out = k*equilibrium(species, carbon, I_r[0])
+    I_out = k*equilibrium(species, carbon, I_r[0], 'simple')
     dominance = I_out[0]>I_out[1] # which species is better at which conditions
     I_in = 0.5* (light_m+light_M)
     for i in range(15): #iterates until I_in is found
