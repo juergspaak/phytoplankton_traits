@@ -19,11 +19,12 @@ from scipy.integrate import simps
 import numerical_communities as com
 from timeit import default_timer as timer
 
-def bound_growth(species, carbon,I_r ,P):
+def bound_growth(species, carbon,I_r ,P, num_iterations = 10000):
     """computes av(r_i) for species
     
     species, carbon, I_r should be outputs of com.gen_species
     P is the period length
+    num_iterstions: Int, number of runs to average over
     
     returns r_i, the boundary growth rate of the two species"""
     
@@ -32,7 +33,6 @@ def bound_growth(species, carbon,I_r ,P):
     
     Im, IM = I_r #light range
 
-    num_iterations = 10000 #numer of simulated conditions
     acc_rel_I = int(np.sqrt(num_iterations)) # number of simulated lights
     # relative distribution of incoming light in previous time period
     rel_I_prev = np.sort(np.random.random((acc_rel_I,1))) #light in prev period

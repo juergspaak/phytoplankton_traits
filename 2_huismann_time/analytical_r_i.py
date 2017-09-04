@@ -3,13 +3,14 @@ import numpy as np
 
 """
 #example:
-spec, P, I_r = com.generate_com(1000)
+spec = com.gen_species(1000)
+P = 25
+I_r = np.array([50,200])
 k,p,H,l = spec
 
 E1,comp1, stor1, r_i1 =  exact_r_i(spec, P, I_r, itera = 1000)
 E2,comp2, stor2, r_i2 =  lin_approx_r_i(spec, P, I_r)  
 E3,comp3, stor3, r_i3 =  mp_approx_r_i(spec, P, I_r)
-#print((r_i==r_i2).all())
 plit(*r_i1)
 plit(*r_i2)
 plit(*r_i3)"""
@@ -232,6 +233,7 @@ def linear_comp(species, I_r = [50,200], itera = 151):
     # variable transformation, different lights for different communities
     lights = I_r[0]+(I_r[1]-I_r[0])*rel_lights[:,np.newaxis]
     #find equilibria for all species
+    print(lights.shape, species.shape)
     equis = com.equilibrium(species, lights, 'partial')
     k = species[0]
     kW = k*equis #absorption
@@ -252,3 +254,9 @@ def linear_comp(species, I_r = [50,200], itera = 151):
     slope = Sxy/(Sxx*(I_r[1]-I_r[0]))
     intercept = kW_av-slope*np.average(I_r, axis = 0)
     return slope, intercept
+
+spec = com.gen_species(1000)
+P = 25
+I_r = np.array([50,200])[:,np.newaxis]*np.ones(spec.shape[-1])
+ 
+E3,comp3, stor3, r_i3 =  mp_approx_r_i(spec, P, I_r)

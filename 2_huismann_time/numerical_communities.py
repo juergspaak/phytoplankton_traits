@@ -147,7 +147,10 @@ def equilibrium(species,carbon,I_in,mode = None, approx = False):
         equi: array
             equilibrium of species at I_in
     """
-    I_inv = I_in.view()  # to not change the shape of I_in
+    try:
+        I_inv = I_in.view()  # to not change the shape of I_in
+    except AttributeError:
+        I_inv = I_in
     # distinguish different cases:
     if isinstance(I_in,(int, float, np.int32, np.float)):
         pass

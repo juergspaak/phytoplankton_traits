@@ -38,7 +38,7 @@ def plot_abs_diff(values1, values2, ylabel):
     fig,ax = plt.subplots()
     ax.plot(np.linspace(0,100,rel_diff.size),rel_diff)
     ax.semilogy()
-    ax.set_ylabel("relative difference in "+ylabel)
+    ax.set_ylabel("absolute difference in "+ylabel)
     ax.set_xlabel("percentiles")
 
 ###############################################################################
@@ -132,19 +132,76 @@ def r_i_one_period():
     plot_rel_diff(ana_ri, num_ri, "growth in one period")
     plot_abs_diff(ana_ri, num_ri, "growth in one period")
     
-def ana_inv_growth(C,E,species, t):
-    k,l = spec_sat[[0,-1]]
-    equi = anacom.equilibrium(spec_sat, E, "simple")
+def compare_bound_growth_averaged():
+    """averaged boundary growth over several lights"""
+    itera = 625
+    np.random.seed(0) # take the same randomseed to be able to compare them
+    ana_ri = ana_bound_growth(spec_sat, I_r_sat, 25,itera)
+    np.random.seed(0) # take the same randomseed to be able to compare them
+    num_ri = numri.bound_growth(spec_sat, carb_sat, I_r_sat, 25, itera)
+    np.random.seed(1) # compare with different seed
+    num_ri2 = numri.bound_growth(spec_sat, carb_sat, I_r_sat, 25, itera)
+    plot_rel_diff(ana_ri, num_ri, "analytical and numerical r_i")
+    # high variance in data
+    plot_rel_diff(num_ri2, num_ri, "numerica with different seed")
     
+###############################################################################
+# Compare anayltical solutions to numerical solutions
+
+def compare_averaged_analytical_ri():
+    ave_ri = ana_bound_growth(spec_sat, I_r_sat, 25, int(1e6))
+    I_r_mp = I_r_sat[:,np.newaxis]*np.ones(spec_sat.shape[-1])
+    envi, comp, stor, mp_ri = anari.mp_approx_r_i(spec_sat, 25, I_r_mp)
+    plot_rel_diff(ave_ri, mp_ri[[1,0]], "test")
+    plot_abs_diff(ave_ri, mp_ri[[1,0]], "test")
+    
+   
+###############################################################################
+# Help functions,not directly related to any comparison, used by many functions
+    
+def ana_bound_growth(species, I_r ,P, num_iterations= 10000):
+    """equivalent function to numri.bound_growth"""
+    
+    if I_r.ndim == 1: # species are allowed to have different light ranges
+        I_r = np.ones((1,species.shape[-1]))*I_r[:,np.newaxis]
+    
+    Im, IM = I_r #light range
+
+    acc_rel_I = int(np.sqrt(num_iterations)) # number of simulated lights
+    # relative distribution of incoming light in previous time period
+    rel_I_prev = np.sort(np.random.random((acc_rel_I,1))) #light in prev period
+    
+    # Effective light, linear transformation
+    I_prev = (IM-Im)*rel_I_prev+Im
+    # equilibrium densitiy of resident in previous period
+    dens_prev = anacom.equilibrium(species, I_prev, "partial")
+
+    # save the growth rates in the periods, different order than in original
+    r_is = np.empty((acc_rel_I, acc_rel_I,2,species.shape[-1]))
+    for i in range(acc_rel_I): #compute the growth rates for each period
+        rel_I_now = np.random.random((acc_rel_I,1)) #light in current period
+        I_now = (IM-Im)*rel_I_now+Im
+        
+        r_i_save = ana_inv_growth(dens_prev[i], I_now, species, P)
+        r_is[i] = np.log(r_i_save)/P
+        if i%100 == 99:
+            print(100*(i+1)/acc_rel_I, " percent done")
+        
+    # return the average of the growth rates, average over axis = 1 represents
+    # average over light in current period, axis 0 to previous period
+    return np.average(r_is, axis = (0,1))
+
+def ana_inv_growth(C,E,species, t):
+    k,l = species[[0,-1]]
+    equi = anacom.equilibrium(species, E) # mode depends on E
     inv = [0,1] # invader indeces
     res = [1,0] # resident inceces
-
-    abso = k[inv]*equi[inv]/(k[res]*equi[res])# relative absorption
+    abso = k[inv]*np.take(equi,inv,-2)/(k[res]*np.take(equi,res,-2))# relative absorption
     W_rt = equi-(equi-C)*np.exp(-l*t)
-    W_it = np.exp((abso[inv]-1)*l[inv]*t)*\
-                  (np.take(W_rt,res, -2)/C[res])**(abso[inv]*l[inv]/l[res])
+    W_it = np.exp((np.take(abso,inv,-2)-1)*l[inv]*t)*\
+        (np.take(W_rt,res, -2)/C[res])**(np.take(abso,inv,-2)*l[inv]/l[res])
     return W_it
- 
+
 """functions to include:
     
     compare different r_i functions

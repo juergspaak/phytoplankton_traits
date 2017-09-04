@@ -78,7 +78,7 @@ def random_par(nspecies = (2,100),factor=100, Im = 50):
     l = (l[surv][:nspec]).reshape(nspecies)
     return np.array([k,H,p_max, l])
                 
-def equilibrium(species, I_in, mode = 'full'):
+def equilibrium(species, I_in, mode = None):
     """returns the equilibrium of species with incoming light `light`
     
     Assumes that I_out = 0
@@ -97,16 +97,27 @@ def equilibrium(species, I_in, mode = 'full'):
     """
     k,H,p_max,l = species
     fit = p_max/(l*k)
-    if type(I_in) == float or type(I_in) == int or mode == 'simple':
+    try:
+        I_inv = I_in.view()  # to not change the shape of I_in
+    except AttributeError:
+        I_inv = I_in
+    if isinstance(I_in,(int, float, np.int32, np.float)):
         pass
-    elif mode == 'full':
-        I_in = I_in.reshape([len(I_in)]+len(k.shape)*[1])
-    elif mode == 'partial':
-        fit = fit.reshape((1,)+k.shape) #fitness
-        H = H.reshape((1,)+k.shape)
-        I_in = I_in.reshape((I_in.shape[0],1,I_in.shape[-1]))
+    elif mode == 'full' or (I_in.ndim==1 and len(I_in)!=species.shape[-1]):
+        # equilibrium of each species[...,i] for each entry of I_in[j]
+        I_inv.shape = I_in.shape+species[0].ndim*(1,)
+    elif mode == 'simple' or (I_in.ndim==1 and len(I_in)==species.shape[-1]):
+        # equilibrium of each species[...,i] for the same entry of I_in[i]
+        pass
+    elif mode=='partial' or (I_in.ndim==2 and I_in.shape[-1]==species.shape[-1]):
+        # combination of 'simple' and 'full'. Compute the equilibria of each 
+        # species[...,i] for each entry in I_in[:,i]
+        I_inv.shape = len(I_in),1,species[0].shape[-1]
+    else:
+        raise ValueError("""I_in must be a np.array (of dimension 1 or 2) or a 
+        scalar, if possible please specify `mode`.""")
         
-    return fit*np.log(1+I_in/H)    
+    return fit*np.log(1+I_inv/H)    
 
         
 def find_balance(species, I_r = np.array([50,200])):
