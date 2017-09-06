@@ -51,14 +51,20 @@ def plot_abs_diff(values1, values2, ylabel):
 ###############################################################################
 # Check that similar functions give similar results in *_communities
 
-def same_equilibria(ret = False):
+def same_equilibria(ret = False, worst = False, pl = True):
     """ to check that the equilibrium function of both files are the same"""
-    I_in = np.random.uniform(*I_r_sat, spec_sat.shape[-1])
-    equi_num = numcom.equilibrium(spec_sat, carb_sat, I_in, 'simple')
-    equi_ana = anacom.equilibrium(spec_sat, I_in, 'simple')
-    plot_rel_diff(equi_num, equi_ana, "equilibria")
-    if ret: return equi_num, equi_ana
-    
+    if worst:
+        # at low light the results differ most
+        I_in = np.full(spec_sat.shape[-1], I_r_sat[0], dtype = "float")
+    else: # take 100 random samples over the light spectrum for all species
+        I_in = np.random.uniform(*I_r_sat, (100,spec_sat.shape[-1]))
+    equi_num = numcom.equilibrium(spec_sat, carb_sat, I_in)
+    equi_ana = anacom.equilibrium(spec_sat, I_in)
+    if pl:
+        # Note: equi_num is only computed to precision 10^-4
+        plot_rel_diff(equi_num, equi_ana, "equilibria")
+    if ret: return equi_num, equi_ana, I_in
+   
 def same_find_balance(ret = False):
     """ to check that the equilibrium function of both files are the same"""
     bal_num = numcom.find_balance(spec_sat, carb_sat, I_r_sat)
@@ -69,6 +75,18 @@ def same_find_balance(ret = False):
 ###############################################################################
 # Show that the assumption I_out = 0 is a good one
 
+def plot_I_out_distribution(ret = False, worst = False):
+    equi_num, equi_ana, I_in= same_equilibria(True, worst, pl = False)
+    k = spec_sat[0]
+    if worst:
+        I_out = I_in*np.exp(-k*equi_num)
+    else:
+        I_out = I_in[:,np.newaxis]*np.exp(-k*equi_num)
+    I_out.shape = -1
+    plt.plot(np.linspace(0,100, I_out.size), np.sort(I_out))
+    plt.semilogy()
+    plt.axis([0,100,1e-8,None])
+    
 def I_out_zero_approx(ret = False):
     """solves growth rates with assuming I_out =0 and compares to exact"""
     # first axis is for invader/resident, second for the two species
@@ -106,7 +124,7 @@ def I_out_zero_approx(ret = False):
     plt.plot(t, W_it[:,0, rep], '.')
     plt.plot(t, W_it[:,1, rep], '.')
     if ret: return W_it, W_rt, sol
-I_out_zero_approx()   
+    
 ###############################################################################
 # Further proofs of functioning code
     
@@ -139,13 +157,12 @@ def r_i_one_period(ret = False):
     W_it = ana_inv_growth(C,E,spec_sat, P)
     ana_ri = np.log(W_it)/P
 
-    plot_rel_diff(ana_ri, num_ri, "growth in one period", True)
-    plot_abs_diff(ana_ri, num_ri, "growth in one period")
+    plot_rel_diff(ana_ri, num_ri, "growth in one period")
     if ret: return ana_ri, num_ri
     
 def compare_bound_growth_averaged(ret = False):
     """averaged boundary growth over several lights"""
-    itera = 10000
+    itera = 400
     np.random.seed(0) # take the same randomseed to be able to compare them
     ana_ri = ana_bound_growth(spec_sat, I_r_sat, 25,itera)
     np.random.seed(0) # take the same randomseed to be able to compare them
@@ -159,8 +176,8 @@ def compare_bound_growth_averaged(ret = False):
 
 def compare_bound_growth_diff_iteras(ret = False):
     """averaged boundary growth over several lights"""
-    ana_ri1 = ana_bound_growth(spec_sat, I_r_sat, 25,1000**2)
-    ana_ri2 = ana_bound_growth(spec_sat, I_r_sat, 25,450**2)
+    ana_ri1 = ana_bound_growth(spec_sat, I_r_sat, 25,51**2)
+    ana_ri2 = ana_bound_growth(spec_sat, I_r_sat, 25,25**2)
     plot_rel_diff(ana_ri1, ana_ri2, "analytical and numerical r_i")
     if ret: return ana_ri1, ana_ri2
     
@@ -187,7 +204,7 @@ def compare_averaged_analytical_ri(ret = False):
     
 def ana_bound_growth(species, I_r ,P, num_iterations= 10000):
     """equivalent function to numri.bound_growth"""
-    
+    from scipy.integrate import simps
     if I_r.ndim == 1: # species are allowed to have different light ranges
         I_r = np.ones((1,species.shape[-1]))*I_r[:,np.newaxis]
     
@@ -196,7 +213,8 @@ def ana_bound_growth(species, I_r ,P, num_iterations= 10000):
     acc_rel_I = int(np.sqrt(num_iterations)) # number of simulated lights
     # relative distribution of incoming light in previous time period
     #light in prev period
-    rel_I_prev = np.linspace(0,1,acc_rel_I)[:,np.newaxis]
+    rel_I_prev,dx = np.linspace(0,1,acc_rel_I, retstep = True)
+    rel_I_prev.shape = -1,1
     # Effective light, linear transformation
     I_prev = (IM-Im)*rel_I_prev+Im
     # equilibrium densitiy of resident in previous period
@@ -213,10 +231,10 @@ def ana_bound_growth(species, I_r ,P, num_iterations= 10000):
         r_is[i] = np.log(r_i_save)/P
         if i%100 == 99:
             print(100*(i+1)/acc_rel_I, " percent done")
-        
-    # return the average of the growth rates, average over axis = 1 represents
-    # average over light in current period, axis 0 to previous period
-    return np.average(r_is, axis = (0,1))
+        # take average via simpson rule, double integral
+    av1 = simps(r_is, dx = dx, axis = 1) # integrate over current period
+    av2 = simps(av1, dx = dx, axis = 0) # integrate over previous period
+    return av2
     
 def ana_inv_growth(C,E,species, t):
     k,l = species[[0,-1]]

@@ -19,7 +19,7 @@ from scipy.integrate import simps
 import numerical_communities as com
 from timeit import default_timer as timer
 
-def bound_growth(species, carbon,I_r ,P, num_iterations = 10000):
+def bound_growth(species, carbon,I_r ,P, num_iterations = 400):
     """computes av(r_i) for species
     
     species, carbon, I_r should be outputs of com.gen_species
@@ -36,8 +36,8 @@ def bound_growth(species, carbon,I_r ,P, num_iterations = 10000):
     acc_rel_I = int(np.sqrt(num_iterations)) # number of simulated lights
     # relative distribution of incoming light in previous time period
     #light in prev period
-    rel_I_prev = np.linspace(0,1,acc_rel_I)[:,np.newaxis]
-    
+    rel_I_prev,dx = np.linspace(0,1,acc_rel_I, retstep = True)
+    rel_I_prev.shape = -1,1
     # Effective light, linear transformation
     I_prev = (IM-Im)*rel_I_prev+Im
     
@@ -55,9 +55,10 @@ def bound_growth(species, carbon,I_r ,P, num_iterations = 10000):
         r_is_save = r_i(dens_prev[i], I_now, species, P, carbon)
         r_is[i] = r_is_save.reshape(2,acc_rel_I,-1, order = 'F')
     print(timer()-start)
-    # return the average of the growth rates, average over axis =2 represents
-    # average over light in current period, axis 0 to previous period
-    return np.average(r_is, axis = (0,2))
+    # take average via simpson rule, double integral
+    av1 = simps(r_is, dx = dx, axis = 2) # integrate over current period
+    av2 = simps(av1, dx = dx, axis = 0) # integrate over previous period
+    return av2
 
 def r_i(C,E, species,P,carbon):
     """computes r_i for one period, assuming that resident is a equilibrium

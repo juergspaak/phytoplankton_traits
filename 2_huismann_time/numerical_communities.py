@@ -191,7 +191,7 @@ def equilibrium(species,carbon,I_in,mode = None, approx = False):
     max_equi = start*2
 
     # secant method for finding roots
-    for i in range(int(np.log(4*1000)/np.log(2))):
+    for i in range(int(np.log(4000)/np.log(2))):
         av_equi  = (min_equi+max_equi)/2
         test = growth(av_equi)-l*av_equi>0
         min_equi = av_equi*test + min_equi*np.logical_not(test)
