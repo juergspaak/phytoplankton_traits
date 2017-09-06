@@ -16,7 +16,7 @@ plit(*r_i2)
 plit(*r_i3)"""
 
 def exact_r_i(species, P, I_r, itera = 20000):
-    """ computes the exact boundariy growthrates of the species
+    """ computes the exact boundary growthrates of the species
     
     Parameters:
     #################
@@ -39,21 +39,20 @@ def exact_r_i(species, P, I_r, itera = 20000):
         Sum of the above
     Important: All results are divided by the period length P"""
     
-    I_av = (I_r[0]+I_r[1])/2 #average = balance point of I_in
+    I_av = (I_r[0]+I_r[1])/2 # average = balance point of I_in
     Wav = com.equilibrium(species,I_av,'simple') # density at average i_in
     
     # W_r_ef[:,i,j] is a serie of densities for species i, replicate j
     # similar for W_r_eq, W_r_eq[i] corresponds to lights[i]
     W_r_eq, W_r_ef, lights = dist_resident(species,  P, I_r, Wav, False, itera)
-
-    W_i_eq = W_r_eq.copy() #contains invader densities at the same lights
-    W_i_eq[:,0], W_i_eq[:,1] = W_r_eq[:,1], W_r_eq[:,0]
+    inv = [1,0]
+    W_i_eq = W_r_eq[:,inv] #contains invader densities at the same lights
     
     #species parameters of the resident
     kr,lr = species[[0,-1]]
     #invader values, are flipped or resident
-    li = np.array([lr[1], lr[0]]) 
-    ki = np.array([kr[1], kr[0]])
+    li = lr[inv]
+    ki = kr[inv]
     
     # environmental parameter for one period
     E = np.log(W_r_ef[1:]/W_r_ef[:-1])
@@ -233,7 +232,6 @@ def linear_comp(species, I_r = [50,200], itera = 151):
     # variable transformation, different lights for different communities
     lights = I_r[0]+(I_r[1]-I_r[0])*rel_lights[:,np.newaxis]
     #find equilibria for all species
-    print(lights.shape, species.shape)
     equis = com.equilibrium(species, lights, 'partial')
     k = species[0]
     kW = k*equis #absorption
@@ -257,6 +255,9 @@ def linear_comp(species, I_r = [50,200], itera = 151):
 
 spec = com.gen_species(1000)
 P = 25
-I_r = np.array([50,200])[:,np.newaxis]*np.ones(spec.shape[-1])
- 
+I_r = np.array([50,200])
+k,p,H,l = spec
+
+E1,comp1, stor1, r_i1 =  exact_r_i(spec, P, I_r, itera = 1000)
+#E2,comp2, stor2, r_i2 =  lin_approx_r_i(spec, P, I_r)  
 E3,comp3, stor3, r_i3 =  mp_approx_r_i(spec, P, I_r)

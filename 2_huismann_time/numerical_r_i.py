@@ -35,7 +35,8 @@ def bound_growth(species, carbon,I_r ,P, num_iterations = 10000):
 
     acc_rel_I = int(np.sqrt(num_iterations)) # number of simulated lights
     # relative distribution of incoming light in previous time period
-    rel_I_prev = np.sort(np.random.random((acc_rel_I,1))) #light in prev period
+    #light in prev period
+    rel_I_prev = np.linspace(0,1,acc_rel_I)[:,np.newaxis]
     
     # Effective light, linear transformation
     I_prev = (IM-Im)*rel_I_prev+Im
@@ -48,7 +49,8 @@ def bound_growth(species, carbon,I_r ,P, num_iterations = 10000):
     print(timer()-start, "computed res dens")
     for i in range(acc_rel_I): #compute the growth rates for each period
         print(i)
-        rel_I_now = np.random.random((acc_rel_I,1)) #light in current period
+        #light in current period
+        rel_I_now = np.linspace(0,1,acc_rel_I)[:,np.newaxis]
         I_now = (IM-Im)*rel_I_now+Im
         r_is_save = r_i(dens_prev[i], I_now, species, P, carbon)
         r_is[i] = r_is_save.reshape(2,acc_rel_I,-1, order = 'F')

@@ -105,14 +105,14 @@ def equilibrium(species, I_in, mode = None):
         pass
     elif mode == 'full' or (I_in.ndim==1 and len(I_in)!=species.shape[-1]):
         # equilibrium of each species[...,i] for each entry of I_in[j]
-        I_inv.shape = I_in.shape+species[0].ndim*(1,)
+        I_inv.shape = (-1,)+species[0].ndim*(1,)
     elif mode == 'simple' or (I_in.ndim==1 and len(I_in)==species.shape[-1]):
         # equilibrium of each species[...,i] for the same entry of I_in[i]
         pass
     elif mode=='partial' or (I_in.ndim==2 and I_in.shape[-1]==species.shape[-1]):
         # combination of 'simple' and 'full'. Compute the equilibria of each 
         # species[...,i] for each entry in I_in[:,i]
-        I_inv.shape = len(I_in),1,species[0].shape[-1]
+        I_inv.shape = len(I_in),1,-1
     else:
         raise ValueError("""I_in must be a np.array (of dimension 1 or 2) or a 
         scalar, if possible please specify `mode`.""")
