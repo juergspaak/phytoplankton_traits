@@ -126,9 +126,9 @@ def I_out_zero_approx(ret = False):
     if ret: return W_it, W_rt, sol
     
 ###############################################################################
-# Further proofs of functioning code
+# Carbon uptake comparison
     
-def plot_carbon_uptake():
+def plot_carbon_uptake(spec_sat = spec_sat, spec_inh = spec_inh):
     """show the different carbon uptake functions"""
     I_r = [0,1000]
     data_sat = carb_sat(spec_sat, np.linspace(*I_r, 100), 'generating')
@@ -141,6 +141,20 @@ def plot_carbon_uptake():
         plt.plot(np.linspace(*I_r, 100),data_sat[i,k], '--')
         plt.plot(np.linspace(*I_r, 100),data_inh[i,k], ',')
         
+def model_change(ret = False):
+    """adapt the values of photoinhibition model to fit the saturating model"""
+    spec_ada = spec_inh.copy()
+    spec_ada[3] = 10000 # optimal incoming light is set to infinity
+    # copy parameters to saturating model
+    spec_sat_ada = np.array(spec_ada[[0,2,1,4]])
+    # show that they now have the same uptake functions
+    plot_carbon_uptake(spec_sat_ada, spec_ada)
+    plt.show()
+    inh_ada = numri.bound_growth(spec_ada, carb_inh, I_r_inh, 25, 100)
+    sat_ada = numri.bound_growth(spec_sat_ada, carb_sat, I_r_inh, 25, 100)
+    plot_abs_diff(inh_ada, sat_ada, "model change")
+    if ret: return inh_ada, sat_ada
+       
 ###############################################################################
 # Compare anayltical solutions to numerical solutions
 
@@ -163,15 +177,13 @@ def r_i_one_period(ret = False):
 def compare_bound_growth_averaged(ret = False):
     """averaged boundary growth over several lights"""
     itera = 400
-    np.random.seed(0) # take the same randomseed to be able to compare them
     ana_ri = ana_bound_growth(spec_sat, I_r_sat, 25,itera)
-    np.random.seed(0) # take the same randomseed to be able to compare them
     num_ri = numri.bound_growth(spec_sat, carb_sat, I_r_sat, 25, itera)
-    np.random.seed(None) # compare with different seed
+    # compare with different number of iterations
     num_ri2 = numri.bound_growth(spec_sat, carb_sat, I_r_sat, 25, itera/4)
     plot_rel_diff(ana_ri, num_ri, "analytical and numerical r_i")
-    # high variance in data
-    plot_rel_diff(num_ri2, num_ri, "numerica with different seed")
+    # low variance in data
+    plot_rel_diff(num_ri2, num_ri, "numerica with different interations")
     if ret: return ana_ri, num_ri, num_ri2
 
 def compare_bound_growth_diff_iteras(ret = False):
