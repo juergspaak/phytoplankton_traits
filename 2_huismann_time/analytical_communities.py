@@ -69,7 +69,7 @@ def random_par(nspecies = (2,100),factor=100, Im = 50):
     k = uni(0.004/factor, 0.004*factor, 2*nspec) # absorption coefficient
     H = uni(100/factor, 100*factor, 2*nspec) #halfsaturation for carbon uptake
     p_max = uni(9/factor, 9*factor, 2*nspec) #maximal absorbtion of carbon
-    l = uni(0.5/factor, 0.5*factor, 2*nspec)  # carbon loss
+    l = uni(0.1/factor, 0.1*factor, 2*nspec)  # carbon loss
     surv = 80<equilibrium([k,H,p_max,l], Im) #find the ones that survive
     # return the ones that survived, might be less than nspecies, but unlikely
     k = (k[surv][:nspec]).reshape(nspecies)
