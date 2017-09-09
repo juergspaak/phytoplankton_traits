@@ -22,31 +22,64 @@ spec_inh, carb_inh,I_r_inh=numcom.gen_species(numcom.photoinhibition_par,1000)
 spec_ana = anacom.gen_species(1000)
 I_r_ana = I_r_sat.copy()
 
+###############################################################################
+# Show that the assumption I_out = 0 is a good one
+
+def plot_I_out_distribution(ret = False, worst = False):
+    equi_num, equi_ana, I_in= same_equilibria(True, worst, pl = False)
+    k = spec_sat[0]
+    if worst:
+        I_out = I_in*np.exp(-k*equi_num)
+    else:
+        I_out = I_in[:,np.newaxis]*np.exp(-k*equi_num)
+    I_out.shape = -1
+    plt.figure()
+    plt.plot(np.linspace(0,100, I_out.size), np.sort(I_out))
+    plt.semilogy()
+    plt.axis([0,100,1e-8,None])
+    plt.ylabel("Outcoming light intensity")
+    plt.xlabel("percetniles")
+    plt.show()
     
-def plot_rel_diff(values1, values2, ylabel, add = False):
-    """plot the full percentile curve of relative differences"""
-    rel_diff = np.abs((values1-values2)/values1)
-    fig,ax = plt.subplots()
-    ax.plot(np.linspace(0,100,rel_diff.size),np.sort(rel_diff.ravel()))
-    ax.semilogy()
-    ax.set_ylabel("relative difference in "+ylabel)
-    ax.set_xlabel("percentiles")
-    if add:
-        outliers = values1[rel_diff>0.05]
-        fig, ax = plt.subplots()
-        ax.plot(np.sort(outliers.ravel()))
-        ax.set_xlabel("number of outliers")
-        ax.set_ylabel("absolute value of outlier")
+def I_out_zero_approx(ret = False, worst = False):
+    """solves growth rates with assuming I_out =0 and compares to exact"""
+    # first axis is for invader/resident, second for the two species
+    from scipy.integrate import odeint
+    from numerical_r_i import dwdt as dwdt
+    
+    P = 25 #period length
+    C = numcom.equilibrium(spec_sat, carb_sat, np.random.uniform(50,200))
+    start_dens = np.array([np.ones(C.shape), C])
+    E = I_r_sat[[0]] if worst else np.random.uniform(*I_r_sat)
+    t = np.linspace(0,P,50)
+    sol = odeint(dwdt, start_dens.reshape(-1), t,args=(spec_sat, E, carb_sat))
+    sol.shape = len(t),2,2,-1
 
-def plot_abs_diff(values1, values2, ylabel):
-    """plot the full percentile curve of relative differences"""
-    abs_diff = np.sort(np.abs(values1-values2).ravel())
+    #### Resident check:
+    k,l = spec_sat[[0,-1]]
+    equi = anacom.equilibrium(spec_sat, E, "simple")
+    W_rt = equi-(equi-C)*np.exp(-l*t[:, None, None])
+    # take the repetition that deviates most
+    rel_diff = np.abs(sol[-1,1]-W_rt[-1])/sol[-1,1]
+    rep = np.argmax(np.amax(rel_diff,0)) 
     fig,ax = plt.subplots()
-    ax.plot(np.linspace(0,100,abs_diff.size),abs_diff)
-    ax.semilogy()
-    ax.set_ylabel("absolute difference in "+ylabel)
-    ax.set_xlabel("percentiles")
-
+    plt.plot(t,W_rt[:, 0,rep],'.')
+    plt.plot(t, sol[:, 1,0,rep])
+    plt.plot(t,W_rt[:, 1,rep],'.')
+    plt.plot(t, sol[:, 1,1,rep])
+    ax.set_ylabel("density of resident", fontsize=14)
+    ax.set_xlabel("time", fontsize=14)
+    
+    #### invader:
+    fig,ax = plt.subplots()
+    plt.plot(t,sol[:,0,0,rep])
+    plt.plot(t,sol[:,0,1,rep])
+    ax.set_ylabel("density of invader", fontsize=14)
+    ax.set_xlabel("time", fontsize=14)
+    W_it = ana_inv_growth(C,E,spec_sat, t.reshape(-1,1,1))
+    plt.plot(t, W_it[:,0, rep], '.')
+    plt.plot(t, W_it[:,1, rep], '.')
+    if ret: return W_it, W_rt, sol
 
 ###############################################################################
 # Check that similar functions give similar results in *_communities
@@ -71,60 +104,59 @@ def same_find_balance(ret = False):
     bal_ana = anacom.find_balance(spec_sat, I_r_sat)
     plot_rel_diff(bal_num, bal_ana, "balance")
     if ret: return bal_num, bal_ana
+       
+###############################################################################
+# Compare anayltical solutions to numerical solutions
+
+def r_i_one_period(ret = False):
+    """compare growth rate in one period"""
+    # find parameters
+    P = 25 #period length
+    C = numcom.equilibrium(spec_sat, carb_sat, np.random.uniform(50,200, spec_sat.shape[-1]))
+    E = np.random.uniform(50,200, (1,spec_sat.shape[-1]))
+    
+    # numerical r_i
+    num_ri = numri.r_i(C,E, spec_sat,P,carb_sat)
+    # analytical r_i
+    W_it = ana_inv_growth(C,E,spec_sat, P)
+    ana_ri = np.log(W_it)/P
+
+    plot_rel_diff(ana_ri, num_ri, "growth in one period")
+    if ret: return ana_ri, num_ri
+    
+def compare_bound_growth_averaged(ret = False):
+    """averaged boundary growth over several lights"""
+    itera = 400
+    ana_ri = ana_bound_growth(spec_sat, I_r_sat, 25,itera)
+    num_ri = numri.bound_growth(spec_sat, carb_sat, I_r_sat, 25, itera)
+    plot_rel_diff(ana_ri, num_ri, "analytical and numerical r_i")
+    if ret: return ana_ri, num_ri
+
+def compare_bound_growth_diff_iteras(ret = False):
+    """averaged boundary growth over several lights"""
+    ana_ri1 = ana_bound_growth(spec_sat, I_r_sat, 25,51**2)
+    ana_ri2 = ana_bound_growth(spec_sat, I_r_sat, 25,25**2)
+    plot_rel_diff(ana_ri1, ana_ri2, "different number of iterations")
+    if ret: return ana_ri1, ana_ri2
     
 ###############################################################################
-# Show that the assumption I_out = 0 is a good one
+# Compare anayltical solutions to numerical solutions
 
-def plot_I_out_distribution(ret = False, worst = False):
-    equi_num, equi_ana, I_in= same_equilibria(True, worst, pl = False)
-    k = spec_sat[0]
-    if worst:
-        I_out = I_in*np.exp(-k*equi_num)
-    else:
-        I_out = I_in[:,np.newaxis]*np.exp(-k*equi_num)
-    I_out.shape = -1
-    plt.plot(np.linspace(0,100, I_out.size), np.sort(I_out))
-    plt.semilogy()
-    plt.axis([0,100,1e-8,None])
+def compare_averaged_mp_approx_ri(ret = False):
+    ave_ri = ana_bound_growth(spec_sat, I_r_sat, 25, 51**2)
+    I_r_mp = I_r_sat[:,np.newaxis]*np.ones(spec_sat.shape[-1])
+    envi, comp, stor, mp_ri = anari.mp_approx_r_i(spec_sat, 25, I_r_mp)
+    plot_rel_diff(ave_ri, mp_ri[[1,0]], "numerical and analtical solution", True)
+    plot_abs_diff(ave_ri, mp_ri[[1,0]], "numerical and analtical solution")
+    if ret: return ave_ri, mp_ri[[1,0]]
     
-def I_out_zero_approx(ret = False):
-    """solves growth rates with assuming I_out =0 and compares to exact"""
-    # first axis is for invader/resident, second for the two species
-    from scipy.integrate import odeint
-    from numerical_r_i import dwdt as dwdt
-    
-    P = 25 #period length
-    C = numcom.equilibrium(spec_sat, carb_sat, np.random.uniform(50,200))
-    start_dens = np.array([np.ones(C.shape), C])
-    E = np.random.uniform(50,200)
-    t = np.linspace(0,P,50)
-    sol = odeint(dwdt, start_dens.reshape(-1), t,args=(spec_sat, E, carb_sat))
-    sol.shape = len(t),2,2,-1
-    #### Resident check:
-    k,l = spec_sat[[0,-1]]
-    equi = anacom.equilibrium(spec_sat, E, "simple")
-    W_rt = equi-(equi-C)*np.exp(-l*t[:, None, None])
-    # take the repetition that deviates most
-    rel_diff = np.abs(sol[-1,1]-W_rt[-1])/sol[-1,1]
-    rep = np.argmax(np.amax(rel_diff,0)) 
-    fig,ax = plt.subplots()
-    plt.plot(t,W_rt[:, 0,rep],'.')
-    plt.plot(t, sol[:, 1,0,rep])
-    plt.plot(t,W_rt[:, 1,rep],'.')
-    plt.plot(t, sol[:, 1,1,rep])
-    ax.set_ylabel("density of resident", fontsize=14)
-    ax.set_xlabel("time", fontsize=14)
-    ### invader:
-    fig,ax = plt.subplots()
-    plt.plot(t,sol[:,0,0,rep])
-    plt.plot(t,sol[:,0,1,rep])
-    ax.set_ylabel("density of invader", fontsize=14)
-    ax.set_xlabel("time", fontsize=14)
-    W_it = ana_inv_growth(C,E,spec_sat, t.reshape(-1,1,1))
-    plt.plot(t, W_it[:,0, rep], '.')
-    plt.plot(t, W_it[:,1, rep], '.')
-    if ret: return W_it, W_rt, sol
-    
+def compare_averaged_analytical_ri(ret = False):
+    ave_ri = ana_bound_growth(spec_sat, I_r_sat, 25, 51**2)
+    envi, comp, stor, exa_ri =  anari.exact_r_i(spec_sat, 25, I_r_sat, 1000)
+    plot_rel_diff(ave_ri, exa_ri[[1,0]], "numerical and analtical solution", True)
+    plot_abs_diff(ave_ri, exa_ri[[1,0]], "numerical and analtical solution")
+    if ret: return ave_ri, exa_ri[[1,0]]
+
 ###############################################################################
 # Carbon uptake comparison
     
@@ -152,64 +184,8 @@ def model_change(ret = False):
     plt.show()
     inh_ada = numri.bound_growth(spec_ada, carb_inh, I_r_inh, 25, 100)
     sat_ada = numri.bound_growth(spec_sat_ada, carb_sat, I_r_inh, 25, 100)
-    plot_abs_diff(inh_ada, sat_ada, "model change")
+    plot_rel_diff(inh_ada, sat_ada, "similarized models")
     if ret: return inh_ada, sat_ada
-       
-###############################################################################
-# Compare anayltical solutions to numerical solutions
-
-def r_i_one_period(ret = False):
-    """compare growth rate in one period"""
-    # find parameters
-    P = 25 #period length
-    C = numcom.equilibrium(spec_sat, carb_sat, np.random.uniform(50,200, spec_sat.shape[-1]))
-    E = np.random.uniform(50,200, (1,spec_sat.shape[-1]))
-    
-    # numerical r_i
-    num_ri = numri.r_i(C,E, spec_sat,P,carb_sat)
-    # analytical r_i
-    W_it = ana_inv_growth(C,E,spec_sat, P)
-    ana_ri = np.log(W_it)/P
-
-    plot_rel_diff(ana_ri, num_ri, "growth in one period")
-    if ret: return ana_ri, num_ri
-    
-def compare_bound_growth_averaged(ret = False):
-    """averaged boundary growth over several lights"""
-    itera = 400
-    ana_ri = ana_bound_growth(spec_sat, I_r_sat, 25,itera)
-    num_ri = numri.bound_growth(spec_sat, carb_sat, I_r_sat, 25, itera)
-    # compare with different number of iterations
-    num_ri2 = numri.bound_growth(spec_sat, carb_sat, I_r_sat, 25, itera/4)
-    plot_rel_diff(ana_ri, num_ri, "analytical and numerical r_i")
-    # low variance in data
-    plot_rel_diff(num_ri2, num_ri, "numerica with different interations")
-    if ret: return ana_ri, num_ri, num_ri2
-
-def compare_bound_growth_diff_iteras(ret = False):
-    """averaged boundary growth over several lights"""
-    ana_ri1 = ana_bound_growth(spec_sat, I_r_sat, 25,51**2)
-    ana_ri2 = ana_bound_growth(spec_sat, I_r_sat, 25,25**2)
-    plot_rel_diff(ana_ri1, ana_ri2, "analytical and numerical r_i")
-    if ret: return ana_ri1, ana_ri2
-    
-###############################################################################
-# Compare anayltical solutions to numerical solutions
-
-def compare_averaged_mp_approx_ri(ret = False):
-    ave_ri = ana_bound_growth(spec_sat, I_r_sat, 25, int(1e6))
-    I_r_mp = I_r_sat[:,np.newaxis]*np.ones(spec_sat.shape[-1])
-    envi, comp, stor, mp_ri = anari.mp_approx_r_i(spec_sat, 25, I_r_mp)
-    plot_rel_diff(ave_ri, mp_ri[[1,0]], "test", True)
-    plot_abs_diff(ave_ri, mp_ri[[1,0]], "test")
-    if ret: return ave_ri, mp_ri[[1,0]]
-    
-def compare_averaged_analytical_ri(ret = False):
-    ave_ri = ana_bound_growth(spec_sat, I_r_sat, 25, int(1e6))
-    envi, comp, stor, exa_ri =  anari.exact_r_i(spec_sat, 25, I_r_sat, 1000)
-    plot_rel_diff(ave_ri, exa_ri[[1,0]], "test", True)
-    plot_abs_diff(ave_ri, exa_ri[[1,0]], "test")
-    if ret: return ave_ri, exa_ri[[1,0]]
      
 ###############################################################################
 # Help functions,not directly related to any comparison, used by many functions
@@ -241,9 +217,7 @@ def ana_bound_growth(species, I_r ,P, num_iterations= 10000):
         
         r_i_save = ana_inv_growth(dens_prev[i], I_now, species, P)
         r_is[i] = np.log(r_i_save)/P
-        if i%100 == 99:
-            print(100*(i+1)/acc_rel_I, " percent done")
-        # take average via simpson rule, double integral
+    # take average via simpson rule, double integral
     av1 = simps(r_is, dx = dx, axis = 1) # integrate over current period
     av2 = simps(av1, dx = dx, axis = 0) # integrate over previous period
     return av2
@@ -258,8 +232,30 @@ def ana_inv_growth(C,E,species, t):
     W_it = np.exp((np.take(abso,inv,-2)-1)*l[inv]*t)*\
         (np.take(W_rt,res, -2)/C[res])**(np.take(abso,inv,-2)*l[inv]/l[res])
     return W_it
-
-"""functions to include:
     
-    compare different r_i functions
-    Adapt photo_inh pars to fit -sat pars to compare solutions"""
+###############################################################################
+# For plotting the results
+    
+def plot_rel_diff(values1, values2, ylabel, add = False):
+    """plot the full percentile curve of relative differences"""
+    rel_diff = np.abs((values1-values2)/values1)
+    fig,ax = plt.subplots()
+    ax.plot(np.linspace(0,100,rel_diff.size),np.sort(rel_diff.ravel()))
+    ax.semilogy()
+    ax.set_ylabel("relative difference in "+ylabel)
+    ax.set_xlabel("percentiles")
+    if add:
+        outliers = values1[rel_diff>0.05]
+        fig, ax = plt.subplots()
+        ax.plot(np.sort(outliers.ravel()))
+        ax.set_xlabel("number of outliers")
+        ax.set_ylabel("absolute value of outlier")
+
+def plot_abs_diff(values1, values2, ylabel):
+    """plot the full percentile curve of relative differences"""
+    abs_diff = np.sort(np.abs(values1-values2).ravel())
+    fig,ax = plt.subplots()
+    ax.plot(np.linspace(0,100,abs_diff.size),abs_diff)
+    ax.semilogy()
+    ax.set_ylabel("absolute difference in "+ylabel)
+    ax.set_xlabel("percentiles")
