@@ -147,7 +147,7 @@ def compare_averaged_mp_approx_ri(ret = False):
     I_r_mp = I_r_sat[:,np.newaxis]*np.ones(spec_sat.shape[-1])
     envi, comp, stor, mp_ri = anari.mp_approx_r_i(spec_sat, 25, I_r_mp)
     plot_rel_diff(ave_ri, mp_ri[[1,0]], "numerical and analtical solution", True)
-    plot_abs_diff(ave_ri, mp_ri[[1,0]], "numerical and analtical solution")
+    plot_abs_diff(ave_ri, comp[[1,0]], "numerical and analtical solution")
     if ret: return ave_ri, mp_ri[[1,0]]
     
 def compare_averaged_analytical_ri(ret = False):

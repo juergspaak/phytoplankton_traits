@@ -46,15 +46,12 @@ def bound_growth(species, carbon,I_r ,P, num_iterations = 400):
     dens_prev = com.equilibrium(species, carbon, I_prev, "partial")
     # save the growth rates in the periods
     r_is = np.empty((acc_rel_I, 2,acc_rel_I,species.shape[-1]))
-    print(timer()-start, "computed res dens")
     for i in range(acc_rel_I): #compute the growth rates for each period
-        print(i)
         #light in current period
         rel_I_now = np.linspace(0,1,acc_rel_I)[:,np.newaxis]
         I_now = (IM-Im)*rel_I_now+Im
         r_is_save = r_i(dens_prev[i], I_now, species, P, carbon)
         r_is[i] = r_is_save.reshape(2,acc_rel_I,-1, order = 'F')
-    print(timer()-start)
     # take average via simpson rule, double integral
     av1 = simps(r_is, dx = dx, axis = 2) # integrate over current period
     av2 = simps(av1, dx = dx, axis = 0) # integrate over previous period
