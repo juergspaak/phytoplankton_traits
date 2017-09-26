@@ -56,7 +56,8 @@ def cumsimps(y, x=None, dx=1.0, axis=-1, initial = None):
         out[tuple(idx)] = np.cumsum(Sf,axis = axis)+initial
     return out
     
-def resident_density(species, I,t):
+def resident_density(species, I,t, n_periods = 5):
+
     k,H,p,l = species # species parameters
     # equilibrium densities for incoming light
     W_r_star = com.equilibrium(species, I(t)[::2], "full")
@@ -66,11 +67,47 @@ def resident_density(species, I,t):
     dt = (t[-1]-t[0])/t.size
     W_r_diff = p/(k*l)*cumsimps(int_fun,dx = dt, axis = 0, initial = 0)\
                     *np.exp(-l*t2[::2])
+    print(W_r_diff.shape)
+    print(t2[-1])
     W_r_t = W_r_star-W_r_diff[(t.size-1)//2:]
-    """plt.plot(t,I(t))
+    s,r = 1,-1
+    plt.plot(t,I(t))
     plt.figure()
-    plt.plot(t[::2], W_r_star[:,0,0])
-    plt.plot(t[::2], W_r_t[:,0,0])"""
+    plt.plot(t[::2], W_r_star[:,s,r])
+    plt.plot(t[::2], W_r_t[:,s,r])
+    #raise SyntaxError("produces NAN sometimes")
+    return W_r_t, W_r_star
+    
+def resident_density2(species, I,period, n_periods = 5, acc = 1001):
+    # check input
+    if np.exp(period*np.amax(species[-1]))==np.inf:
+        raise ValueError("Too long `period` in `resident_density`."+
+        "The product l*period must be smaller than 700 to avoid overflow.")
+    k,H,p,l = species # species parameters
+    # time for numerical integration
+    t,dt = np.linspace(0,period,acc,retstep = True) 
+    # equilibrium densities for incoming light
+    W_r_star = com.equilibrium(species, I(t)[::2], "full")
+    t.shape = -1,1,1
+    int_fun = np.exp(l*t)/(H+I(t))*I.dt(t)
+    # int_0^t e^(l*(s-t))/(H+I(s))*I.dt(s) ds, for t<period
+    W_r_diff = p/(k*l)*cumsimps(int_fun,dx = dt, axis = 0, initial = 0)\
+                    *np.exp(-l*t[::2])
+    
+    # Finding W_r_diff(t=0), using W_r_diff(0)=W_r_diff(T)
+    W_r_diff_0 = W_r_diff[-1]/(1-np.exp(-l*period))           
+    
+    # adding starting condition
+    W_r_diff = W_r_diff + W_r_diff_0*np.exp(-l*t[::2])
+
+    W_r_t = W_r_star-W_r_diff
+    print(t[::2,0,0].shape, W_r_t[:,0,0].shape, W_r_star[:,0,0].shape)
+    s,r = 1,-1
+    plt.plot(t[:,0,0],I(t)[:,0,0])
+    plt.figure()
+    plt.plot(t[::2,0,0], W_r_star[:,s,r])
+    plt.plot(t[::2,0,0], W_r_t[:,s,r])
+    #raise SyntaxError("produces NAN sometimes")
     return W_r_t, W_r_star
     
 def continuous_r_i(species, I,t):
@@ -84,16 +121,36 @@ def continuous_r_i(species, I,t):
     exact_r_i = simps(k[i]*W_r_star[:,i]/(k[r]*W_r_t[:,r])-1,
                        dx = dt,axis = 0)*l[i]/t[-1]
     return simple_r_i, exact_r_i
-    
-    
 
+T = 2*3
+t,dt = np.linspace(0,5*T,1001,endpoint = True,  retstep = True)
+size = 40
+species = com.gen_species()
+speed = 1.00
+period = T*(1/speed+1)
+t,dt = np.linspace(0,5*period,1001, retstep = True)
+I = lambda t: size*((t%period<=T)*t%period/T+
+                    (t%period>T)*(1-(t%period-T)*speed/T))+125-size/2
+I.dt = lambda t: size*((t%period<=T)/T-(t%period>T)/T*speed)
+a,b = resident_density2(species, I, period)
+c,d = resident_density(species, I, t)
+print(np.sum(np.isnan(simple_r_i)), np.sum(np.isnan(exact_r_i)))
     
+#Examples:
+"""
+
 T = 1*2*np.pi
 t,dt = np.linspace(0,5*T,1001, retstep = True)
-size = 80
+size = 40
 I = lambda t: size*np.sin(t/T*2*np.pi)+125
 I.dt = lambda t:  size*np.cos(t/T*2*np.pi)*2*np.pi/T
-species = com.gen_species(1000)
+speed = 1.01
+period = T*(1/speed+1)
+t,dt = np.linspace(0,5*period,1001, retstep = True)
+I = lambda t: size*((t%period<=T)*t%period/T+
+                    (t%period>T)*(1-(t%period-T)*speed/T))+125-size/2
+I.dt = lambda t: size*((t%period<=T)/T-(t%period>T)/T*speed)
+species = com.gen_species(100)
 
 simple_r_i, exact_r_i = continuous_r_i(species, I, t)
 plit(*simple_r_i)
@@ -101,6 +158,4 @@ plit(*exact_r_i)
 plot_percentiles(np.abs((exact_r_i-simple_r_i)/exact_r_i), y_max = 1)
 plt.show()
 print(np.sum(np.sum(simple_r_i>0, axis = 0)==2))
-print(np.sum(np.sum(exact_r_i>0, axis = 0)==2))
-
-    
+print(np.sum(np.sum(exact_r_i>0, axis = 0)==2))"""  
