@@ -6,6 +6,7 @@ Created on Tue Oct 24 13:15:03 2017
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import linregress
 species_id = "rando"
 if species_id == "rand":
     # probability distribution of number of pigments
@@ -35,7 +36,7 @@ else:
 
     
 n_exp = 10000 #number of experiments for each richness of species
-max_r_exp = 9 # maximal richness in all experiments
+max_r_exp = 10 # maximal richness in all experiments
 
 r_range = np.arange(1, max_r_exp+1) # range of all richness of species
 r_pig_exp = np.empty((len(r_range), n_exp))
@@ -66,11 +67,27 @@ cov = richnesses*(np.arange(1,r_pig+1)[:,np.newaxis]-p_av)*\
 beta = np.sum(cov)/var_spe
 alpha = p_av -beta*av_spe
 plt.figure()
+# real data from paper
+n_spe = np.array([1,1,1,2,2,2,3,3,5,5,7,7,7,10,10]) #number of species in exp.
+n_pig = np.array([6,8,12,8,11,12,11,14,15,16,11,14,16,17,18]) #num. of pigments
+
+#linear regression
+slope, intercept, r, p, stderr = linregress(np.log(n_spe), n_pig)
+plt.plot(np.log(n_spe), n_pig, 'g^', label = "Experimental")
+plt.plot(np.log(n_spe),intercept+slope*np.log(n_spe),'g')
+plt.xlabel("Species richness (log)")
+plt.ylabel("Pigment richness")
+plt.axis([-0.2, 2.5, 5,19])
+plt.savefig("Figure, Regression of pigments, real data")
+# plot simulated data
 plt.plot(log_r_range, np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis], 
-                         axis = 0), 'o')
-plt.plot(log_r_range, alpha+beta*log_r_range)
+                         axis = 0), 'ro', label = "Simulated")
+plt.plot(log_r_range, alpha+beta*log_r_range, 'r')
+plt.legend(loc = "upper left")
+plt.savefig("Figure, Regression of pigments richness")
+
+
 plt.show()
 print(alpha, beta)
-
-    
+print(intercept, slope, r)
     
