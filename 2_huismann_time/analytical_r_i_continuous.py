@@ -56,29 +56,7 @@ def cumsimps(y, x=None, dx=1.0, axis=-1, initial = None):
         out[tuple(idx)] = np.cumsum(Sf,axis = axis)+initial
     return out
     
-def resident_density(species, I,t, n_periods = 5):
-
-    k,H,p,l = species # species parameters
-    # equilibrium densities for incoming light
-    W_r_star = com.equilibrium(species, I(t)[::2], "full")
-    t2 = np.append(t[1:],t+t[-1]) #compute over two periods to find equilibria
-    t2.shape = -1,1,1
-    int_fun = np.exp(l*t2)/(H+I(t2))*I.dt(t2)
-    dt = (t[-1]-t[0])/t.size
-    W_r_diff = p/(k*l)*cumsimps(int_fun,dx = dt, axis = 0, initial = 0)\
-                    *np.exp(-l*t2[::2])
-    print(W_r_diff.shape)
-    print(t2[-1])
-    W_r_t = W_r_star-W_r_diff[(t.size-1)//2:]
-    s,r = 1,-1
-    plt.plot(t,I(t))
-    plt.figure()
-    plt.plot(t[::2], W_r_star[:,s,r])
-    plt.plot(t[::2], W_r_t[:,s,r])
-    #raise SyntaxError("produces NAN sometimes")
-    return W_r_t, W_r_star
-    
-def resident_density2(species, I,period, n_periods = 5, acc = 1001):
+def resident_density(species, I,period, acc = 1001):
     # check input
     if np.exp(period*np.amax(species[-1]))==np.inf:
         raise ValueError("Too long `period` in `resident_density`."+
@@ -96,18 +74,10 @@ def resident_density2(species, I,period, n_periods = 5, acc = 1001):
     
     # Finding W_r_diff(t=0), using W_r_diff(0)=W_r_diff(T)
     W_r_diff_0 = W_r_diff[-1]/(1-np.exp(-l*period))           
-    
     # adding starting condition
     W_r_diff = W_r_diff + W_r_diff_0*np.exp(-l*t[::2])
-
+    # computing real W_r_t
     W_r_t = W_r_star-W_r_diff
-    print(t[::2,0,0].shape, W_r_t[:,0,0].shape, W_r_star[:,0,0].shape)
-    s,r = 1,-1
-    plt.plot(t[:,0,0],I(t)[:,0,0])
-    plt.figure()
-    plt.plot(t[::2,0,0], W_r_star[:,s,r])
-    plt.plot(t[::2,0,0], W_r_t[:,s,r])
-    #raise SyntaxError("produces NAN sometimes")
     return W_r_t, W_r_star
     
 def continuous_r_i(species, I,t):
@@ -121,20 +91,6 @@ def continuous_r_i(species, I,t):
     exact_r_i = simps(k[i]*W_r_star[:,i]/(k[r]*W_r_t[:,r])-1,
                        dx = dt,axis = 0)*l[i]/t[-1]
     return simple_r_i, exact_r_i
-
-T = 2*3
-t,dt = np.linspace(0,5*T,1001,endpoint = True,  retstep = True)
-size = 40
-species = com.gen_species()
-speed = 1.00
-period = T*(1/speed+1)
-t,dt = np.linspace(0,5*period,1001, retstep = True)
-I = lambda t: size*((t%period<=T)*t%period/T+
-                    (t%period>T)*(1-(t%period-T)*speed/T))+125-size/2
-I.dt = lambda t: size*((t%period<=T)/T-(t%period>T)/T*speed)
-a,b = resident_density2(species, I, period)
-c,d = resident_density(species, I, t)
-print(np.sum(np.isnan(simple_r_i)), np.sum(np.isnan(exact_r_i)))
     
 #Examples:
 """
