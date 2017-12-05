@@ -1,5 +1,9 @@
 """ This program is to find a set of species, that allow two stable equilibria
-with different species present at the equilibrium"""
+with different species present at the equilibrium
+
+
+
+doesn't work anymore, because alpha was redefined, change comp_beta_stable"""
 
 import numpy as np
 import multispecies_functions as equilibrium

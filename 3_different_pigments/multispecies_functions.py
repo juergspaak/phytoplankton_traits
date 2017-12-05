@@ -25,25 +25,40 @@ def I_in_def(lux, loc = 550, sigma = 0):
         
 def spectrum_species(pigments, r_pig, r_spec, n_com, r_pig_spec = 2):
     """
-    pigments: list of functions, the pigments
-    r_pig: richness of the pigments
-    r_spec: richness of species in each community
-    n_com: the number of communities to compute
+    pigments: absorptions at `lambs`, the pigments in all communities
+    r_pig: richness of the pigments in each community
+    r_spec: richness of species in each community (regional richness)
+    n_com: the number of communities to generate
     r_pig_spec: Richness of pigments in each species"""
     n_pig = len(pigments) #number of pigments
     # which pigments are present in which community
     pigs_present_com = np.random.rand(n_pig,n_com).argsort(axis=0)[:r_pig]
-
-    # proportion of pigments for each species
-    alpha = np.random.beta(0.1,0.1,(r_pig,r_spec,n_com))
-
     # each species has at most r_pig_spec pigments
-    pigs_present_spec = np.random.rand(r_pig,r_spec,n_com).argsort(axis=0)[:r_pig-r_pig_spec]
-    alpha[pigs_present_spec, np.arange(r_spec)[:,None],np.arange(n_com)] = 0
-    alpha /= np.sum(alpha, 0)#normalize,each species has same amount of pigments
-    k_spec = np.einsum('psc,pcl->lsc', alpha,pigments[pigs_present_com])
+    pigs_present_spec = np.random.rand(r_spec, r_pig,n_com).argsort(axis=1)\
+                    [:,:r_pig_spec]
+    # which species contains how much of which pigment
+    alpha = np.full((n_pig, r_spec, n_com),0, dtype = "float")
+    
+    data = pigs_present_com[pigs_present_spec, np.arange(n_com)]
+    new = np.repeat(np.arange(r_spec),data.size//r_spec).reshape(data.shape)
+    # proportion of pigments for each species
+    alpha[data, new, np.arange(n_com)] = np.random.beta(0.1,0.1,(data.shape))
+    # check alpha for correctness
+    check = alpha>0
+    # check each species has r_pig_spec pigments
+    if not (np.sum(check, axis = 0)==r_pig_spec).all():
+        raise
+    # check each communitiy has at most r_pig pigments
+    if not ((np.sum(check, axis =1)>0).sum(axis = 0)<r_pig+1).all():
+        raise
+    # proportion of pigments for each species
+    alpha[data, new, np.arange(n_com)] = np.random.beta(0.1,0.1,(data.shape))
+    #normalize,each species has same amount of pigments
+    alpha /= np.sum(alpha, 0)
+    # absorption spectrum of the species
+    k_spec = np.einsum('psc,pl->lsc', alpha,pigments)
     return k_spec, alpha
-
+    
 def multispecies_equi(fitness, k_spec, I_in = I_in_def(40/300),runs = 5000):
     """Compute the equilibrium density for several species with its pigments
     
