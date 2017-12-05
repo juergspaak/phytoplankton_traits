@@ -235,6 +235,7 @@ def plt_coex_reg(pigs, grid_points = 51, vol = False):
                 , rstride = 5, cstride = 5, color = 'red')
     if vol:
         return volume_coex_reg(convzmin, convzmax)
+    return fig
     
 def smooth(mat,sig):
     """Snoothen `mat` with a gaussian kernel
@@ -259,3 +260,7 @@ def volume_coex_reg(convzmin, convzmax):
     volsimp = simps(volsimp,dx = 1/(convzmax.shape[0]-1))
     # divide by volume of the cube
     return volsimp/(2*np.log(2))
+    
+import load_pigments as ld
+fig = plt_coex_reg(ld.real[:2])
+fig.savefig("Figure, 2species, coex volume.pdf")

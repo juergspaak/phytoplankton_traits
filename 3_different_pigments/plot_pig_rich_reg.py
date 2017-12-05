@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Oct 24 13:15:03 2017
+@author: J.W. Spaak, jurg.spaak@unamur.be
 
-@author: spaakjue
+Plots the regression of pigment richness, real data, purly random and 
+model prediction
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -105,7 +106,7 @@ plt.plot( np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis],axis = 0),
          log_r_range,'ro', label = "Random")
 plt.plot(np.arange(r_pig) , alpha+beta*np.arange(r_pig),'r')
 plt.legend(loc = "upper left")
-plt.savefig("Figure, Regression of pigments richness")
+plt.savefig("Figure, pig_rich_reg.pdf")
 
 
 plt.show()

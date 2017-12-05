@@ -11,12 +11,9 @@ Assumptions: z_m = 1, Sum(\alpha_i)=1
 
 `plt_ncoex`plots how many species coexist in how many iterations.
 """
-
 import numpy as np
-import matplotlib.pyplot as plt
 
 from scipy.integrate import simps
-from load_pigments import real,rand
 
 def I_in_def(lux, loc = 550, sigma = 0):
     """ returns a incoming light function, a gaussian kernel"""
@@ -119,82 +116,3 @@ def multispecies_equi(fitness, k_spec, I_in = I_in_def(40/300),runs = 5000):
         i+=1
     #return only communities that found equilibrium
     return equis_fix, unfixed
-    
-def plt_ncoex(equis):
-    """plots the amount of different species in a percentile curve
-    
-    equis: 2-dim array
-        equis[i] should be the equilibrium densities of the species in
-        iteration i
-    
-    Returns: None
-    
-    Plots: A percentile plot of the number of species that coexist in each
-        iteration
-        
-    Example: 
-        import load_pigments as pigments
-        plt_ncoex(multispecies_equi(pigments.real))"""
-    spec_num = np.sum(equis>0,0)
-    fig = plt.figure()
-    plt.plot(np.linspace(0,100, len(spec_num)),sorted(spec_num))
-    plt.ylabel("number coexisting species")
-    plt.xlabel("percent")
-    plt.show()
-    return fig
-    
-def plot_percentile_curves():
-    """plots the percentile curves (5,25,50,75 and 95), of the number of coexisting
-    species in dependence of the number of pigments"""
-    equis = []
-    unfixeds = []
-    pigs_richness = np.arange(2,21,2)
-    for i in pigs_richness:
-        n_com = 500 # number of communities
-        r_spec = 2*i # richness of species, regional richness
-        r_pig = i # richness of pigments in community
-        r_pig_spec = min(i,5) # richness of pigments in each species
-        fac = 2 #factor by which fitness can differ
-        phi = 2*1e8*np.random.uniform(1/fac, 1*fac,(r_spec,n_com)) #photosynthetic efficiency
-        l = 0.014*np.random.uniform(1/fac, 1*fac,(r_spec,n_com)) # specific loss rate
-        fitness = phi/l # fitness
-        # spectrum of the species
-        k_spec,alpha = spectrum_species(rand, r_pig, r_spec, n_com, r_pig_spec) 
-        equi, unfixed = multispecies_equi(fitness, k_spec)
-        equis.append(equi[:,np.logical_not(unfixed)]) #equilibrium density
-        unfixeds.append(unfixed)
-        plt_ncoex(equis[-1])
-        print(i)
-    spec_nums = [np.sum(equi>0,0) for equi in equis]    
-    percents = np.array([[int(np.percentile(spec_num,per)) for per in [5,25,50,75,95]] for
-                 spec_num in spec_nums])
-    fig, ax = plt.subplots()
-    leg = plt.plot(pigs_richness,percents, '.')
-    ax.set_ylabel("number of coexisting species")
-    ax.set_xlabel("number of pigments in the community")
-    ax.legend(leg, ["5%","25%","50%","75%","95%"], loc = "upper left")
-    ax.set_ybound(np.amin(percents)-0.1, np.amax(percents)+0.1)
-    plt.figure()
-    plt.plot(k_spec[:,:,0]) #plot a representative of the spectrum
-    return equis, unfixeds, percents
-"""   
-spec_nums = [np.sum(equi>0,0) for equi in equis]
-richness_dist = np.array([np.sum(spec_nums[i]==j)/len(spec_nums[i]) 
-                        for i in range(len(spec_nums)) for j in range(1,8)])
-richness_dist.shape = len(spec_nums),7
-
-ave_spe = np.sum(richness_dist*np.arange(1,8))/np.sum(richness_dist)
-pigs_richness = np.arange(2,21,2)[:,np.newaxis]
-ave_pig = np.sum(richness_dist*pigs_richness)/np.sum(richness_dist)
-                
-cov = np.sum(richness_dist*(pigs_richness-ave_pig)*(np.arange(1,8)-ave_spe))\
-        /np.sum(richness_dist)
-var_spe = np.sum(richness_dist*(np.arange(1,8)-ave_spe)**2)\
-                /np.sum(richness_dist)
-var_pig = np.sum(richness_dist*(pigs_richness-ave_pig)**2)\
-                /np.sum(richness_dist)
-# linear regression
-beta = cov/var_pig
-alpha = ave_spe-beta*ave_pig"""
-
-

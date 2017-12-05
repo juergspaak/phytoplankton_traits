@@ -2,7 +2,11 @@
 with different species present at the equilibrium"""
 
 import numpy as np
-import multispecies_case as equilibrium
+import multispecies_functions as equilibrium
+import matplotlib.pyplot as plt
+
+from load_pigments import real as l_pigs
+
 
 def comp_beta_stable(alpha):
     beta = np.empty(alpha.shape[1:])
@@ -17,6 +21,16 @@ def comp_beta_stable(alpha):
         except np.linalg.linalg.LinAlgError:
             beta[:,i] = np.nan
     return beta
+    
+def plt_ncoex(equis):
+    "see plot_pig_rich for documentation"
+    spec_num = np.sum(equis>0,0)
+    fig = plt.figure()
+    plt.plot(np.linspace(0,100, len(spec_num)),sorted(spec_num))
+    plt.ylabel("number coexisting species")
+    plt.xlabel("percent")
+    plt.show()
+    return fig
 
 # generate the communities
 n_com = 5000 # number of communities
@@ -27,12 +41,12 @@ fac = 2 #factor by which fitness can differ
 phi = 2*1e8*np.random.uniform(1/fac, 1*fac,(r_spec,n_com)) #photosynthetic efficiency
 l = 0.014*np.random.uniform(1/fac, 1*fac,(r_spec,n_com)) # specific loss rate
 fitness = phi/l # fitness
-k_spec,alpha = equilibrium.spectrum_species(equilibrium.real, r_pig, 
+k_spec,alpha = equilibrium.spectrum_species(l_pigs, r_pig, 
                                             r_spec, n_com, r_pig_spec) #spectrum of the species
 #equilibrium density
 equis, unfixed = equilibrium.multispecies_equi(fitness, k_spec, runs = 1000)
 # plot the number of coexisting species
-equilibrium.plt_ncoex(equis[:,np.logical_not(unfixed)])
+plt_ncoex(equis[:,np.logical_not(unfixed)])
 # find the cases where r_pig species coexist
 surv = equis>0
 full_surv = (np.sum(surv,0)==r_pig) & np.logical_not(unfixed)
@@ -55,7 +69,7 @@ for j in range(r_spec-1):
     betas[j,r] = -betas[-1,r]/betas[-1,j] #k_i = \sum betas[j,r]*k_r, j!= r
     betas[j, -1] = 1/betas[-1,j]
     betas[j,j] = 0
-# linear combination returnin the spectrum of the species    
+# linear combination returning the spectrum of the species    
 linear_combination = np.einsum('lsc,rsc->lrc',k_spec, betas)
 
 # compute the invasion growthrates,fitness[i]*\sum_r betas[i,r]*1/fitness[r]-1
@@ -80,4 +94,4 @@ for i in range(fitness.shape[-1]):
 equi2, unfixed = equilibrium.multispecies_equi(fitness2, k_spec2)
 surv2 = equi2>0
 print(np.amax(np.sum(surv2,0)))
-equilibrium.plt_ncoex(equi2[:,np.logical_not(unfixed)])
+plt_ncoex(equi2[:,np.logical_not(unfixed)])
