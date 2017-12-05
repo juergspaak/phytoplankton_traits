@@ -58,6 +58,7 @@ def cumsimps(y, x=None, dx=1.0, axis=-1, initial = None):
     
 def resident_density(species, I,period, acc = 1001):
     # check input
+    
     if np.exp(period*np.amax(species[-1]))==np.inf:
         raise ValueError("Too long `period` in `resident_density`."+
         "The product l*period must be smaller than 700 to avoid overflow.")
@@ -78,40 +79,15 @@ def resident_density(species, I,period, acc = 1001):
     W_r_diff = W_r_diff + W_r_diff_0*np.exp(-l*t[::2])
     # computing real W_r_t
     W_r_t = W_r_star-W_r_diff
-    return W_r_t, W_r_star
+    return W_r_t, W_r_star,dt
     
-def continuous_r_i(species, I,t):
+def continuous_r_i(species, I,period, acc = 1001):
     # computes the boundary growth rates for invading species
-    W_r_t, W_r_star = resident_density(species, I, t)
+    W_r_t, W_r_star,dt = resident_density(species, I, period,acc)
     i,r = [[0,1],[1,0]]
     k,l = species[[0,-1]]
-    dt = (t[-1]-t[0])/t.size
     simple_r_i = simps(k[i]*W_r_star[:,i]/(k[r]*W_r_star[:,r])-1,
-                       dx = dt,axis = 0)*l[i]/t[-1]
+                       dx = dt,axis = 0)*l[i]
     exact_r_i = simps(k[i]*W_r_star[:,i]/(k[r]*W_r_t[:,r])-1,
-                       dx = dt,axis = 0)*l[i]/t[-1]
+                       dx = dt,axis = 0)*l[i]
     return simple_r_i, exact_r_i
-    
-#Examples:
-"""
-
-T = 1*2*np.pi
-t,dt = np.linspace(0,5*T,1001, retstep = True)
-size = 40
-I = lambda t: size*np.sin(t/T*2*np.pi)+125
-I.dt = lambda t:  size*np.cos(t/T*2*np.pi)*2*np.pi/T
-speed = 1.01
-period = T*(1/speed+1)
-t,dt = np.linspace(0,5*period,1001, retstep = True)
-I = lambda t: size*((t%period<=T)*t%period/T+
-                    (t%period>T)*(1-(t%period-T)*speed/T))+125-size/2
-I.dt = lambda t: size*((t%period<=T)/T-(t%period>T)/T*speed)
-species = com.gen_species(100)
-
-simple_r_i, exact_r_i = continuous_r_i(species, I, t)
-plit(*simple_r_i)
-plit(*exact_r_i)
-plot_percentiles(np.abs((exact_r_i-simple_r_i)/exact_r_i), y_max = 1)
-plt.show()
-print(np.sum(np.sum(simple_r_i>0, axis = 0)==2))
-print(np.sum(np.sum(exact_r_i>0, axis = 0)==2))"""  
