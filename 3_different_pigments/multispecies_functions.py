@@ -14,13 +14,14 @@ Assumptions: z_m = 1, Sum(\alpha_i)=1
 import numpy as np
 
 from scipy.integrate import simps
+from load_pigments import lambs, dlam
 
 def I_in_def(lux, loc = 550, sigma = 0):
     """ returns a incoming light function, a gaussian kernel"""
     if sigma == 0:
-        return lambda lam: np.full(lam.shape, lux)
+        return np.full(lambs.shape, lux)
     else:
-        return lambda lam: lux*np.exp(-(lam-loc)**2/sigma)
+        return lux*np.exp(-(lambs-loc)**2/sigma)
         
 def spectrum_species(pigments, r_pig, r_spec, n_com, r_pig_spec = 2):
     """
@@ -32,9 +33,7 @@ def spectrum_species(pigments, r_pig, r_spec, n_com, r_pig_spec = 2):
     n_pig = len(pigments) #number of pigments
     # which pigments are present in which community
     pigs_present_com = np.random.rand(n_pig,n_com).argsort(axis=0)[:r_pig]
-    # convert functions to arrays, pigments might be inefficient
-    lam = np.linspace(400,700,101)
-    pig_lam = np.array([pig(lam) for pig in pigments])
+
     # proportion of pigments for each species
     alpha = np.random.beta(0.1,0.1,(r_pig,r_spec,n_com))
 
@@ -42,7 +41,7 @@ def spectrum_species(pigments, r_pig, r_spec, n_com, r_pig_spec = 2):
     pigs_present_spec = np.random.rand(r_pig,r_spec,n_com).argsort(axis=0)[:r_pig-r_pig_spec]
     alpha[pigs_present_spec, np.arange(r_spec)[:,None],np.arange(n_com)] = 0
     alpha /= np.sum(alpha, 0)#normalize,each species has same amount of pigments
-    k_spec = np.einsum('psc,pcl->lsc', alpha,pig_lam[pigs_present_com])
+    k_spec = np.einsum('psc,pcl->lsc', alpha,pigments[pigs_present_com])
     return k_spec, alpha
 
 def multispecies_equi(fitness, k_spec, I_in = I_in_def(40/300),runs = 5000):
@@ -80,10 +79,9 @@ def multispecies_equi(fitness, k_spec, I_in = I_in_def(40/300),runs = 5000):
     equis = np.full(fitness.shape, 1e12) # start of iteration
     equis_fix = np.zeros(equis.shape)
 
-    lam, dx = np.linspace(400,700,101, retstep = True) #points for integration
     # k_spec(lam), shape = (len(lam), richness, ncom)
     abs_points = k_spec.copy()
-    I_in = I_in(lam)[:,np.newaxis]
+    I_in = I_in[:,np.newaxis]
     unfixed = np.full(fitness.shape[-1], True, dtype = bool)
     n = 20
     i = 0
@@ -96,7 +94,7 @@ def multispecies_equi(fitness, k_spec, I_in = I_in_def(40/300),runs = 5000):
         # N_j*k_j(lam)/sum_j(N_j*k_j)*(1-e^(-sum_j(N_j*k_j))), shape =(npi, len(lam), itera)
         y_simps = all_abs*(I_in/tot_abs*(1-np.exp(-tot_abs)))[:,np.newaxis]
         # fit*int(y_simps)
-        equis = fitness*simps(y_simps, dx = dx, axis = 0)
+        equis = fitness*simps(y_simps, dx = dlam, axis = 0)
         # remove rare species
         equis[equis<1] = 0
         if i % n==n-2:

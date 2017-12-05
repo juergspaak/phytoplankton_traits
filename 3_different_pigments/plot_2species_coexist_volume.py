@@ -26,6 +26,10 @@ from scipy.integrate import simps
 from mpl_toolkits.mplot3d import Axes3D #implicitly used
 from scipy.signal import convolve2d
 
+import load_pigments as ld
+lambs = ld.lambs
+dlam = ld.dlam
+
 def equilibrium(pigs, ratio, fit, plot = False):
     """Computes the equilibrium of the species in monoculture      
     
@@ -48,23 +52,21 @@ def equilibrium(pigs, ratio, fit, plot = False):
         r-> ratios
         f-> fitness
         p-> pigments"""
-    # values for simpson, uneven number chosen for simpson
-    x_simps,dx = np.linspace(400,700,101, retstep = True)
     # absorption, sum(pig_i(lam)*alpha_i)
-    absor = lambda ratio, lam: np.einsum('pr,px->rx',[ratio, 1-ratio],
-                            np.array([pig(lam) for pig in pigs]))
+    absor = lambda ratio: np.einsum('pr,px->rx',[ratio, 1-ratio],
+                            np.array([pig for pig in pigs]))
     # function to be integrated I_in*(1-e^-N*f*absor(lambda))
-    iterator = lambda N_fit, ratio, lam: 40/300*(1-np.exp(-
-                        np.einsum('rf,rx->rfx',N_fit,absor(ratio, lam))))
+    iterator = lambda N_fit, ratio: 40/300*(1-np.exp(-
+                        np.einsum('rf,rx->rfx',N_fit,absor(ratio))))
     #iteratively search for equilibrium, start at infinity
     equi = np.infty*np.ones([len(ratio), len(fit)])
     for i in range(25):
         # N*fit
         N_fit = np.einsum('rf,f->rf', equi,fit)
         #compute the function values
-        y_simps = iterator(N_fit, ratio, x_simps)
+        y_simps = iterator(N_fit, ratio)
         #int(iterator, dlambda, 400,700)
-        equi = simps(y_simps, dx = dx)
+        equi = simps(y_simps, dx = dlam)
     if np.amin(equi)<1:
         print("Warning, not all resident species have a equilibrium "+
               "density above 1")
@@ -105,32 +107,28 @@ def invasion_success(pigs, ratio, relfit, I_in = None, approx = False
         i-> ratios of invader
         f-> fitness
         p-> pigments"""
-    # absorption of the pigments
-    k = lambda lam: np.array([pig(lam) for pig in pigs])
     if I_in is None:
         I_in = lambda lam: 40/300 #corresponds to constant light with lux = 40
     # vector of ratios for invader and resident
     r_inv = np.array([ratio, 1-ratio])
     r_res = np.array([ratio, 1-ratio])
-    # values for simpson, uneven number chosen for simpson
-    x_simps,dx = np.linspace(400,700,101, retstep = True)
     # sum(f*alpha_(p,i)*k_p(lambda)) summed over p
-    numerator = np.einsum('px,pif->xif',k(x_simps),
+    numerator = np.einsum('px,pif->xif',pigs,
                           np.einsum('pi,f->pif',r_inv,relfit))
     # sum(alpha_(p,r)*k_p(lambda)) summed over p
-    denominator = np.einsum('px,pr->xr',k(x_simps),r_res)
+    denominator = np.einsum('px,pr->xr',pigs,r_res)
     # (numerator/denominator -1)*I_in(lambda)
     rel_abs = (np.einsum('xif,xr->xirf',numerator,1/denominator)-1)*40/300
 
     if approx: # simplified version
-        return simps(rel_abs, dx = dx, axis = 0)
+        return simps(rel_abs, dx = dlam, axis = 0)
     f1 = avefit/np.sqrt(relfit)    #fitness of resident species
     equis = equilibrium(pigs, ratio,f1)#equilibrium of res
     # (N_equi*f1)*denominator
     expon = np.einsum('rf,xr->xrf',np.einsum('rf,f->rf', equis,f1),denominator)
     # rel_abs*(1-np.exp(-expon))
     y_simps = np.einsum('jkil,jil->jkil',rel_abs, 1-np.exp(-expon))
-    invade = simps(y_simps, dx = dx, axis = 0) #integrate
+    invade = simps(y_simps, dx = dlam, axis = 0) #integrate
     return invade
 
 def coex_boundary(pigs, ratio, fit, avefit = 1.38e8,sig= 0.0005):

@@ -8,6 +8,8 @@ random_pigment and realpigments have the same 'in' and 'out' parameters"""
 import numpy as np
 from scipy.interpolate import interp1d
 
+lambs, dlam = np.linspace(400,700,101, retstep = True)
+
 def random_pigments(n):
     """randomly generates `n` absorption spectra
     
@@ -24,12 +26,11 @@ def random_pigments(n):
     sigma = [np.random.uniform(100,900, size = (1,npeak[i])) for i in range(n)]
     # magnitude of peak
     gamma = [np.random.uniform(0,1, size = (1,npeak[i])) for i in range(n)]
-    pigs = []
+    pigs = np.empty((n,101))
     for i in range(n):
-        # pig[i](lam) = sum_peak(gamma*e^(-(lam-peak)**2/sigma)
-        pig = lambda lam, i = i: np.sum(gamma[i]* #i=i to have different pigs
-            np.exp(-(lam.reshape(lam.size,1)-peak[i])**2/sigma[i]),axis = 1)
-        pigs.append(pig)
+        # pigs[i](lam) = sum_peak(gamma*e^(-(lam-peak)**2/sigma)
+        pigs[i] = np.sum(gamma[i]*np.exp(-(lambs[:,np.newaxis]-peak[i])**2
+                                    /sigma[i]), axis = 1)
     return pigs
 
 def real_pigments(n):
@@ -38,8 +39,8 @@ def real_pigments(n):
     pig_data = (np.genfromtxt(path, delimiter = ',').T)
     lams = np.linspace(400,700,151)
     #i=i to have different pigs
-    return [lambda lam, i=i: 10**-7*interp1d(lams, pig_data[i])(lam)
-                        for i in range(n)]
+    return np.array([10**-7*interp1d(lams, pig_data[i])(lambs)
+                        for i in range(n)])
     
 real = real_pigments(29)
 rand = random_pigments(29)
