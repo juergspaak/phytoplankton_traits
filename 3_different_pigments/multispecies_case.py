@@ -152,13 +152,14 @@ def plot_percentile_curves():
     for i in pigs_richness:
         n_com = 500 # number of communities
         r_spec = 2*i # richness of species, regional richness
-        r_pig = i #richness of pigments in community
-        r_pig_spec = min(i,5) #richness of pigments in each species
+        r_pig = i # richness of pigments in community
+        r_pig_spec = min(i,5) # richness of pigments in each species
         fac = 2 #factor by which fitness can differ
         phi = 2*1e8*np.random.uniform(1/fac, 1*fac,(r_spec,n_com)) #photosynthetic efficiency
         l = 0.014*np.random.uniform(1/fac, 1*fac,(r_spec,n_com)) # specific loss rate
         fitness = phi/l # fitness
-        k_spec,alpha = spectrum_species(rand, r_pig, r_spec, n_com, r_pig_spec) #spectrum of the species
+        # spectrum of the species
+        k_spec,alpha = spectrum_species(rand, r_pig, r_spec, n_com, r_pig_spec) 
         equi, unfixed = multispecies_equi(fitness, k_spec)
         equis.append(equi[:,np.logical_not(unfixed)]) #equilibrium density
         unfixeds.append(unfixed)
@@ -176,3 +177,24 @@ def plot_percentile_curves():
     plt.figure()
     plt.plot(k_spec[:,:,0]) #plot a representative of the spectrum
     return equis, unfixeds, percents
+"""   
+spec_nums = [np.sum(equi>0,0) for equi in equis]
+richness_dist = np.array([np.sum(spec_nums[i]==j)/len(spec_nums[i]) 
+                        for i in range(len(spec_nums)) for j in range(1,8)])
+richness_dist.shape = len(spec_nums),7
+
+ave_spe = np.sum(richness_dist*np.arange(1,8))/np.sum(richness_dist)
+pigs_richness = np.arange(2,21,2)[:,np.newaxis]
+ave_pig = np.sum(richness_dist*pigs_richness)/np.sum(richness_dist)
+                
+cov = np.sum(richness_dist*(pigs_richness-ave_pig)*(np.arange(1,8)-ave_spe))\
+        /np.sum(richness_dist)
+var_spe = np.sum(richness_dist*(np.arange(1,8)-ave_spe)**2)\
+                /np.sum(richness_dist)
+var_pig = np.sum(richness_dist*(pigs_richness-ave_pig)**2)\
+                /np.sum(richness_dist)
+# linear regression
+beta = cov/var_pig
+alpha = ave_spe-beta*ave_pig"""
+
+

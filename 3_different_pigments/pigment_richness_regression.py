@@ -7,7 +7,7 @@ Created on Tue Oct 24 13:15:03 2017
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import linregress
-species_id = "rando"
+species_id = "eawag-data"
 if species_id == "rand":
     # probability distribution of number of pigments
     p_imp = np.array([5,8,15,16,16,16,16])/16 # only important pigments
@@ -27,25 +27,30 @@ if species_id == "rand":
     # randomly allocate pigments in species
     for i in range(r_spe):
         pig_spe_id[i,new[i,:r_pig_spe[i]]] = 1
-else:
+elif species_id == "eawag-data":
     pig_spe_id = np.genfromtxt("pig_spe_id.csv",
-                               delimiter = ";")[1:,1:]
+                               delimiter = ";")[1:-1,1:-1]
+    
+    # pigments at 3,6,8 are for structurizing only
+    pig_spe_id = pig_spe_id[np.array([0,1,2,4,5,7,8]+list(range(10,23)))]
+    pig_spe_id = pig_spe_id >0.1
     r_pig, r_spe = pig_spe_id.shape
-
-
-
+elif species_id == "paper-data":
+    pig_spe_id = np.genfromtxt("")
     
 n_exp = 10000 #number of experiments for each richness of species
 max_r_exp = 10 # maximal richness in all experiments
 
 r_range = np.arange(1, max_r_exp+1) # range of all richness of species
-r_pig_exp = np.empty((len(r_range), n_exp))
+r_pig_exp = np.empty((len(r_range), n_exp)) # richness of pigments in each exp
 for r_exp in r_range: # r_exp is species richness in each experiment
+    # which species are present
     spe_pre = np.argpartition(np.random.rand(n_exp, r_spe)
                                     ,r_exp,axis = 1)[:,:r_exp]
-    new_2 = np.array([pig_spe_id[i] for i in spe_pre])
-    r_pig_exp[r_exp-1] = np.sum(np.sum(new_2,axis = 1)>0,axis = 1)
-
+    # which pigments are present in the present species
+    new_2 = np.array([pig_spe_id[:,i] for i in spe_pre])
+    # sum over species to get pigment presence
+    r_pig_exp[r_exp-1] = np.sum(np.sum(new_2,axis = 2)>0,axis = 1)
 
 richnesses = np.array([np.sum(r_pig_exp==r+1, axis =1) for r in 
                         range(r_pig)])
@@ -54,35 +59,51 @@ for i in range(richnesses.shape[-1]):
     plt.plot(np.arange(1,r_pig+1),richnesses[:,i], label = i)
     
 # compute linear regression model
-log_r_range = np.log(r_range)
+trans = lambda x: x
+log_r_range = trans(r_range)
 av_spe = np.average(log_r_range) #average of species richness
 var_spe = np.average((log_r_range-av_spe)**2 ) #variane in sp. richness
 
+
 # compute the averages of pigment richness for each species richness
-p_av = np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis])/len(r_range)
+av_pig = np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis])/len(r_range)
+var_pig = np.sum(richnesses*(np.arange(1,r_pig+1)[:,np.newaxis]-av_pig)**2\
+                /np.sum(richnesses))
 # compute the covariance of species rich. and pigment rich.
-cov = richnesses*(np.arange(1,r_pig+1)[:,np.newaxis]-p_av)*\
+cov = richnesses*(np.arange(1,r_pig+1)[:,np.newaxis]-av_pig)*\
                 (log_r_range-av_spe)/np.sum(richnesses)
 
-beta = np.sum(cov)/var_spe
-alpha = p_av -beta*av_spe
+beta = np.sum(cov)/var_pig
+alpha = av_spe -beta*av_pig
 plt.figure()
+
+if True: #plot results from purly coexistence based modeling
+    alpha2 = 1.5433
+    beta2 =0.056655
+    plt.plot(range(6,20), alpha2 +beta2*np.arange(6,20), label = "Coexistence")
+    plt.axis([ 5,19,trans(0.8), trans(12)])
+    plt.xlabel("Pigment richness")
+    plt.ylabel("Species richness")
+    plt.savefig("Figure, regression only coexisntece data")
+
 # real data from paper
 n_spe = np.array([1,1,1,2,2,2,3,3,5,5,7,7,7,10,10]) #number of species in exp.
 n_pig = np.array([6,8,12,8,11,12,11,14,15,16,11,14,16,17,18]) #num. of pigments
 
 #linear regression
-slope, intercept, r, p, stderr = linregress(np.log(n_spe), n_pig)
-plt.plot(np.log(n_spe), n_pig, 'g^', label = "Experimental")
-plt.plot(np.log(n_spe),intercept+slope*np.log(n_spe),'g')
-plt.xlabel("Species richness (log)")
-plt.ylabel("Pigment richness")
-plt.axis([-0.2, 2.5, 5,19])
+slope, intercept, r, p, stderr = linregress(n_pig,trans(n_spe))
+plt.plot(n_pig, trans(n_spe),  'g^', label = "Experimental")
+plt.plot(range(6,20), intercept+slope*np.arange(6,20),'g')
+plt.axis([ 5,19,trans(0.8), trans(12)])
+plt.xlabel("Pigment richness")
+plt.ylabel("Species richness")
+plt.legend(loc = "upper left")
 plt.savefig("Figure, Regression of pigments, real data")
+
 # plot simulated data
-plt.plot(log_r_range, np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis], 
-                         axis = 0), 'ro', label = "Simulated")
-plt.plot(log_r_range, alpha+beta*log_r_range, 'r')
+plt.plot( np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis],axis = 0),
+         log_r_range,'ro', label = "Random")
+plt.plot(np.arange(r_pig) , alpha+beta*np.arange(r_pig),'r')
 plt.legend(loc = "upper left")
 plt.savefig("Figure, Regression of pigments richness")
 
