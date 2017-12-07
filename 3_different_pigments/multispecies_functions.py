@@ -19,9 +19,10 @@ from load_pigments import lambs, dlam
 def I_in_def(lux, loc = 550, sigma = 0):
     """ returns a incoming light function, a gaussian kernel"""
     if sigma == 0:
-        return np.full(lambs.shape, lux)
+        return np.full(lambs.shape, lux, dtype = "float")/300
     else:
-        return lux*np.exp(-(lambs-loc)**2/sigma)
+        prelim = np.exp(-(lambs-loc)**2/(2*sigma**2))
+        return lux*prelim/simps(prelim, dx = dlam)
         
 def spectrum_species(pigments, r_pig, r_spec, n_com, r_pig_spec = 2):
     """
@@ -59,7 +60,7 @@ def spectrum_species(pigments, r_pig, r_spec, n_com, r_pig_spec = 2):
     k_spec = np.einsum('psc,pl->lsc', alpha,pigments)
     return k_spec, alpha
     
-def multispecies_equi(fitness, k_spec, I_in = I_in_def(40/300),runs = 5000):
+def multispecies_equi(fitness, k_spec, I_in = I_in_def(40),runs = 5000):
     """Compute the equilibrium density for several species with its pigments
     
     Computes `itera` randomly selected communities, each community contains
