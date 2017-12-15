@@ -16,8 +16,6 @@ import multispecies_functions as mf
 from ode_solving import own_ode
 
 def gen_com(r_pig, r_spec, r_pig_spec, fac, n_com = 1000):
-    # generates communities
-    r_pig, r_spec, r_pig_spec, fac = 5, 10, 3, 3 # richness etc.
     k_spec, alpha = mf.spectrum_species(lp.real, r_pig,r_spec,n_com,r_pig_spec)
      # specific photosynthetic efficiency and loss rate
     phi = 2*1e8*np.random.uniform(1/fac, 1*fac,(r_spec,n_com))
@@ -170,11 +168,9 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
     # take the maximal number of coexisting species in each community
     richness_const_max = np.amax(richness_const, axis = 0)
     
-    ret_mat = np.array([[(richness==i).sum() for i in range(10)] for richness 
+    ret_mat = np.array([[(richness==i+1).sum() for i in range(10)] for richness 
                     in [*richness_const, richness_const_max, richness_fluc]])
-    return ret_mat
-
-
+    return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1) # normalize
 
 if False:
     import matplotlib.pyplot as plt
