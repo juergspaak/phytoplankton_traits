@@ -35,7 +35,7 @@ def random_pigments(n):
 
 def real_pigments(n):
     """Loads n predefined pigments, similar to random_pigment_generator"""
-    path = "../../2_Data/3. Different pigments/Pigs for python.csv"
+    path = "../3_different_pigments/pigment_data_python.csv"
     pig_data = (np.genfromtxt(path, delimiter = ',').T)
     lams = np.linspace(400,700,151)
     #i=i to have different pigs

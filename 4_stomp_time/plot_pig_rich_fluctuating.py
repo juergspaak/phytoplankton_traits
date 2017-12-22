@@ -36,4 +36,4 @@ for case in range(4):
     slope, intercept, c,d,e = linregress(regress_x[case], regress_y[case])
     plt.plot(x,intercept+slope*x, color[case])
 
-    
+plt.savefig("linear_regexample.pdf")   

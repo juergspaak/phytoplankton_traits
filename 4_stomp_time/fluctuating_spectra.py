@@ -15,8 +15,13 @@ import multispecies_functions as mf
 
 from ode_solving import own_ode
 
-def gen_com(r_pig, r_spec, r_pig_spec, fac, n_com = 1000):
-    k_spec, alpha = mf.spectrum_species(lp.real, r_pig,r_spec,n_com,r_pig_spec)
+def gen_com(r_pig, r_spec, r_pig_spec, fac,pigs = "real", n_com = 1000):
+    if pigs == "rand":
+        k_spec, alpha = mf.spectrum_species(lp.rand, 
+                                            r_pig,r_spec,n_com,r_pig_spec)
+    else:
+        k_spec, alpha = mf.spectrum_species(lp.real, 
+                                            r_pig,r_spec,n_com,r_pig_spec)
      # specific photosynthetic efficiency and loss rate
     phi = 2*1e8*np.random.uniform(1/fac, 1*fac,(r_spec,n_com))
     l = 0.014*np.random.uniform(1/fac, 1*fac,(r_spec,n_com))
@@ -31,16 +36,13 @@ def I_in_t(I_in1, I_in2, period):
     return fun
     
 def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3, 
-        n_com = 1000, fac = 3,
-        I_ins = [mf.I_in_def(40/300, 650,50), mf.I_in_def(40/300, 450,50)]):
+        n_com = 1000, fac = 3, l_period = 10, pigs = "real",
+        I_ins = [mf.I_in_def(40/300, 450,50), mf.I_in_def(40/300, 650,50)]):
     ###########################################################################
     # find potentially interesting communities
-    
-    # light regimes
-    I_ins = [mf.I_in_def(40/300, 650,50), mf.I_in_def(40/300, 450,50)]
              
     # generate species and communities
-    par, k_spec, alpha = gen_com(r_pig, r_spec, r_pig_spec, fac, n_com)
+    par, k_spec, alpha = gen_com(r_pig, r_spec, r_pig_spec, fac,pigs, n_com)
     phi,l = par
     
     # compute the equilibria densities for the different light regimes
@@ -79,7 +81,10 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
     k_spec[:,dead] = 0
     
     # maximal richness over all environments in one community
-    max_spec = np.amax(np.sum(np.sum(equi>0, axis = 0)>0, axis = 0))
+    try: # possibly no species can survive
+        max_spec = np.amax(np.sum(np.sum(equi>0, axis = 0)>0, axis = 0))
+    except ValueError:
+        return np.zeros((4,10))
     # sort them accordingly to throw rest away
     com_ax = np.arange(equi.shape[-1])
     spec_sort = np.argsort(np.amax(equi,axis = 0), axis = 0)[-max_spec:]
@@ -100,7 +105,6 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
                            *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
         return N*(growth-l)
     
-    l_period = 10 # length of period
     n_period = 100 # number of periods
     I_in_ref = I_in_t(*I_ins, l_period)
     
@@ -113,7 +117,8 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
     sols = np.empty((10,)+phi.shape)
     
     # simulate densities
-    while len(undone)>0:
+    counter = 1
+    while len(undone)>0 and counter <1000:
         sol = own_ode(multi_growth,start_dens, time[[0,-1]], 
                       args=(I_in_ref, k_spect, phit,lt),steps = len(time))
         
@@ -124,7 +129,7 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
         # relative difference in start and end
         rel_diff = np.nanmax(np.abs((av_end-av_start)/av_start),axis = 0)
         # communities that still change "a lot"
-        unfixed = rel_diff>0.001
+        unfixed = rel_diff>0.005
         
         # save equilibria found
         sols[...,undone] = sol[-10:]
@@ -134,7 +139,8 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
         phit,lt,k_spect = phi[:, undone], l[:, undone], k_spec[...,undone]
         start_dens = sol[-1,:,unfixed].T
         # remove very rare species
-        start_dens[start_dens<start_dens.sum(axis = 0)/10000] = 0
+        start_dens[start_dens<start_dens.sum(axis = 0)/5000] = 0
+        counter += 1
                    
     ###########################################################################
     # check whether none of the species could invade
@@ -151,12 +157,12 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
                       args=(I_in_ref, k_spec, phi,l),steps = per_avg*10)
     I_in_all = np.array([I_in_t(*I_ins,l_period)(t) for t
                          in np.linspace(0,per_avg*l_period, 10*per_avg)])
-    I_in_all.shape = per_avg*l_period, len(lambs), 1,1
+    I_in_all.shape = -1, len(lambs), 1,1
     r_i = invasion(sol_inv, k_spec, I_in_all, phi, l,l_period/10)
     
     # invasion growth rates
-    if np.amax(r_i[sol_inv[-1]==0])>0:
-        print("possible error", (r_i[sol_inv[-1]==0]>0).sum())   
+    #if np.amax(r_i[sol_inv[-1]==0])>0:
+    #    print("possible error", (r_i[sol_inv[-1]==0]>0).sum())   
     
     ###########################################################################
     # preparing return values
