@@ -42,7 +42,7 @@ data = pd.DataFrame(None,columns = columns, index = range(len_index))
 counter = 0
 # save with random number to avoid etasing previous files                        
 save = np.random.randint(100000) 
-save_string = "data_period_"+str(period)+","+str(save)+".csv"
+save_string = "data_period_"+str(period)+","+str(pig)+m","+str(save)+".csv"
 # full factorial setup
 for fac in facs:
     for r_spec in r_specs:

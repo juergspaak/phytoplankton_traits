@@ -51,7 +51,6 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
 
     for i,I_in in list(enumerate(I_ins)):
         equi[i], unfixed[i] = mf.multispecies_equi(phi/l, k_spec, I_in)
-    
     # consider only communities, where algorithm found equilibria (all regimes)
     fixed = np.logical_not(np.sum(unfixed, axis = 0))
     equi = equi[..., fixed]
@@ -79,12 +78,11 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
     phi[dead] = 0
     l[dead] = 1 # to aboid division by 0
     k_spec[:,dead] = 0
-    
     # maximal richness over all environments in one community
     try: # possibly no species can survive
-        max_spec = np.amax(np.sum(np.sum(equi>0, axis = 0)>0, axis = 0))
+        max_spec = np.amax(np.sum(equi>0, axis = 1))
     except ValueError:
-        return np.zeros((4,10))
+        return np.zeros((4,10))-1
     # sort them accordingly to throw rest away
     com_ax = np.arange(equi.shape[-1])
     spec_sort = np.argsort(np.amax(equi,axis = 0), axis = 0)[-max_spec:]
@@ -144,25 +142,25 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
                    
     ###########################################################################
     # check whether none of the species could invade
+    if False:
+        def invasion(res_dens, k_spec, I_int, phi_i, l_i,dt):
+            tot_abs = np.einsum("tsc,lsc->tlc", res_dens, k_spec)[:,:,np.newaxis]
+            # growth part
+            growth = phi_i*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
+                               *I_int,dx = dlam, axis = 1)
+            dN_i = growth-l_i
+            return simps(dN_i,dx = dt, axis = 0)
+        per_avg = 5 # number of periods to take the average of invasion growth rate
+        sol_inv = own_ode(multi_growth,sols[-1], [0,l_period*per_avg], 
+                          args=(I_in_ref, k_spec, phi,l),steps = per_avg*10)
+        I_in_all = np.array([I_in_t(*I_ins,l_period)(t) for t
+                             in np.linspace(0,per_avg*l_period, 10*per_avg)])
+        I_in_all.shape = -1, len(lambs), 1,1
+        r_i = invasion(sol_inv, k_spec, I_in_all, phi, l,l_period/10)
     
-    def invasion(res_dens, k_spec, I_int, phi_i, l_i,dt):
-        tot_abs = np.einsum("tsc,lsc->tlc", res_dens, k_spec)[:,:,np.newaxis]
-        # growth part
-        growth = phi_i*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
-                           *I_int,dx = dlam, axis = 1)
-        dN_i = growth-l_i
-        return simps(dN_i,dx = dt, axis = 0)
-    per_avg = 5 # number of periods to take the average of invasion growth rate
-    sol_inv = own_ode(multi_growth,sols[-1], [0,l_period*per_avg], 
-                      args=(I_in_ref, k_spec, phi,l),steps = per_avg*10)
-    I_in_all = np.array([I_in_t(*I_ins,l_period)(t) for t
-                         in np.linspace(0,per_avg*l_period, 10*per_avg)])
-    I_in_all.shape = -1, len(lambs), 1,1
-    r_i = invasion(sol_inv, k_spec, I_in_all, phi, l,l_period/10)
-    
-    # invasion growth rates
-    #if np.amax(r_i[sol_inv[-1]==0])>0:
-    #    print("possible error", (r_i[sol_inv[-1]==0]>0).sum())   
+        # invasion growth rates
+        if np.amax(r_i[sol_inv[-1]==0])>0:
+            print("possible error", (r_i[sol_inv[-1]==0]>0).sum())   
     
     ###########################################################################
     # preparing return values
