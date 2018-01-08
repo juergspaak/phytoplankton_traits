@@ -74,7 +74,7 @@ for i in range(iters):
             I_in_conds[i], cases[j],periods[i],pigments[i]]\
             + list(richnesses[j]) + list(I_in_datas[i])
     if i%1000 == 999: # save to not lose progress
-        data.to_csv("Prelim, "+save_string)
+        data.to_csv(save_string)
           
 
 data.to_csv(save_string)

@@ -67,6 +67,14 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
                                 np.prod(surv, axis = 0))
     change_dom = change_dom.sum(axis = 0)>0 # at least one species changes
     
+    if change_dom.sum()==0: # fluctuation is unimportant
+        # find number of coexisting species through time
+        richness_fluc,richness_const_max = richness_const
+    
+        ret_mat = np.array([[(richness==i+1).sum() for i in range(10)] for 
+            richness in [*richness_const, richness_const_max, richness_fluc]])
+        return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1) # normalize   
+        
     # throw away communities, that have no change in dominance
     phi = phi[...,change_dom]
     l = l[..., change_dom]
@@ -79,10 +87,7 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
     l[dead] = 1 # to aboid division by 0
     k_spec[:,dead] = 0
     # maximal richness over all environments in one community
-    try: # possibly no species can survive
-        max_spec = np.amax(np.sum(equi>0, axis = 1))
-    except ValueError:
-        return np.zeros((4,10))-1
+    max_spec = np.amax(np.sum(equi>0, axis = 1))
     # sort them accordingly to throw rest away
     com_ax = np.arange(equi.shape[-1])
     spec_sort = np.argsort(np.amax(equi,axis = 0), axis = 0)[-max_spec:]
