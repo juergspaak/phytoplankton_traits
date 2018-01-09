@@ -34,10 +34,11 @@ def I_in_t(I_in1, I_in2, period):
         part_1 = 2*np.abs(t_rel-0.5)
         return part_1*I_in1+(1-part_1)*I_in2
     return fun
-    
-def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3, 
-        n_com = 1000, fac = 3, l_period = 10, pigs = "real",
-        I_ins = [mf.I_in_def(40/300, 450,50), mf.I_in_def(40/300, 650,50)]):
+
+I_in_ref = I_in_t(mf.I_in_def(40/300,450,50), mf.I_in_def(40/300,650,50),10)
+   
+def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 1000,
+    fac = 3, l_period = 10, pigs = "real", I_in = I_in_ref,t_const = [0,0.5]):
     ###########################################################################
     # find potentially interesting communities
              
@@ -46,18 +47,20 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
     phi,l = par
     
     # compute the equilibria densities for the different light regimes
-    equi = np.empty((len(I_ins),) + phi.shape)
-    unfixed = np.empty((len(I_ins),phi.shape[-1]))
+    equi = np.empty((len(t_const),) + phi.shape)
+    unfixed = np.empty((len(t_const),phi.shape[-1]))
 
-    for i,I_in in list(enumerate(I_ins)):
-        equi[i], unfixed[i] = mf.multispecies_equi(phi/l, k_spec, I_in)
+    for i,t in list(enumerate(t_const)):
+        equi[i], unfixed[i] = mf.multispecies_equi(phi/l, k_spec, 
+                            I_in(t*l_period))
     # consider only communities, where algorithm found equilibria (all regimes)
     fixed = np.logical_not(np.sum(unfixed, axis = 0))
     equi = equi[..., fixed]
     phi = phi[:, fixed]
     l = l[:, fixed]
     k_spec = k_spec[..., fixed]
-    
+
+    # richness in constant lights
     richness_const = np.sum(equi>0, axis = 1)
     
     # find cases, equilibria species change
@@ -67,9 +70,9 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
                                 np.prod(surv, axis = 0))
     change_dom = change_dom.sum(axis = 0)>0 # at least one species changes
     
-    if change_dom.sum()==0: # fluctuation is unimportant
+    if change_dom.sum()==0: # fluctuation is unimportant/didn't change anything
         # find number of coexisting species through time
-        richness_fluc,richness_const_max = richness_const
+        richness_fluc,richness_const_max = richness_const[:2]
     
         ret_mat = np.array([[(richness==i+1).sum() for i in range(10)] for 
             richness in [*richness_const, richness_const_max, richness_fluc]])
@@ -93,14 +96,15 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
     spec_sort = np.argsort(np.amax(equi,axis = 0), axis = 0)[-max_spec:]
     phi = phi[spec_sort, com_ax]         
     l = l[spec_sort, com_ax]
-    equi = equi[np.arange(len(I_ins)).reshape(-1,1,1),spec_sort, com_ax]
+    equi = equi[np.arange(len(t_const)).reshape(-1,1,1),spec_sort, com_ax]
     k_spec = k_spec[np.arange(len(lambs)).reshape(-1,1,1),spec_sort, com_ax]
        
     ###########################################################################
     # take maximum densitiy over all lights for the starting density
     start_dens = np.amax(equi, axis = 0)
-    
+
     def multi_growth(N,t,I_in, k_spec, phi,l):
+        # growth rate of the species
         # sum(N_j*k_j(lambda))
         tot_abs = np.einsum("sc,lsc->lc", N, k_spec)[:,np.newaxis]
         # growth part
@@ -108,22 +112,21 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
                            *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
         return N*(growth-l)
     
-    n_period = 100 # number of periods
-    I_in_ref = I_in_t(*I_ins, l_period)
+    n_period = 100 # number of periods to simulate
     
     undone = np.arange(phi.shape[-1])
     # compute 100 periods, 10 timepoints per period
     time = np.linspace(0,l_period*n_period,n_period*10)
     phit,lt,k_spect = phi.copy(), l.copy(), k_spec.copy()
-    
     # to save the solutions found
     sols = np.empty((10,)+phi.shape)
     
     # simulate densities
     counter = 1
+
     while len(undone)>0 and counter <1000:
         sol = own_ode(multi_growth,start_dens, time[[0,-1]], 
-                      args=(I_in_ref, k_spect, phit,lt),steps = len(time))
+                      args=(I_in, k_spect, phit,lt),steps = len(time))
         
         # determine change in densities, av at end and after finding equilibria
         av_end = np.average(sol[-10:], axis = 0) 
@@ -144,28 +147,7 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
         # remove very rare species
         start_dens[start_dens<start_dens.sum(axis = 0)/5000] = 0
         counter += 1
-                   
-    ###########################################################################
-    # check whether none of the species could invade
-    if False:
-        def invasion(res_dens, k_spec, I_int, phi_i, l_i,dt):
-            tot_abs = np.einsum("tsc,lsc->tlc", res_dens, k_spec)[:,:,np.newaxis]
-            # growth part
-            growth = phi_i*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
-                               *I_int,dx = dlam, axis = 1)
-            dN_i = growth-l_i
-            return simps(dN_i,dx = dt, axis = 0)
-        per_avg = 5 # number of periods to take the average of invasion growth rate
-        sol_inv = own_ode(multi_growth,sols[-1], [0,l_period*per_avg], 
-                          args=(I_in_ref, k_spec, phi,l),steps = per_avg*10)
-        I_in_all = np.array([I_in_t(*I_ins,l_period)(t) for t
-                             in np.linspace(0,per_avg*l_period, 10*per_avg)])
-        I_in_all.shape = -1, len(lambs), 1,1
-        r_i = invasion(sol_inv, k_spec, I_in_all, phi, l,l_period/10)
-    
-        # invasion growth rates
-        if np.amax(r_i[sol_inv[-1]==0])>0:
-            print("possible error", (r_i[sol_inv[-1]==0]>0).sum())   
+    print(counter)              
     
     ###########################################################################
     # preparing return values
@@ -181,40 +163,4 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,
                     in [*richness_const, richness_const_max, richness_fluc]])
     return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1) # normalize
 
-if False:
-    import matplotlib.pyplot as plt
-    # check whether residents actually dont grow anymore
-    zero_growth = sorted(np.abs(r_i[sol_inv[-1]>0]))
-    zero_growthb = np.abs(r_i[sol_inv[-1]>0])
-    neg_growth = sorted(np.abs(r_i[sol_inv[-1]==0]))
-    zero_growth2 = sol_inv[-10:].mean(axis = 0)/sol_inv[:10].mean(axis = 0)
-    zero_growthc = np.abs(np.log(zero_growth2[zero_growth2>0]))
-    zero_growth3 = sorted(np.abs(np.log(zero_growth2[zero_growth2>0])))
-    plt.figure()                                    
-    plt.plot(np.linspace(0,100,len(neg_growth)), neg_growth)
-    plt.plot(np.linspace(0,100, len(zero_growth)), zero_growth)
-    plt.plot(np.linspace(0,100, len(zero_growth3)), zero_growth3)
-    plt.semilogy()
-    plt.grid()
-    plt.figure()
-    plt.loglog(zero_growthb,zero_growthc,'.')
-    # reference lign x=y
-    plt.loglog([1e-8, 1e-2],[1e-8, 1e-2])
 
-if False:
-    import matplotlib.pyplot as plt
-    # test whether solving ode was correct
-    def single_growth(N,t,I_in,k_spec, phi, l):
-        tot_abs = np.sum(N*k_spec,axis =1)[:,np.newaxis]
-        growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
-                           *I_in(t).reshape(-1,1),dx = dlam, axis = 0)
-        return N*(growth-l)
-    i = 10
-    start = timer()
-    from scipy.integrate import odeint
-    sol2 = odeint(single_growth, start_dens[:,i], time, 
-                  args = (I_in_ref, k_spec[...,i], phi[:,i],l[:,i]) )
-    print(timer()-start)
-    plt.figure()
-    plt.plot(time, (sol[:,:,i]-sol2)/sol2)
-    plt.show()
