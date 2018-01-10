@@ -45,7 +45,7 @@ try:
     save = sys.argv[1]
 except IndexError:
     save = np.random.randint(100000)
-save_string = "data_random_comp_light"+str(save)+".csv"
+save_string = "data/data_random_comp_light"+str(save)+".csv"
 
 # test how long 10 runs go to end programm early enough
 test_time_start = timer() 

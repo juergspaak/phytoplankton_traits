@@ -66,7 +66,7 @@ try:
 except IndexError:
     save = np.random.randint(100000)
     fluc_case = "step"
-save_string = "data_random_"+fluc_case+str(save)+".csv"
+save_string = "data/data_random_"+fluc_case+str(save)+".csv"
 
 # test how long 10 runs go to end programm early enough
 test_time_start = timer() 

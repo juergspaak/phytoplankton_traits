@@ -61,7 +61,7 @@ try:
     save = sys.argv[1]
 except IndexError:
     save = np.random.randint(100000)
-save_string = "data_random_continuous,"+str(save)+".csv"
+save_string = "data/data_random_continuous,"+str(save)+".csv"
 
 i = 0
 # test how long 10 runs go to end programm early enough
