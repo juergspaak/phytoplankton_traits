@@ -146,8 +146,7 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 1000,
         start_dens = sol[-1,:,unfixed].T
         # remove very rare species
         start_dens[start_dens<start_dens.sum(axis = 0)/5000] = 0
-        counter += 1
-    print(counter)              
+        counter += 1             
     
     ###########################################################################
     # preparing return values

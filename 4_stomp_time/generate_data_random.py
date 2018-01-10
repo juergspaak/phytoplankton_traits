@@ -12,8 +12,10 @@ import sys
 sys.path.append("../3_different_pigments")
 from multispecies_functions import I_in_def
 
+from timeit import default_timer as timer
+start = timer()
 
-iters = 100000 # number of random settings
+iters = 10000 # number of random settings
 n_com = 100 # number of communities in each setting
 
 # make sure, that in each community there are at more pigments than in species
@@ -57,13 +59,19 @@ columns = ['r_pig', 'r_spec', 'r_pig_spec','fac', 'I_in_cond', 'case',
             + ["loc1", "loc2", "lux1", "lux2", "sigma1", "sigma2"]
 
 data = pd.DataFrame(None,columns = columns, index = range(4*iters))
-# save with random number to avoid etasing previous files                        
-save = np.random.randint(100000)
-fluc_case = "step" 
-save_string = "data_random,"+fluc_case+str(save)+".csv"
+# getting data from jobscript                    
+try:                     
+    save = sys.argv[1]
+    fluc_case = sys.argv[2]
+except IndexError:
+    save = np.random.randint(100000)
+    fluc_case = "step"
+save_string = "data_random_"+fluc_case+str(save)+".csv"
 
-for i in range(iters):
-    # create the light regime
+# test how long 10 runs go to end programm early enough
+test_time_start = timer() 
+i = 0
+for j in range(10):
     I_ins = np.array([I_in_def(luxs[i,0],locs[i,0],sigmas[i,0]),
             I_in_def(luxs[i,1],locs[i,1],sigmas[i,1])])
     I_in_fun = I_fun.fluc_nconst(I_ins, period = periods[i], fluc_case = fluc_case)
@@ -77,7 +85,28 @@ for i in range(iters):
         data.iloc[4*i+j] = [r_pigs[i], r_specs[i], r_pig_specs[i], facs[i],
             I_in_conds[i], cases[j],periods[i],pigments[i]]\
             + list(richnesses[j]) + list(I_in_datas[i])
-    if i%1000 == 999: # save to not lose progress
-        data.to_csv(save_string)
-          
+    i+=1
+test_time_end = timer()
+
+while timer()-start <3600-(test_time_end-test_time_start):
+    # create the light regime
+    try:
+        I_ins = np.array([I_in_def(luxs[i,0],locs[i,0],sigmas[i,0]),
+            I_in_def(luxs[i,1],locs[i,1],sigmas[i,1])])
+    except IndexError:
+        break
+    I_in_fun = I_fun.fluc_nconst(I_ins, period = periods[i], 
+                                 fluc_case = fluc_case)
+    
+    # compute the richnesses
+    richnesses = fluctuating_richness(r_pigs[i], r_specs[i], r_pig_specs[i],
+            n_com , facs[i], periods[i],pigments[i],I_in_fun, [0,0.5])
+    
+    # save to dataframe
+    for j in range(len(cases)):
+        data.iloc[len(cases)*i+j] = [r_pigs[i], r_specs[i], r_pig_specs[i], 
+            facs[i],I_in_conds[i], cases[j],periods[i],pigments[i]]\
+            + list(richnesses[j]) + list(I_in_datas[i])
+    i+=1
+data = data[0:i*len(cases)]          
 data.to_csv(save_string)

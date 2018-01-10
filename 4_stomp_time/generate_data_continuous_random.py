@@ -5,6 +5,7 @@ uses continuously changing lightspectrum"""
 
 import pandas as pd
 import numpy as np
+from timeit import default_timer as timer
 
 from fluctuating_spectra import fluctuating_richness
 from I_in_functions import fluc_continuous
@@ -12,8 +13,8 @@ from I_in_functions import fluc_continuous
 import sys
 sys.path.append("../3_different_pigments")
 
-
-iters = 100000 # number of random settings
+start = timer()
+iters = 10000 # number of random settings
 n_com = 100 # number of communities in each setting
 
 # make sure, that in each community there are at more pigments than in species
@@ -55,12 +56,18 @@ columns = ['r_pig', 'r_spec', 'r_pig_spec','fac', 'I_in_cond', 'case',
             + ["loc1", "loc2", "lux1", "lux2", "sigma"]
 
 data = pd.DataFrame(None,columns = columns, index = range(6*iters))
-# save with random number to avoid etasing previous files                        
-save = np.random.randint(100000) 
-save_string = "data_continuous_random,"+str(save)+".csv"
+# getting data from jobscript 
+try:                    
+    save = sys.argv[1]
+except IndexError:
+    save = np.random.randint(100000)
+save_string = "data_random_continuous,"+str(save)+".csv"
 
-for i in range(iters):
-    # create the light regime
+i = 0
+# test how long 10 runs go to end programm early enough
+test_time_start = timer() 
+for j in range(10):
+     # create the light regime
     I_in = fluc_continuous(locs[i], luxs[i], periods[i], sigma = sigmas[i])
     # compute the richnesses
     richnesses = fluctuating_richness(r_pigs[i], r_specs[i], r_pig_specs[i],
@@ -70,8 +77,23 @@ for i in range(iters):
         data.iloc[6*i+j] = [r_pigs[i], r_specs[i], r_pig_specs[i], facs[i],
             I_in_conds[i], cases[j],periods[i],pigments[i]]\
             + list(richnesses[j]) + list(I_in_datas[:,i])
-    if i%1000 == 999: # save to not lose progress
-        data.to_csv(save_string)
-          
+    i+=1
+test_time_end = timer()
 
-#data.to_csv(save_string)
+while timer()-start <3600-(test_time_end-test_time_start):
+    # create the light regime
+    try:
+        I_in = fluc_continuous(locs[i], luxs[i], periods[i], sigma = sigmas[i])
+    except IndexError:
+        break
+    # compute the richnesses
+    richnesses = fluctuating_richness(r_pigs[i], r_specs[i], r_pig_specs[i],
+            n_com , facs[i], periods[i],pigments[i],I_in,np.linspace(0,0.5,4))
+    # save to dataframe
+    for j in range(len(cases)):
+        data.iloc[len(cases)*i+j] = [r_pigs[i], r_specs[i], r_pig_specs[i],
+            facs[i], I_in_conds[i], cases[j],periods[i],pigments[i]]\
+            + list(richnesses[j]) + list(I_in_datas[:,i])
+    i+=1
+data = data[0:i*len(cases)] 
+data.to_csv(save_string)
