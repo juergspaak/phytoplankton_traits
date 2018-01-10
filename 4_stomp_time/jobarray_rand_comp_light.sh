@@ -7,3 +7,4 @@
 
 module load Python/3.5.1-foss-2016a
 python generate_data_comp_light.py $SLURM_ARRAY_TASK_ID
+
