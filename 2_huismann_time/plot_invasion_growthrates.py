@@ -11,7 +11,7 @@ import analytical_r_i_continuous as ana
 
 species = com.gen_species(10000)
 plt.figure(figsize = (9,9))
-"""
+
 for T in 2*np.pi*np.array([50,50**0.5,1]):
     size  = 40
     I = lambda t: size*np.sin(t/T*2*np.pi)+125 #sinus
@@ -21,7 +21,7 @@ for T in 2*np.pi*np.array([50,50**0.5,1]):
     print(np.sum(np.sum(exact_r_i>0, axis = 0)==2))
 #plt.axis([-1,1,-1,1])
 plt.grid()
-plt.legend()"""
+plt.legend()
 
 plt.figure(figsize = (9,9))
 
@@ -35,7 +35,7 @@ for size in [1,40**0.5,40]:
 #plt.axis([-1,1,-1,1])
 plt.grid()
 plt.legend()
-"""
+
 plt.figure(figsize = (9,9))
 
 for T in 2*np.pi*np.array([0.5,1,2,20]):
@@ -51,4 +51,4 @@ for T in 2*np.pi*np.array([0.5,1,2,20]):
 plt.axis([-1,1,-1,1])
 plt.legend()
 
-print(np.sum(np.sum(exact_r_i>0, axis = 0)==2))"""
+print(np.sum(np.sum(exact_r_i>0, axis = 0)==2))

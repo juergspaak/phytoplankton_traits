@@ -6,6 +6,7 @@ Plots the regression of pigment richness, real data, purly random and
 model prediction
 """
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import linregress
 species_id = "eawag-data"
@@ -60,7 +61,7 @@ for i in range(richnesses.shape[-1]):
     plt.plot(np.arange(1,r_pig+1),richnesses[:,i], label = i)
     
 # compute linear regression model
-trans = lambda x: x
+trans = lambda x:np.log(x)
 log_r_range = trans(r_range)
 av_spe = np.average(log_r_range) #average of species richness
 var_spe = np.average((log_r_range-av_spe)**2 ) #variane in sp. richness
@@ -76,16 +77,7 @@ cov = richnesses*(np.arange(1,r_pig+1)[:,np.newaxis]-av_pig)*\
 
 beta = np.sum(cov)/var_pig
 alpha = av_spe -beta*av_pig
-plt.figure()
-
-if True: #plot results from purly coexistence based modeling
-    alpha2 = 1.5433
-    beta2 =0.056655
-    plt.plot(range(6,20), alpha2 +beta2*np.arange(6,20), label = "Coexistence")
-    plt.axis([ 5,19,trans(0.8), trans(12)])
-    plt.xlabel("Pigment richness")
-    plt.ylabel("Species richness")
-    plt.savefig("Figure, regression only coexisntece data")
+plt.figure(figsize = (7,7))
 
 # real data from paper
 n_spe = np.array([1,1,1,2,2,2,3,3,5,5,7,7,7,10,10]) #number of species in exp.
@@ -95,21 +87,39 @@ n_pig = np.array([6,8,12,8,11,12,11,14,15,16,11,14,16,17,18]) #num. of pigments
 slope, intercept, r, p, stderr = linregress(n_pig,trans(n_spe))
 plt.plot(n_pig, trans(n_spe),  'g^', label = "Experimental")
 plt.plot(range(6,20), intercept+slope*np.arange(6,20),'g')
-plt.axis([ 5,19,trans(0.8), trans(12)])
+plt.axis([ 5,19,trans(0.8), trans(20)])
 plt.xlabel("Pigment richness")
 plt.ylabel("Species richness")
 plt.legend(loc = "upper left")
+
 plt.savefig("Figure, Regression of pigments, real data")
 
 # plot simulated data
 plt.plot( np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis],axis = 0),
          log_r_range,'ro', label = "Random")
+
 plt.plot(np.arange(r_pig) , alpha+beta*np.arange(r_pig),'r')
-plt.legend(loc = "upper left")
+
+datas = pd.read_csv("../4_stomp_time/data/data_random_comp_light_all.csv")
+num_data = np.array(datas[[str(i+1) for i in range(10)]])
+ave_data = (np.arange(1,11)*num_data).sum(axis = -1)
+datas["Species richness"] = ave_data
+
+datas_case = datas[datas["case"]=="Const1"]
+n_spe = trans(datas["Species richness"].values)
+n_pig = datas["r_pig"].values
+slope2, intercept2, r2, p, stderr = linregress(n_pig,n_spe)
+plt.plot(np.arange(r_pig), intercept2+slope2*np.arange(r_pig),'b',label = "theoretical")
+
+plt.plot(np.arange(r_pig), trans(np.arange(r_pig)),'c',label = "maximum")
+
+
+plt.legend(loc = "lower right")
 plt.savefig("Figure, pig_rich_reg.pdf")
 
 
 plt.show()
 print(alpha, beta)
 print(intercept, slope, r)
+print(intercept2, slope2,r2)
     
