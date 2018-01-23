@@ -34,7 +34,7 @@ pigments = np.array(["rand", "real"])[pigments] # real/random pigments
 ## Determining the light regime for each setting
 # random incoming light fluctuations
 luxs = np.random.uniform(30/300,100/300,(iters,2))
-sigmas = 2**np.random.uniform(4,9,(iters,2)) # ragnes from 16-512
+sigmas = 2**np.random.uniform(5,9,(iters,2)) # ragnes from 16-512
 locs = np.random.uniform(400,700,(iters,2))
 
 I_in_idx = np.random.randint(0,4,iters)

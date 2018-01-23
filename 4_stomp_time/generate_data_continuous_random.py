@@ -7,11 +7,12 @@ import pandas as pd
 import numpy as np
 from timeit import default_timer as timer
 
-from fluctuating_spectra import fluctuating_richness
-from I_in_functions import fluc_continuous
 
+from I_in_functions import fluc_continuous
 import sys
 sys.path.append("../3_different_pigments")
+from fluctuating_spectra import fluctuating_richness
+
 
 start = timer()
 iters = 10000 # number of random settings
@@ -33,7 +34,7 @@ pigments = np.array(["rand", "real"])[pigments] # real/random pigments
 ## Determining the light regime for each setting
 # random incoming light fluctuations
 luxs = np.random.uniform(30/300,100/300,(iters,2))
-sigmas = 2**np.random.uniform(4,9,iters) # ragnes from 16-512
+sigmas = 2**np.random.uniform(5,9,iters) # ragnes from 16-512
 locs = np.random.uniform(450,650,(iters,2))
 
 I_in_idx = np.random.randint(0,2,iters)
