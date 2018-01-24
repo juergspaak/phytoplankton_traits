@@ -136,9 +136,9 @@ if __name__ == "__main__":
     ax[1].plot(time, I.dt(time))
     
     # computing resident densities
-    species = com.gen_species(100) # random species
+    species = com.gen_species(10) # random species
     # choose one of those random species
-    i,j = np.random.randint(2),np.random.randint(100)
+    i,j = np.random.randint(2),np.random.randint(10)
     # densities according to theory
     W_r_t, W_r_star, dt = resident_density(species,I,period,1001)
     

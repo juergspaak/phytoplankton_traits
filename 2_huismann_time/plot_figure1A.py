@@ -34,6 +34,11 @@ data["Invasion Growth Rate"] = np.append(invasion_const, invasion_fluct)
 data["I_in"] = n*["Const"]+n*["Fluctuation"]
 sns.violinplot(x = "I_in", y = "Invasion Growth Rate", data = data,cut = 0,
                inner = "quartile")
+plt.xlabel("Incoming light condition")
+plt.title("Invasion growth rates of the Huisman model")
+
+plt.savefig("Figure, figure1a, violin plots of invasion growth rate.pdf")
+
 maximum = round(np.amax(invasion_fluct),4)
 percents = 100*np.sum(invasion_fluct>0)/n
 print(("{} is the maximal invasion growthrate. {} percents of all communities"+
