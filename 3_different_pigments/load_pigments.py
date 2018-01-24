@@ -30,7 +30,7 @@ def random_pigments(n):
     for i in range(n):
         # pigs[i](lam) = sum_peak(gamma*e^(-(lam-peak)**2/sigma)
         pigs[i] = np.sum(gamma[i]*np.exp(-(lambs[:,np.newaxis]-peak[i])**2
-                                    /sigma[i]), axis = 1)
+                                    /sigma[i]), axis = 1)*10**-8
     return pigs
 
 def real_pigments(n):

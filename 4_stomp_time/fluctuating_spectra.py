@@ -17,7 +17,7 @@ from ode_solving import own_ode
 
 def gen_com(r_pig, r_spec, r_pig_spec, fac,pigs = "real", n_com = 1000):
     if pigs == "rand":
-        k_spec, alpha = mf.spectrum_species(lp.rand, 
+        k_spec, alpha = mf.spectrum_species(lp.random_pigments(r_pig), 
                                             r_pig,r_spec,n_com,r_pig_spec)
     else:
         k_spec, alpha = mf.spectrum_species(lp.real, 
@@ -34,11 +34,21 @@ def I_in_t(I_in1, I_in2, period):
         part_1 = 2*np.abs(t_rel-0.5)
         return part_1*I_in1+(1-part_1)*I_in2
     return fun
-
+    
+def compute_I_out_intensity(N,I_in,k_spec, time):
+    I_out_data = np.empty((N.shape[0],len(lambs), N.shape[2]))
+    for i in range(len(I_out_data)):
+        tot_abs = np.einsum("sc,lsc->lc", N[i], k_spec)
+        I_out_data = I_in(time[i]).reshape(-1,1)*np.exp(-tot_abs)\
+                        /simps(I_in(time[i]),dx = dlam)
+    intens = simps(I_out_data, dx = dlam, axis = 1)
+    return np.percentile(intens,[5,25,50,75,95])
+    
 I_in_ref = I_in_t(mf.I_in_def(40/300,450,50), mf.I_in_def(40/300,650,50),10)
    
-def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 1000,
-    fac = 3, l_period = 10, pigs = "real", I_in = I_in_ref,t_const = [0,0.5]):
+def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
+    fac = 3, l_period = 10, pigs = "real", I_in = I_in_ref,t_const = [0,0.5],
+    I_out_interest = False):
     ###########################################################################
     # find potentially interesting communities
              
@@ -69,14 +79,22 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 1000,
     change_dom = np.logical_xor(np.sum(surv, axis = 0), 
                                 np.prod(surv, axis = 0))
     change_dom = change_dom.sum(axis = 0)>0 # at least one species changes
-    
-    if change_dom.sum()==0: # fluctuation is unimportant/didn't change anything
+    intens_const = compute_I_out_intensity(equi, I_in, k_spec, 
+                                         np.array(t_const)*l_period)
+    # fluctuation is unimportant/didn't change anything
+    if change_dom.sum()==0: 
+        if I_out_interest:
+            return fluctuating_richness(r_pig, r_spec, r_pig_spec,n_com,
+                    fac, l_period, pigs, I_in, t_const, I_out_interest)
+        intens = compute_I_out_intensity(equi, I_in, k_spec, 
+                                         np.array(t_const)*l_period)
         # find number of coexisting species through time
         richness_fluc,richness_const_max = richness_const[:2]
     
         ret_mat = np.array([[(richness==i+1).sum() for i in range(10)] for 
             richness in [*richness_const, richness_const_max, richness_fluc]])
-        return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1) # normalize   
+        return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1),\
+                intens_const, np.ones(5)*np.nan           
         
     # throw away communities, that have no change in dominance
     phi = phi[...,change_dom]
@@ -148,18 +166,20 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 1000,
         start_dens[start_dens<start_dens.sum(axis = 0)/5000] = 0
         counter += 1             
     
-    ###########################################################################
-    # preparing return values
-                  
-    # find number of coexisting species through time
-    richness_fluc = np.sum(sols[-1]>0,axis = 0)
-    # add the cases where fluctuations didn't change anything
-    richness_fluc = np.append(richness_const[0,~change_dom],richness_fluc)
-    # take the maximal number of coexisting species in each community
-    richness_const_max = np.amax(richness_const, axis = 0)
-    
-    ret_mat = np.array([[(richness==i+1).sum() for i in range(10)] for richness 
-                    in [*richness_const, richness_const_max, richness_fluc]])
-    return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1) # normalize
-
-
+    if not(I_out_interest):
+        #######################################################################
+        # preparing return values for richnesses computation
+         
+        intens_fluc = compute_I_out_intensity(sols,I_in,k_spec, 
+                                              np.linspace(0,l_period,10))        
+        # find number of coexisting species through time
+        richness_fluc = np.sum(sols[-1]>0,axis = 0)
+        # add the cases where fluctuations didn't change anything
+        richness_fluc = np.append(richness_const[0,~change_dom],richness_fluc)
+        # take the maximal number of coexisting species in each community
+        richness_const_max = np.amax(richness_const, axis = 0)
+        
+        ret_mat = np.array([[(richness==i+1).sum() for i in range(10)] for 
+            richness in [*richness_const, richness_const_max, richness_fluc]])
+        return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1),\
+                intens_const, intens_fluc
