@@ -13,6 +13,19 @@ import sys
 sys.path.append("../3_different_pigments")
 from fluctuating_spectra import fluctuating_richness
 
+# getting data from jobscript 
+try:                    
+    save = sys.argv[1]
+    max_r_spec_rich = int(sys.argv[2])
+    randomized_pigments = float(sys.argv[3])
+    if randomized_pigments:
+        save = save +["_randomized_pigments_{}_".format(randomized_pigments)]
+except IndexError:
+    save = np.random.randint(100000)
+    max_r_spec_rich = 11
+    randomized_pigments = 0
+randomized_pigments= 0.01
+save_string = "data/data_random_continuous"+str(save)+".csv"
 
 start = timer()
 iters = 10000 # number of random settings
@@ -20,7 +33,7 @@ n_com = 100 # number of communities in each setting
 
 # make sure, that in each community there are at more pigments than in species
 r_pigs_pre = np.random.randint(2,21,2*iters) 
-r_pig_specs_pre = np.random.randint(1,11,2*iters)
+r_pig_specs_pre = np.random.randint(1,max_r_spec_rich,2*iters)
 # richness of pigments in community and in each species
 r_pigs = r_pigs_pre[r_pigs_pre>r_pig_specs_pre][:iters]
 r_pig_specs = r_pig_specs_pre[r_pigs_pre>r_pig_specs_pre][:iters]
@@ -59,12 +72,6 @@ columns = ['r_pig', 'r_spec', 'r_pig_spec','fac', 'I_in_cond', 'case',
             + ["loc1", "loc2", "lux1", "lux2", "sigma"]
 
 data = pd.DataFrame(None,columns = columns, index = range(6*iters))
-# getting data from jobscript 
-try:                    
-    save = sys.argv[1]
-except IndexError:
-    save = np.random.randint(100000)
-save_string = "data/data_random_continuous"+str(save)+".csv"
 
 i = 0
 # test how long 10 runs go to end programm early enough
@@ -74,8 +81,8 @@ for j in range(10):
     I_in = fluc_continuous(locs[i], luxs[i], periods[i], sigma = sigmas[i])
     # compute the richnesses
     richnesses, intens_const, intens_fluct = fluctuating_richness(r_pigs[i], 
-            r_specs[i], r_pig_specs[i],
-            n_com , facs[i], periods[i],pigments[i],I_in,np.linspace(0,0.5,4))
+            r_specs[i], r_pig_specs[i],n_com , facs[i], periods[i],pigments[i],
+            I_in,np.linspace(0,0.5,4), randomized_pigments)
     # save to dataframe
     for k in range(len(cases)):
         data.iloc[len(cases)*i+k] = [r_pigs[i], r_specs[i], r_pig_specs[i],
@@ -93,8 +100,8 @@ while timer()-start <3600-(test_time_end-test_time_start):
         break
     # compute the richnesses
     richnesses, intens_const, intens_fluct = fluctuating_richness(r_pigs[i], 
-            r_specs[i], r_pig_specs[i],
-            n_com , facs[i], periods[i],pigments[i],I_in,np.linspace(0,0.5,4))
+            r_specs[i], r_pig_specs[i],n_com , facs[i], periods[i],pigments[i],
+            I_in,np.linspace(0,0.5,4), randomized_pigments)
     # save to dataframe
     for k in range(len(cases)):
         data.iloc[len(cases)*i+k] = [r_pigs[i], r_specs[i], r_pig_specs[i],
