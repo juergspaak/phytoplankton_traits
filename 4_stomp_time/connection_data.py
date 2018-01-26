@@ -45,6 +45,10 @@ def random(string,n_start, n_end):
         except OSError:
             print("File {} not found".format(i))
     del datas_all["Unnamed: 0"]
+    num_data = np.array(datas_all[[str(i+1) for i in range(10)]])
+    ave_data = (np.arange(1,11)*num_data).sum(axis = -1)
+    datas_all["s_div"] = ave_data
+    datas_all = datas_all[np.isfinite(datas_all.s_div)]
     datas_all.to_csv("data/data_random_{}_all.csv".format(string))
     return datas_all
 
@@ -62,6 +66,6 @@ def pure_python(string, n_start, n_end = None):
                 next(f)
                 fout.write(f.read())
                 
-                
+             
 import sys
-random(sys.argv[1], sys.argv[2])
+random(*sys.argv[1:])

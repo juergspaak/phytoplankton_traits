@@ -86,8 +86,6 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
         if I_out_interest:
             return fluctuating_richness(r_pig, r_spec, r_pig_spec,n_com,
                     fac, l_period, pigs, I_in, t_const, I_out_interest)
-        intens = compute_I_out_intensity(equi, I_in, k_spec, 
-                                         np.array(t_const)*l_period)
         # find number of coexisting species through time
         richness_fluc,richness_const_max = richness_const[:2]
     

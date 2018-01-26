@@ -27,7 +27,6 @@ I.dt = lambda t:  size*np.cos(t/period*2*np.pi)*2*np.pi/period
 invasion_fluct = np.amin(ana.continuous_r_i(species, I,period)[1], axis = 0)\
                          /period #normalize by period
 
-
 plt.figure()
 data = pd.DataFrame()
 data["Invasion Growth Rate"] = np.append(invasion_const, invasion_fluct)
@@ -42,4 +41,4 @@ plt.savefig("Figure, figure1a, violin plots of invasion growth rate.pdf")
 maximum = round(np.amax(invasion_fluct),4)
 percents = 100*np.sum(invasion_fluct>0)/n
 print(("{} is the maximal invasion growthrate. {} percents of all communities"+
-       "have positive invasion growth rate.").format(maximum,percents))
+       " have positive invasion growth rate.").format(maximum,percents))

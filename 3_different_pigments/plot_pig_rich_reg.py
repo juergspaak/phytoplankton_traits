@@ -37,8 +37,6 @@ elif species_id == "eawag-data":
     pig_spe_id = pig_spe_id[np.array([0,1,2,4,5,7,8]+list(range(10,23)))]
     pig_spe_id = pig_spe_id >0.1
     r_pig, r_spe = pig_spe_id.shape
-elif species_id == "paper-data":
-    pig_spe_id = np.genfromtxt("")
     
 n_exp = 10000 #number of experiments for each richness of species
 max_r_exp = 10 # maximal richness in all experiments
@@ -54,9 +52,11 @@ for r_exp in r_range: # r_exp is species richness in each experiment
     # sum over species to get pigment presence
     r_pig_exp[r_exp-1] = np.sum(np.sum(new_2,axis = 2)>0,axis = 1)
 
+# prob. of finding i pigments in a community of j species is richnesses[i,j]
 richnesses = np.array([np.sum(r_pig_exp==r+1, axis =1) for r in 
                         range(r_pig)])
 richnesses = richnesses/np.sum(richnesses, axis = 0)
+# preliminary plot, distribution of pigment richness
 for i in range(richnesses.shape[-1]):
     plt.plot(np.arange(1,r_pig+1),richnesses[:,i], label = i)
     
@@ -79,47 +79,48 @@ beta = np.sum(cov)/var_pig
 alpha = av_spe -beta*av_pig
 plt.figure(figsize = (7,7))
 
+###############################################################################
+#plot real data
 # real data from paper
 n_spe = np.array([1,1,1,2,2,2,3,3,5,5,7,7,7,10,10]) #number of species in exp.
 n_pig = np.array([6,8,12,8,11,12,11,14,15,16,11,14,16,17,18]) #num. of pigments
 
 #linear regression
 slope, intercept, r, p, stderr = linregress(n_pig,trans(n_spe))
-plt.plot(n_pig, trans(n_spe),  'g^', label = "Experimental")
+plt.plot(n_pig, trans(n_spe),  'g^', label = "Initial diversity, experimental")
 plt.plot(range(6,20), intercept+slope*np.arange(6,20),'g')
 plt.axis([ 5,19,trans(0.8), trans(20)])
-plt.xlabel("Pigment richness")
-plt.ylabel("Species richness")
-plt.legend(loc = "upper left")
+plt.xlabel("Trait diversity")
+plt.ylabel("Species diversity (log)")
 
 plt.savefig("Figure, Regression of pigments, real data")
 
+###############################################################################
 # plot simulated data
 plt.plot( np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis],axis = 0),
-         log_r_range,'ro', label = "Random")
-
+         log_r_range,'ro', label = "Initial diversity, theoretical")
+pig_rich_av = np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis],axis = 0)
+slope, intercept, r, p, stderr = linregress(pig_rich_av,log_r_range)
+plt.plot(range(6,20), intercept+slope*np.arange(6,20),'r:')
 plt.plot(np.arange(r_pig) , alpha+beta*np.arange(r_pig),'r')
 
-datas = pd.read_csv("../4_stomp_time/data/data_random_comp_light_all.csv")
-num_data = np.array(datas[[str(i+1) for i in range(10)]])
-ave_data = (np.arange(1,11)*num_data).sum(axis = -1)
-datas["Species richness"] = ave_data
+datas = pd.read_csv("../4_stomp_time/data/data_random_continuous_all.csv")
+means = np.zeros(20)
+for i in range(20): # compute the percentiles
+    index = np.logical_and(datas.case=="Const1", datas.r_pig == i+1)
+    index = np.logical_and(index, np.logical_not(np.isnan(datas.s_div)))
+    means[i] = np.median(datas[index].s_div)
 
-datas_case = datas[datas["case"]=="Const1"]
-n_spe = trans(datas["Species richness"].values)
-n_pig = datas["r_pig"].values
-slope2, intercept2, r2, p, stderr = linregress(n_pig,n_spe)
-plt.plot(np.arange(r_pig), intercept2+slope2*np.arange(r_pig),'b',label = "theoretical")
+plt.plot(np.arange(r_pig), trans(means),'bo',label = "Actual diversity, theoretical")
 
-plt.plot(np.arange(r_pig), trans(np.arange(r_pig)),'c',label = "maximum")
+plt.plot(np.arange(r_pig), trans(np.arange(r_pig)),'c',label = "Maximal diversity, theoretical")
 
 
 plt.legend(loc = "lower right")
-plt.savefig("Figure, pig_rich_reg.pdf")
+plt.savefig("Figure, nature data.pdf")
 
 
 plt.show()
 print(alpha, beta)
 print(intercept, slope, r)
-print(intercept2, slope2,r2)
     
