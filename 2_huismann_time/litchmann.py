@@ -1,4 +1,6 @@
-"plots which parameters are importatn for coexistnece"
+"""plots which parameters are importatn for coexistnece
+
+parameters taken from litchmann paper"""
 
 import numpy as np
 import matplotlib.pyplot as plt

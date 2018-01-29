@@ -12,9 +12,6 @@ import analytical_r_i_continuous as ana
 from numerical_r_i import own_ode
 from scipy.integrate import simps
 
-
-
-
 def real_I_out_r_i(species, I, period, real = True):
     # body of function
     # computes the boundary growth rates for invading species

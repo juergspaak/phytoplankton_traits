@@ -1,12 +1,16 @@
+"""
+@author: J.W. Spaak, jurg.spaak@unamur.be
+
+For communitieis that do coexist randomly generates communities that have
+similar trais and checks whether those species coexist aswell"""
+
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
 import analytical_communities as com
 import analytical_r_i_continuous as ana
-import seaborn as sns
-from scipy.integrate import odeint
-"""
+
+
 n = 10000 # numer of species to compute
 species = com.gen_species(n)
 
@@ -18,31 +22,35 @@ I.dt = lambda t:  size*np.cos(t/period*2*np.pi)*2*np.pi/period
 # invasion growth rate with fluctuating incoming light
 invasion_fluct = np.amin(ana.continuous_r_i(species, I,period)[1], axis = 0)\
                          /period #normalize by period
-                         
+invasion_fluct2 = np.amin(ana.continuous_r_i(species, I,period)[1], axis = 0)\
+                         /period #normalize by period               
+  
+# choose communities that do coexist                         
 pos = invasion_fluct>0
 
 species = species[...,pos]
 n_spec = species.shape[-1]
 
-# 1. case
-equi = com.equilibrium(species, 125)
+# to get as close to original community richness
+rep = n//n_spec
 
-i = 0
-r = 1-i
-N_start = np.ones(species[0].shape)
-N_start[r] = equi[r] 
+# relative changes in species traits
+rel_changes = [1e-5,1e-4, 0.001,0.01,0.02,0.05,1.00]
+# to save the invasion growthrates
+invasion_flucts = np.empty([len(rel_changes), rep*n_spec])
+species = np.repeat(species, rep, axis = -1)
 
-time = np.linspace(0,20*period,100)
-
-sols = np.empty((species.shape[-1], 2,100))
-
-for j in range(n_spec):
-    sols[j] = odeint(dxdt,N_start[:,j],time, args= (species[...,j],))
-"""
-def dxdt(N,t,pars, I_in = I):
-    k,H,p,l = pars
-    I_out = I_in(t)*np.exp(-(k*N).sum())
-    print(I_out)
-    return p*np.log((H+I_in(t))/(H+I_out))-l*N
-
-print(dxdt(N_start[:,0],0,species[...,0]))
+for i,eps in enumerate(rel_changes[:-1]):
+    # relative cahnge in species
+    change = np.random.uniform(1-eps, 1+eps, species.shape)
+    invasion_flucts[i] = np.amin(ana.continuous_r_i(species*change, 
+            I,period)[1], axis = 0)/period #normalize by period
+    
+# the case of 100% change, just compute new species
+invasion_flucts[-1] =  np.amin(ana.continuous_r_i(com.gen_species(n_spec*rep), 
+        I,period)[1], axis = 0)/period #normalize by period
+    
+# plot results
+plt.semilogx(rel_changes, np.sum(invasion_flucts>0,axis = 1)/(rep*n_spec),'o')
+plt.xlabel("Relative change in traits")
+plt.ylabel("Proportion of communities that are still in coexistence")
