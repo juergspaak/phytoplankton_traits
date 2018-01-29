@@ -1,7 +1,7 @@
 """
 @author: Jurg W. Spaak
 Computes the boundary growth for both species with analytical solution
-and continuous time
+and continuous change in incoming light intensity
 Assumes that I_out = 0
 """
 import numpy as np

@@ -83,7 +83,7 @@ def r_i(C,E, species,P,carbon):
     #divide by P, to compare different period length
     return np.log(sol[-1,0,[1,0]]/1)/P #return in different order, because species are swapped
     
-def own_ode(f,y0,t, steps = 10, s = 2):
+def own_ode(f,y0,t, *args, steps = 10, s = 2):
     """uses adam bashforth method to solve an ODE
     
     Parameters:
@@ -114,17 +114,17 @@ def own_ode(f,y0,t, steps = 10, s = 2):
     dy = np.empty((steps,)+ y0.shape)
     #set starting conditions
     sol[0] = y0
-    dy[0] = f(y0, ts[0])
+    dy[0] = f(y0, ts[0], *args)
     # number of points until iteration can start is s
     for i in range(s-1): #use Euler with double precision
-        sol_help = sol[i]+h/2*f(sol[i],ts[i])
+        sol_help = sol[i]+h/2*f(sol[i],ts[i], *args)
         sol[i+1] = sol_help+h/2*f(sol_help,ts[i]+h/2)
-        dy[i+1] = f(sol[i+1], ts[i+1])
+        dy[i+1] = f(sol[i+1], ts[i+1], *args)
         
     #actual Adams-Method
     for i in range(steps-s):
         sol[i+s] = sol[i+s-1]+h*np.einsum('i,i...->...', coefs, dy[i:i+s])
-        dy[i+s] = f(sol[i+s], ts[i+s])
+        dy[i+s] = f(sol[i+s], ts[i+s],*args)
     return sol                
         
 def dwdt(W,t,species, I_in,carbon):
