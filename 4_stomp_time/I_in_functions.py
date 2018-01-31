@@ -1,54 +1,25 @@
 """@author: J.W.Spaak
 
-create different fluctuating incoming light functions
+create different fluctuating incoming light functions"""
 
-# examples
-import matplotlib.pyplot as plt
-period = 10 # period length
-# creates fucntion I_in(t)
-I_in = fluc_continuous(fluc_fun = linear(midpoint = 0.7)) 
-time = np.linspace(0,period, period+1)
-I_int = I_in(time) # creates array with shape (period+1, 101)
-
-# visualize incoming light over time
-plt.figure()
-plt.plot(np.linspace(400,700,101), I_int.T)
-
-# case where we switch betwenn 2 I_in functions
-I_in = fluc_nconst()
-I_int = I_in(time)
-plt.figure()
-plt.plot(np.linspace(400,700, 101), I_int.T)
-
-# case where we switch betwenn 4 I_in functions
-I_ins = np.array([mf.I_in_def(40/300, 450,50), 
-                      mf.I_in_def(40/300, 650,50),
-                      mf.I_in_def(60/300, 550, 50),
-                      mf.I_in_def(70/300, 550, 0)])
-
-I_in = fluc_nconst(I_ins = I_ins)
-I_int = I_in(time)
-plt.figure()
-plt.plot(np.linspace(400,700, 101), I_int.T)
-"""
 import numpy as np
 from scipy.stats import entropy
+from scipy.integrate import simps
 
 import sys
 sys.path.append("../3_different_pigments")
 from load_pigments import lambs, dlam
 
-from scipy.integrate import simps
-
 def I_in_def(lux, loc = 550, sigma = 50):
     """ returns a gaussian kernel incoming light function"""
-    if sigma == 0:
+    if sigma == 0: # constant incoming light intensity
         return np.full(lambs.shape, lux, dtype = "float")/300
     else:
         prelim = np.exp(-(lambs-loc)**2/(2*sigma**2))
         return lux*prelim/simps(prelim, dx = dlam)
 
 def I_in_composite(n_peaks):
+    "Return light taht is a composite of n_peaks gaussian kernels"
     luxs = np.random.uniform(30/300,100/300,n_peaks)
     sigmas = 2**np.random.uniform(4,9,n_peaks) # ragnes from 16-512
     sigmas = sigmas*np.random.binomial(1,0.8,n_peaks) # add some uniform lights
@@ -59,8 +30,10 @@ def I_in_composite(n_peaks):
     return I_in, kl_div
  
 def sinus(t):
+    #sinus wave fluctuations
     res = (1-np.cos(2*np.pi*t))/2
-    return np.array([res,1-res])           
+    return np.array([res,1-res])
+     
 ###############################################################################
 # funtctions that return a callable I_in(t)
 
@@ -85,8 +58,7 @@ def fluc_continuous(w_loc = [450, 650], w_lux = [30/300, 50/300],
         lux_t = (sinus((t%p_lux)/p_lux)*w_lux).sum()
         return I_in_def(lux_t, loc_t, sigma)
     return I_in
-a = fluc_continuous()
-d = np.array([a(i) for i in np.linspace(0,10,14)])
+
 def_I_ins = np.array([I_in_def(40/300, 450,50), 
                       I_in_def(40/300, 650,50)])
     
@@ -101,7 +73,7 @@ def fluc_nconst(I_ins = def_I_ins, period = 10, fluc_case = "sinus"):
         fluc_fun = lambda t: (1-np.cos(t*np.pi))/2
     elif fluc_case == "linear":
         fluc_fun = lambda t: t
-    else:
+    else: # step function
         fluc_fun = lambda t: np.round(t)
     id_I_in, dI = np.linspace(0,period,num = len(I_ins)+1, retstep = True)
     id_I_in.shape = -1,1
@@ -114,3 +86,33 @@ def fluc_nconst(I_ins = def_I_ins, period = 10, fluc_case = "sinus"):
         prop_I[0] += prop_I[-1]
         return (prop_I[:-1]*I_ins).sum(axis = 0)
     return I_in
+    
+if __name__ == "__main__":# examples
+
+    import matplotlib.pyplot as plt
+    period = 10 # period length
+    # creates fucntion I_in(t)
+    I_in_cont = fluc_continuous()
+    time = np.linspace(0,period, period+1)
+    for t in time:
+        plt.plot(np.linspace(400,700,101),I_in_cont(t))
+    plt.title("Continuous change of spectrum")
+    plt.show()
+    
+    # case where we switch between 2 I_in functions, step function
+    plt.figure()
+    I_in_step = fluc_nconst(fluc_case = "step")
+    time = np.linspace(0,period, period+1)
+    for t in time:
+        plt.plot(np.linspace(400,700,101),I_in_step(t))
+    plt.title("Step function fluctuations")
+    plt.show()
+    
+    # case where we switch between 2 I_in functions, linear
+    plt.figure()
+    I_in_step = fluc_nconst(fluc_case = "linear")
+    time = np.linspace(0,period, period+1)
+    for t in time:
+        plt.plot(np.linspace(400,700,101),I_in_step(t))
+    plt.title("linear function fluctuations")
+    plt.show()

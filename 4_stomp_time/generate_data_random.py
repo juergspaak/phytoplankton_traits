@@ -1,11 +1,12 @@
 """@author: J.W.Spaak
 
-Computes the number of coexisting species for random settings"""
+Computes the number of coexisting species for random settings
+Incoming light is a sinus/step/linear fluctuation of two gaussian curves"""
 
 import pandas as pd
 import numpy as np
 
-from fluctuating_spectra import fluctuating_richness
+from richness_computation import fluctuating_richness
 import I_in_functions as I_fun
 
 import sys

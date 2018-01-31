@@ -1,7 +1,8 @@
 """@author: J.W.Spaak
 
 Computes the number of coexisting species for random settings
-uses continuously changing lightspectrum"""
+uses continuously changing lightspectrum
+Incoming light is one gaussian which shifts its peak"""
 
 import pandas as pd
 import numpy as np
@@ -11,7 +12,7 @@ from timeit import default_timer as timer
 from I_in_functions import fluc_continuous
 import sys
 sys.path.append("../3_different_pigments")
-from fluctuating_spectra import fluctuating_richness
+from richness_computation import fluctuating_richness
 
 # getting data from jobscript 
 try:                    
@@ -24,7 +25,7 @@ except IndexError:
     save = np.random.randint(100000)
     max_r_spec_rich = 11
     randomized_pigments = 0
-randomized_pigments= 0.01
+
 save_string = "data/data_random_continuous"+str(save)+".csv"
 
 start = timer()

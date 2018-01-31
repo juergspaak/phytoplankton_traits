@@ -3,7 +3,7 @@ contains functions that solve the ode for many communities"""
 
 import numpy as np
 
-def own_ode(f,y0,t,args = (), steps = 10, s = 2 ):
+def own_ode(f,y0,t,*args, steps = 10, s = 2 ):
     """uses adam bashforth method to solve an ODE
     
     Parameters:
@@ -50,6 +50,7 @@ def own_ode(f,y0,t,args = (), steps = 10, s = 2 ):
     return sol
     
 if __name__ == "__main__":
+    # example that solves exponential growth curves and compares to odeint
     from scipy.integrate import odeint
     import matplotlib.pyplot as plt
     

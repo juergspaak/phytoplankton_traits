@@ -1,19 +1,18 @@
 """@author: J.W.Spaak
 
-Computes the number of coexisting species for random settings"""
+Computes the number of coexisting species for random settings
+Incoming light is sinus like fluctuation of composite lights.
+These composite lights are a sum several gaussian curves"""
 
 import pandas as pd
 import numpy as np
+import sys
 
-from fluctuating_spectra import fluctuating_richness
+from richness_computation import fluctuating_richness
 import I_in_functions as I_fun
 
-import sys
-sys.path.append("../3_different_pigments")
-from multispecies_functions import I_in_def
-
 from timeit import default_timer as timer
-start = timer()
+start = timer() # measure time such that file does not run to long
 
 iters = 10000 # number of random settings
 n_com = 100 # number of communities in each setting
@@ -88,4 +87,4 @@ while timer()-start <3600-(test_time_end-test_time_start):
             + list(richnesses[j])
     i+=1
 data = data[0:i*len(cases)]          
-data.to_csv(save_string)
+data.to_csv(save_string) # save data

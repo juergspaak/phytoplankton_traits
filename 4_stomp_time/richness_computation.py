@@ -16,13 +16,38 @@ import multispecies_functions as mf
 from ode_solving import own_ode
 
 def gen_com(r_pig, r_spec, r_pig_spec, fac,pigs = "real", n_com = 1000):
+    """generates random communities that are inspected for coexistence
+    
+    Parameters:
+    r_pig: int
+        richness of pigments in the regional communitiy
+    r_spec: int
+        richness of species in the regional community
+    r_pig_spec: int
+        richness of pigments in each species
+    fac: float
+        maximal factor by which traits of species differ
+    pigs: "real" or "rand"
+        Determines whether pigments in communities are real pigments or random.
+        In the random case the pigments are the same for all communities
+    n_com: int
+        Number of communities to generate
+    
+    Returns:
+        [phi,l] growth rate parameters of the stomp model
+        k_spec, shape (101,r_spec, n_com)
+            absorption spectrum of all species. Axis 0 is the absoprtion 
+            efficiency frm 400-700 nm
+        alpha: array, shape (r_pig, r_spec, ncom)
+            proportions of pigments in each species""" 
+    # get absorption spectrum of the species
     if pigs == "rand":
         k_spec, alpha = mf.spectrum_species(lp.random_pigments(r_pig), 
                                             r_pig,r_spec,n_com,r_pig_spec)
     else:
         k_spec, alpha = mf.spectrum_species(lp.real, 
                                             r_pig,r_spec,n_com,r_pig_spec)
-     # specific photosynthetic efficiency and loss rate
+    # specific photosynthetic efficiency and loss rate, see Stomp 2004, nature
     phi = 2*1e8*np.random.uniform(1/fac, 1*fac,(r_spec,n_com))
     l = 0.014*np.random.uniform(1/fac, 1*fac,(r_spec,n_com))
     return np.array([phi,l]), k_spec, alpha
@@ -36,6 +61,7 @@ def I_in_t(I_in1, I_in2, period):
     return fun
     
 def compute_I_out_intensity(N,I_in,k_spec, time):
+    # computes intensity of outcoming light, integrated over all wave length
     I_out_data = np.empty((N.shape[0],len(lambs), N.shape[2]))
     for i in range(len(I_out_data)):
         tot_abs = np.einsum("sc,lsc->lc", N[i], k_spec)
@@ -43,18 +69,58 @@ def compute_I_out_intensity(N,I_in,k_spec, time):
                         /simps(I_in(time[i]),dx = dlam)
     intens = simps(I_out_data, dx = dlam, axis = 1)
     return np.percentile(intens,[5,25,50,75,95])
-    
+
+# standard incoming light fluctuation    
 I_in_ref = I_in_t(mf.I_in_def(40/300,450,50), mf.I_in_def(40/300,650,50),10)
    
 def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
-    fac = 3, l_period = 10, pigs = "real", I_in = I_in_ref,t_const = [0,0.5],
+    fac = 3, pigs = "real", l_period = 10, I_in = I_in_ref,t_const = [0,0.5],
     randomized_spectra = 0):
+    """Computes the number of coexisting species
+    
+    Parameters:
+    r_pig: int
+        richness of pigments in the regional communitiy
+    r_spec: int
+        richness of species in the regional community
+    r_pig_spec: int
+        richness of pigments in each species
+    n_com: int
+        Number of communities to generate
+    fac: float
+        maximal factor by which traits of species differ
+    pigs: "real" or "rand"
+        Determines whether pigments in communities are real pigments or random.
+        In the random case the pigments are the same for all communities
+    l_period: float
+        Lenght of period of fluctuating incoming light
+    I_in: callable
+        Must return an array of shape (101,). Incoming light at time t
+    t_const: array-like
+        Times at which species richness must be computed for constant light
+    randomized_spectra: float
+        amout by which pigments spectra differ from species
+    
+    Returns:
+    ret_mat: array, shape (len(t_const)+2, 10)
+        ret_mat[i,j] Percentages of communities that have j coexisting species
+        in the incoming light situation j. j in range(len(t_const)) means
+        I_in(t_const[j]*period) as incoming light. j=len(t_const) is the 
+        maximum of all constant incoming lights and the last one is the
+        fluctuation incoming light
+    intens_const:
+        Intensity of outcoming light for the constant incoming light cases
+    intens_fluct:
+        Intensity of outcoming light for the fluctuating incoming light case"""
+    
     ###########################################################################
     # find potentially interesting communities
              
     # generate species and communities
     par, k_spec, alpha = gen_com(r_pig, r_spec, r_pig_spec, fac,pigs, n_com)
     if randomized_spectra>0:
+        # slightly change the spectra of all species
+        # equals interspecific variation of pigments
         eps = randomized_spectra
         k_spec *= np.random.uniform(1-eps, 1+eps, k_spec.shape)
     phi,l = par
@@ -76,12 +142,13 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
     # richness in constant lights
     richness_const = np.sum(equi>0, axis = 1)
     
-    # find cases, equilibria species change
+    # find cases, where equilibria species change
     surv = equi>0 # species that survived
     # XOR(present in one, present in all)
     change_dom = np.logical_xor(np.sum(surv, axis = 0), 
                                 np.prod(surv, axis = 0))
     change_dom = change_dom.sum(axis = 0)>0 # at least one species changes
+    # outcoming light intensity for the constant light cases
     intens_const = compute_I_out_intensity(equi, I_in, k_spec, 
                                          np.array(t_const)*l_period)
     # fluctuation is unimportant/didn't change anything
