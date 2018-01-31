@@ -1,7 +1,6 @@
 """@author: J.W.Spaak
 contains functions that solve the ode for many communities"""
 
-from scipy.integrate import odeint
 import numpy as np
 
 def own_ode(f,y0,t,args = (), steps = 10, s = 2 ):
@@ -49,3 +48,20 @@ def own_ode(f,y0,t,args = (), steps = 10, s = 2 ):
         sol[i+s] = sol[i+s-1]+h*np.einsum('i,i...->...', coefs, dy[i:i+s])
         dy[i+s] = f(sol[i+s], ts[i+s], *args)
     return sol
+    
+if __name__ == "__main__":
+    from scipy.integrate import odeint
+    import matplotlib.pyplot as plt
+    
+    factor = np.arange(1,4)
+    fun = lambda x,t:x*factor
+    start = np.ones(3)
+    times = np.linspace(0,1,10)
+    sol_exact = odeint(fun,start, times)
+    sol_own = np.empty((5,10,3))
+    col = ["r", "g","c","p","y"]
+    for s in range(5):
+        sol_own[s] = own_ode(fun, start, times[[0,-1]],s = s+1)
+        plt.plot(sol_own[s],col[s], label = s+1)
+    plt.plot(sol_exact,'bo', label = "exact")
+    plt.legend(loc = "upper left")
