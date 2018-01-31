@@ -54,3 +54,10 @@ invasion_flucts[-1] =  np.amin(ana.continuous_r_i(com.gen_species(n_spec*rep),
 plt.semilogx(rel_changes, np.sum(invasion_flucts>0,axis = 1)/(rep*n_spec),'o')
 plt.xlabel("Relative change in traits")
 plt.ylabel("Proportion of communities that are still in coexistence")
+
+# Check whether all species have neighberhoods with non coexisting species
+inv_flu = invasion_flucts.reshape(len(rel_changes),n_spec,rep)>0
+plt.figure()
+plt.semilogx(rel_changes,np.sum(np.all(inv_flu,axis = -1),axis = 1)/n_spec)
+plt.xlabel("Relative change in traits")
+plt.ylabel("Proportions of communities that always coexist")

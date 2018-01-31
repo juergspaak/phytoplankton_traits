@@ -12,13 +12,14 @@ import analytical_r_i_continuous as ana
 from numerical_r_i import own_ode
 from scipy.integrate import simps
 
-def real_I_out_r_i(species, I, period, real = True):
+def real_I_out_r_i(species, I, period, real = True, k_back = 0, ret_I = False):
     # body of function
     # computes the boundary growth rates for invading species
+    k,H,p,l = species
     def dwdt(W,t):
         k,H,p,l = species
-        W_star = p/(k*l)*np.log((H+I(t))/(H+real*I(t)*np.exp(-k*W)))
-        return (W_star-W)*l
+        W_star = p/(k*l)*np.log((H+I(t))/(H+real*I(t)*np.exp(-k*W+k_back)))
+        return ((k*W)/(k_back+k*W)*W_star-W)*l
     
     # find approximate starting densities of species
     W_start, W_r_star = ana.resident_density(species,I,period,1001)[:2]
@@ -41,9 +42,12 @@ def real_I_out_r_i(species, I, period, real = True):
     inv_star = p/k*np.log((I_in+H)/(I_out+H))/l
     
     
-    growth = (k*inv_star/(k[r_ind]*res_dist[:,r_ind])-1)*l
+    growth = (k*inv_star/(k[r_ind]*res_dist[:,r_ind]+k_back)-1)*l
     invasion_growth = simps(growth, dx = period/iters,axis = 0)
-    return invasion_growth, I_out
+    if ret_I:
+        return invasion_growth, I_out
+    else:
+        return invasion_growth
 
 
 if __name__  == "__main__":
@@ -63,9 +67,9 @@ if __name__  == "__main__":
     
     # compute the invasions growth rates
     # actual invasion growth rate, no assumption
-    invasion_real, I_out = real_I_out_r_i(species, I, period)
+    invasion_real, I_out = real_I_out_r_i(species, I, period, ret_I = True)
     # same function, assuming that I_out = 0
-    invasion_real_check = real_I_out_r_i(species, I, period, False)[0]
+    invasion_real_check = real_I_out_r_i(species, I, period, False)
     # different function, assuming that I_out = 0
     invasion_approx = ana.continuous_r_i(species, I,period)[1]
     
