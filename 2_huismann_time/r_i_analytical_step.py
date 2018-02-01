@@ -1,19 +1,12 @@
-import analytical_communities as com
-import numpy as np
-
 """
-#example:
-spec = com.gen_species(1000)
-P = 25
-I_r = np.array([50,200])
-k,p,H,l = spec
+@author: J.W.Spaak, jurg.spaak@unamur.be
 
-E1,comp1, stor1, r_i1 =  exact_r_i(spec, P, I_r, itera = 1000)
-E2,comp2, stor2, r_i2 =  lin_approx_r_i(spec, P, I_r)  
-E3,comp3, stor3, r_i3 =  mp_approx_r_i(spec, P, I_r)
-plit(*r_i1)
-plit(*r_i2)
-plit(*r_i3)"""
+Compute the boundary growth rates of the species using analytical
+    methods and several different assumptions. Incoming light changes at each
+    period to a new random constant incoming light"""
+
+import communities_analytical as com
+import numpy as np
 
 def exact_r_i(species, P, I_r, itera = 20000):
     """ computes the exact boundary growthrates of the species
@@ -101,7 +94,7 @@ def lin_approx_r_i(species, P, I_r = np.array([50,200])):
     mp = mr.copy()
     # find actual distributio of W, get mp
     mp[:,short_period] = dist_resident(species[:,:,short_period], 
-                P[short_period], I_r[:,short_period], Wav[:,short_period])
+                P, I_r, Wav[:,short_period])
     ########## again identical to mp_approx_r_i
     
     
@@ -253,11 +246,23 @@ def linear_comp(species, I_r = [50,200], itera = 151):
     intercept = kW_av-slope*np.average(I_r, axis = 0)
     return slope, intercept
 
-spec = com.gen_species(1000)
-P = 25
-I_r = np.array([50,200])
-k,p,H,l = spec
-
-E1,comp1, stor1, r_i1 =  exact_r_i(spec, P, I_r, itera = 1000)
-#E2,comp2, stor2, r_i2 =  lin_approx_r_i(spec, P, I_r)  
-E3,comp3, stor3, r_i3 =  mp_approx_r_i(spec, P, I_r)
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    #example:
+    spec = com.gen_species(1000)
+    P = 25
+    I_r = np.array([50,200])
+    k,p,H,l = spec
+    
+    E1,comp1, stor1, r_i1 =  exact_r_i(spec, P, I_r, itera = 1000)
+    E2,comp2, stor2, r_i2 =  lin_approx_r_i(spec, P, I_r)  
+    E3,comp3, stor3, r_i3 =  mp_approx_r_i(spec, P, I_r)
+    plt.figure()
+    plt.plot(*r_i1,'.')
+    plt.title("Exact")
+    plt.figure()
+    plt.plot(*r_i2,'.')
+    plt.title("linear_approx")
+    plt.figure()
+    plt.plot(*r_i3,'.')
+    plt.title("mp approx")

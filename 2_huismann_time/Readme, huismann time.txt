@@ -1,27 +1,19 @@
-I_out_zero_approx:
-	Contains plots that show that assuming I_out = 0 is a good one when dealing with a
-	resident at equilibrium density
+communities_*:
+	contains functions for the generation of communities and some accompaning functions. 
+	These functions are used by their respective r_i* files
 
-numerical_communities:
-	Contains functions to randomly generate species for the numerical programms
+r_i_*:
+	Compute the boundary growth rates of the species using respectively numerical and analytical methods.
+	_continuous uses continuous change of incoming light (periodic functions)
+	_step uses step wise changes of incoming light, using randomized light over time
+	_step files might need revision
 
-analytical_communities:
-	Contains functions to randomly generate species for the analytical programms
+evolutionary_stability_of_coexistence:
+	Finds communities that do coexist and randomly changes their parameters slightly (evolution)
+	After doing so checks again whether those slightly changed communities do coexist.
+	
+real_I_out
+	Computes the boundary growth rate with numerical methods. Does not assume that I_out is equal to 0
 
-numerical_r_i:
-	numerically compute the boundary growth rate of species
-
-analytical_r_i:
-	analytically compute the boundary growth rate as well as teh chesson terms
-
-investigate_C:
-	focus on the ave_C part of the chesson terms and find when these might both be positive
-
-numerical_chesson_terms: #not fully working yet
-	numerically compute the chesson terms
-
-mp_approx: #might be not working any more
-	Creats plots, that show that the approximation for mp is a good one (see equations)
-
-shortest_periods: #might not be working anymore
-	compute the boundary growth rates of very short periods
+real_background
+	Computes the boundary growth rate with numerical methods. Does not assume that I_out is 0 nor that background is negligible

@@ -1,15 +1,12 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri Jan  6 12:27:19 2017
+@author: J.W.Spaak, jurg.spaak@unamur.be
 
-@author: Jurg
-Generates random environments and checks whether this environment 
-allows existence
+This file contains functions for the generation of communities with saturating
+carbon uptake functions.
+This file is essentially equivalent to communities_numerical.py
 
-This file is equivalent to numerical_communities. Functions with the same
-name serve the same purpose. The functions in this file serve for analytical_r_i
-
-`gen_species` returns two random species
+`gen_species` returns communities of two species that change dominance
+    depending on incoming light intensity
 
 `random_par`: rand. generate two species with saturating carbon uptake
     functions

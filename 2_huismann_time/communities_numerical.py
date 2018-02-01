@@ -1,10 +1,9 @@
 """
-@author: J.W.Spaak
+@author: J.W.Spaak, jurg.spaak@unamur.be
 
-This file is equivalent to analytical_communities. Functions with the same
-name serve the same purpose. The functions in this file serve for numerical_r_i
-
-Generates random species, that can be used for numerical_r_i
+This file contains functions for the generation of communities with saturating
+or photoinhibition carbon uptake functions.
+This file is essentially equivalent to communities_analytical.py
 
 `gen_species` returns two random species
 

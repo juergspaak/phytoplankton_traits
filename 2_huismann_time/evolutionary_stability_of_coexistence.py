@@ -1,14 +1,15 @@
 """
 @author: J.W. Spaak, jurg.spaak@unamur.be
 
-For communitieis that do coexist randomly generates communities that have
-similar trais and checks whether those species coexist aswell"""
+Finds communities that do coexist and randomly changes their parameters 
+    slightly (evolution). After doing so checks again whether those slightly 
+    changed communities do coexist."""
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-import analytical_communities as com
-import analytical_r_i_continuous as ana
+import communities_analytical as com
+import r_i_analytical_continuous as ana
 
 
 n = 10000 # numer of species to compute
@@ -58,6 +59,6 @@ plt.ylabel("Proportion of communities that are still in coexistence")
 # Check whether all species have neighberhoods with non coexisting species
 inv_flu = invasion_flucts.reshape(len(rel_changes),n_spec,rep)>0
 plt.figure()
-plt.semilogx(rel_changes,np.sum(np.all(inv_flu,axis = -1),axis = 1)/n_spec)
+plt.semilogx(rel_changes,np.sum(np.all(inv_flu,axis = -1),axis = 1)/n_spec,'o')
 plt.xlabel("Relative change in traits")
 plt.ylabel("Proportions of communities that always coexist")

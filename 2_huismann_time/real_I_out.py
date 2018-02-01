@@ -1,15 +1,15 @@
 """
-@author: Jurg W. Spaak
+@author: Jurg W. Spaak, jurg.spaak@unamur.be
 Computes the boundary growth for both species with analytical solution
 and continuous change in incoming light intensity
 Does not assume, that I_out = 0
 
-Compares result obtained with and withour assumption"""
+Compares result obtained with and without assumption"""
 
 import numpy as np
-import analytical_communities as com
-import analytical_r_i_continuous as ana
-from numerical_r_i import own_ode
+import communities_analytical as com
+import r_i_analytical_continuous as ana
+from r_i_numerical_step import own_ode
 from scipy.integrate import simps
 
 def real_I_out_r_i(species, I, period, real = True, k_back = 0, ret_I = False):

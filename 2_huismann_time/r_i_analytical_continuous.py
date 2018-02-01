@@ -1,15 +1,16 @@
 """
-@author: Jurg W. Spaak
+@author: Jurg W. Spaak, jurg.spaak@unamur.be
 Computes the boundary growth for both species with analytical solution
 and continuous change in incoming light intensity
-Assumes that I_out = 0
+Assumes that I_out = 0 and background absorption is negligible
 """
 import numpy as np
 from scipy.integrate import simps
 
-import analytical_communities as com
+import communities_analytical as com
 
 def constant_I_r_i(species, I_in):
+    # compute the boundary growth rate for constant incoming light intensity
     equi = com.equilibrium(species, I_in)
     k,l = species[[0,-1]]
     i,r = [0,1],[1,0]

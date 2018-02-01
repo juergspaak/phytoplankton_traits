@@ -1,23 +1,13 @@
 """
-@author: J.W.Spaak
+@author: J.W.Spaak, jurg.spaak@unamur.be
 
-Contains functions to compute the boundary growth rate of species
-
-Species: Method to create species and compute their boundary growth rates
-
-`bound_growth` function to compute the boundary growth rate numerically
-
-`equi_point` function to compute the instable equilibrium
-
-`r_i` numerically computes the growth rate in one period
-
-`dwdt` right hand side of the differential equation
-"""
+Compute the boundary growth rates of the species using numerical methods. 
+    Incoming light changes at each period to a new random constant incoming 
+    light"""
 
 import numpy as np
 from scipy.integrate import simps
-import numerical_communities as com
-from timeit import default_timer as timer
+import communities_numerical as com
 
 def bound_growth(species, carbon,I_r ,P, num_iterations = 400):
     """computes av(r_i) for species
@@ -40,8 +30,6 @@ def bound_growth(species, carbon,I_r ,P, num_iterations = 400):
     rel_I_prev.shape = -1,1
     # Effective light, linear transformation
     I_prev = (IM-Im)*rel_I_prev+Im
-    
-    start = timer()
     # equilibrium densitiy of resident in previous period
     dens_prev = com.equilibrium(species, carbon, I_prev, "partial")
     # save the growth rates in the periods
@@ -78,7 +66,7 @@ def r_i(C,E, species,P,carbon):
     dwdt_use = lambda W, t: dwdt(W,t,spec_mult, E_mult, carbon)
     steps = 2*P #number of steps for adams method
     # simulate the growth for the species
-    sol = own_ode(dwdt_use, start_dens.reshape(-1), [0,P],steps)
+    sol = own_ode(dwdt_use, start_dens.reshape(-1), [0,P],steps=steps)
     sol.shape =  steps,2,2,-1 #own_ode only alows 1-dim arrays        
     #divide by P, to compare different period length
     return np.log(sol[-1,0,[1,0]]/1)/P #return in different order, because species are swapped
@@ -174,13 +162,21 @@ def dwdt(W,t,species, I_in,carbon):
     dwdt[0,1] = new[0,1]
     return dwdt.reshape(-1)
     
-if False: #generate species and compute bound growth
-    
-    from analytical_r_i import mp_approx_r_i
+if __name__ == "__main__":
+    from timeit import default_timer as timer
+    import matplotlib.pyplot as plt
+    from r_i_analytical_step import mp_approx_r_i
     start = timer()
     species, carbon, I_r = com.gen_species(com.sat_carbon_par, num = 5000)
     print(timer()-start, "generate species")
     P = 20
-    ave_r_i = bound_growth(species[:,:,:10], carbon, I_r,P)
+    r_i_num = bound_growth(species[:,:,:10], carbon, I_r,P)
     print(timer()-start)
-    a,b,c,d = mp_approx_r_i(species[:,:,:10], P, I_r)
+    a,b,c,r_i_mp = mp_approx_r_i(species[:,:,:10], P, I_r)
+    
+    plt.figure()
+    plt.plot(r_i_num,'.')
+    plt.title("Numerical")
+    plt.figure()
+    plt.plot(r_i_mp,'.')
+    plt.title("mp approx")
