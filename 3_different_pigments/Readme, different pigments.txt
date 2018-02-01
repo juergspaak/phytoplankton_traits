@@ -13,9 +13,8 @@ multispecies_functions.py
 plot_*
 	plots the figure with the same name
 
-prob_multiple_equilibria.py
-	finds cases where coexistence equilibrium depens on
-	starting conditions
+pig_spe_id.csv
+	List of species and pigments. Indicates which species contains which pigments
 
-
-
+pigment_data_python.csv
+	Contains the absorption spectra of the real pigments

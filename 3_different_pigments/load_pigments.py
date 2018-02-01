@@ -44,3 +44,11 @@ def real_pigments(n):
     
 real = real_pigments(29)
 rand = random_pigments(29)
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    plt.plot(lambs, real.T)
+    plt.title("real pigments")
+    plt.figure()
+    plt.plot(lambs, rand.T)
+    plt.title("random pigments")
