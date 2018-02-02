@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-import analytical_communities as com
-import analytical_r_i_continuous as ana
+import communities_analytical as com
+import r_i_analytical_continuous as ana
 import seaborn as sns
 
 n = 10000 # numer of species to compute

@@ -1,35 +1,51 @@
 """
-@author: Jurg W. Spaak, jurg.spaak@unamur.be
-Computes the boundary growth for both species with analytical solution
-and continuous change in incoming light intensity
-Assumes that I_out = 0 and background absorption is negligible
-"""
-import numpy as np
-from scipy.integrate import simps
-from differential_functions import cumsimps
-import communities_analytical as com
+@author: J.W.Spaak, jurg.spaak@unamur.be
 
-def constant_I_r_i(species, I_in):
-    # compute the boundary growth rate for constant incoming light intensity
-    equi = com.equilibrium(species, I_in)
-    k,l = species[[0,-1]]
-    i,r = [0,1],[1,0]
-    return l[i]*((k*equi)[i]/(k*equi)[r]-1)
-       
+Computes boundary growth rates for photoinhibition model"""
+import numpy as np
+import communities_numerical as com
+from scipy.integrate import simps
+from r_i_analytical_continuous import cumsimps, continuous_r_i
+
+# incoming light is sinus shaped
+period = 10
+size = 450
+I = lambda t: size*np.sin(t/period*2*np.pi)+550 #sinus
+I.dt = lambda t:  size*np.cos(t/period*2*np.pi)*2*np.pi/period
+
+def equilibrium(species, I_in):
+    try:
+        I_inv = I_in.view() 
+        I_inv.shape = (-1,)+species[0].ndim*(1,)
+    except AttributeError:
+        I_inv = I_in
+    
+    k,p_max,I_k, I_opt, l = species
+    
+    # computation uses complex numbers
+    discr = np.sqrt(1-4*I_k/I_opt+0j)
+    I_1 = (-(1-2*I_k/I_opt)+discr)/(2*I_k/I_opt**2)
+    I_2 = (-(1-2*I_k/I_opt)-discr)/(2*I_k/I_opt**2) 
+    fun = lambda I: np.log(1-I_inv/I)
+    prefactor = p_max/(l*k*(I_1-I_2))/I_k*I_opt**2
+    return np.real(prefactor*(fun(I_1)-fun(I_2)))
+
+
 def resident_density(species, I,period, acc = 1001):
     # check input
-    
     if np.exp(period*np.amax(species[-1]))==np.inf:
         raise ValueError("Too long `period` in `resident_density`."+
         "The product l*period must be smaller than 700 to avoid overflow.")
-    k,H,p,l = species # species parameters
+    k,p,I_k, I_opt, l = species # species parameters
     # time for numerical integration
     t,dt = np.linspace(0,period,acc,retstep = True)
     
     # equilibrium densities for incoming light
-    W_r_star = com.equilibrium(species, I(t)[::2], "full")
+    W_r_star = equilibrium(species, I(t)[::2])
     t.shape = -1,1,1
-    int_fun = np.exp(l*t)/(H+I(t))*I.dt(t)
+    a = I_k/I_opt**2
+    b = 1-2*I_k/I_opt
+    int_fun = np.exp(l*t)/(a*I(t)**2+b*I(t)+I_k)*I.dt(t)
     # int_0^t e^(l*(s-t))/(H+I(s))*I.dt(s) ds, for t<period
     W_r_diff = p/(k*l)*cumsimps(int_fun,dx = dt, axis = 0, initial = 0)\
                     *np.exp(-l*t[::2])
@@ -43,18 +59,7 @@ def resident_density(species, I,period, acc = 1001):
     W_r_t = W_r_star-W_r_diff
 
     return W_r_t, W_r_star,dt
-    
-def continuous_r_i(species, I,period, acc = 1001):
-    # computes the boundary growth rates for invading species
-    W_r_t, W_r_star,dt = resident_density(species, I, period,acc)
-    i,r = [[0,1],[1,0]]
-    k,l = species[[0,-1]]
-    simple_r_i = simps(k[i]*W_r_star[:,i]/(k[r]*W_r_star[:,r])-1,
-                       dx = dt,axis = 0)*l[i]
-    exact_r_i = simps(k[i]*W_r_star[:,i]/(k[r]*W_r_t[:,r])-1,
-                       dx = dt,axis = 0)*l[i]
-    return simple_r_i, exact_r_i
-    
+
 if __name__ == "__main__":
     # Plots that show correctness of programm
     import matplotlib.pyplot as plt
@@ -89,16 +94,15 @@ if __name__ == "__main__":
     ax[1].plot(time, I.dt(time))
     
     # computing resident densities
-    species = com.gen_species(10) # random species
+    species,carbon, I_r = com.gen_species(com.photoinhibition_par,500)
     # choose one of those random species
-    i,j = np.random.randint(2),np.random.randint(10)
+    i,j = np.random.randint(2),np.random.randint(species.shape[-1])
     # densities according to theory
     W_r_t, W_r_star, dt = resident_density(species,I,period,1001)
     
     def dWdt(W,t):
-        k,H,p,l = species[:,i,j]
-        W_star = p/(k*l)*np.log(1+I(t)/H)
-        return (W_star-W)*l
+        W_star = equilibrium(species[:,i,j], I(t))
+        return (W_star-W)*species[-1,i,j]
     time2 = time[::50]
     # densities numerically checked
     sol_ode = odeint(dWdt,W_r_t[0,i,j],time2)
@@ -113,8 +117,6 @@ if __name__ == "__main__":
     # Invader densities
     ax[3].set_ylabel("invader growthrate")
     ax[3].plot(time, np.tile(W_r_star[:,1-i,j],3),label = "equilibrium")
-    const = com.equilibrium(species, 125)
-    ax[3].plot(time, np.full(1503,const[1-i,j]), label = "dens at const light")
     average = simps(W_r_t[:,1-i,j],time[:501])/period
     ax[3].plot(time, np.full(1503,average),label = "average over fluctuation")
     ax[3].legend(loc = "lower right")

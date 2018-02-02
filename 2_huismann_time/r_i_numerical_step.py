@@ -8,6 +8,7 @@ Compute the boundary growth rates of the species using numerical methods.
 import numpy as np
 from scipy.integrate import simps
 import communities_numerical as com
+from differential_functions import own_ode
 
 def bound_growth(species, carbon,I_r ,P, num_iterations = 400):
     """computes av(r_i) for species
@@ -69,51 +70,7 @@ def r_i(C,E, species,P,carbon):
     sol = own_ode(dwdt_use, start_dens.reshape(-1), [0,P],steps=steps)
     sol.shape =  steps,2,2,-1 #own_ode only alows 1-dim arrays        
     #divide by P, to compare different period length
-    return np.log(sol[-1,0,[1,0]]/1)/P #return in different order, because species are swapped
-    
-def own_ode(f,y0,t, *args, steps = 10, s = 2):
-    """uses adam bashforth method to solve an ODE
-    
-    Parameters:
-        func : callable(y, t0, ...)
-            Computes the derivative of y at t0.
-        y0 : array
-            Initial condition on y (can be a vector).
-        t : array
-            A sequence of time points for which to solve for y. 
-            The initial value point should be the first element of this sequence.
-        args : tuple, optional
-            Extra arguments to pass to function.
-            
-    Returns:
-        y : array, shape (steps, len(y0))
-            Array containing the value of y for each desired time in t,
-            with the initial value y0 in the first row."""
-    # coefficients for method:
-    coefs = [[1], # s = 1
-             [-1/2,3/2],  # s = 2
-             [5/12, -4/3, 23/12], # s = 3
-             [-3/8, 37/24, -59/24, 55/24], # s = 4
-             [251/720, -637/360, 109/30, -1387/360, 1901/720]] # s = 5
-    coefs = np.array(coefs[s-1]) #choose the coefficients
-    ts, h = np.linspace(*t, steps, retstep = True) # timesteps
-    # to save the solution and the function values at these points
-    sol = np.empty((steps,)+ y0.shape)
-    dy = np.empty((steps,)+ y0.shape)
-    #set starting conditions
-    sol[0] = y0
-    dy[0] = f(y0, ts[0], *args)
-    # number of points until iteration can start is s
-    for i in range(s-1): #use Euler with double precision
-        sol_help = sol[i]+h/2*f(sol[i],ts[i], *args)
-        sol[i+1] = sol_help+h/2*f(sol_help,ts[i]+h/2)
-        dy[i+1] = f(sol[i+1], ts[i+1], *args)
-        
-    #actual Adams-Method
-    for i in range(steps-s):
-        sol[i+s] = sol[i+s-1]+h*np.einsum('i,i...->...', coefs, dy[i:i+s])
-        dy[i+s] = f(sol[i+s], ts[i+s],*args)
-    return sol                
+    return np.log(sol[-1,0,[1,0]]/1)/P #return in different order, because species are swapped             
         
 def dwdt(W,t,species, I_in,carbon):
     """computes the derivative of the species

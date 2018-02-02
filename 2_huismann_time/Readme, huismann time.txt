@@ -1,3 +1,5 @@
+This folder contains functions and files to compute the boundary growth rates of species in constant incoming light intensity.
+
 communities_*:
 	contains functions for the generation of communities and some accompaning functions. 
 	These functions are used by their respective r_i* files
