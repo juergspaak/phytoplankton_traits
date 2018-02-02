@@ -87,7 +87,7 @@ def own_ode(f,y0,t, *args, steps = 10, s = 2):
     # number of points until iteration can start is s
     for i in range(s-1): #use Euler with double precision
         sol_help = sol[i]+h/2*f(sol[i],ts[i], *args)
-        sol[i+1] = sol_help+h/2*f(sol_help,ts[i]+h/2)
+        sol[i+1] = sol_help+h/2*f(sol_help,ts[i]+h/2, *args)
         dy[i+1] = f(sol[i+1], ts[i+1], *args)
         
     #actual Adams-Method
@@ -95,3 +95,21 @@ def own_ode(f,y0,t, *args, steps = 10, s = 2):
         sol[i+s] = sol[i+s-1]+h*np.einsum('i,i...->...', coefs, dy[i:i+s])
         dy[i+s] = f(sol[i+s], ts[i+s],*args)
     return sol
+    
+if __name__ == "__main__":
+    # example that solves exponential growth curves and compares to odeint
+    from scipy.integrate import odeint
+    import matplotlib.pyplot as plt
+    
+    factor = np.arange(1,4)
+    fun = lambda x,t:x*factor
+    start = np.ones(3)
+    times = np.linspace(0,1,10)
+    sol_exact = odeint(fun,start, times)
+    sol_own = np.empty((5,10,3))
+    col = ["r", "g","c","p","y"]
+    for s in range(5):
+        sol_own[s] = own_ode(fun, start, times[[0,-1]],s = s+1)
+        plt.plot(sol_own[s],col[s], label = s+1)
+    plt.plot(sol_exact,'bo', label = "exact")
+    plt.legend(loc = "upper left")

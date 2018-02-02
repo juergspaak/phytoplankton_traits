@@ -6,8 +6,6 @@ import numpy as np
 from scipy.stats import entropy
 from scipy.integrate import simps
 
-import sys
-sys.path.append("../3_different_pigments")
 from load_pigments import lambs, dlam
 
 def I_in_def(lux, loc = 550, sigma = 50):

@@ -7,13 +7,11 @@ light
 import numpy as np
 from scipy.integrate import simps
 
-import sys
-sys.path.append("../3_different_pigments")
 import load_pigments as lp
 from load_pigments import lambs, dlam
 import multispecies_functions as mf
 
-from ode_solving import own_ode
+from differential_functions_copy import own_ode
 
 def gen_com(r_pig, r_spec, r_pig_spec, fac,pigs = "real", n_com = 1000):
     """generates random communities that are inspected for coexistence
@@ -74,7 +72,7 @@ def compute_I_out_intensity(N,I_in,k_spec, time):
 I_in_ref = I_in_t(mf.I_in_def(40/300,450,50), mf.I_in_def(40/300,650,50),10)
    
 def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
-    fac = 3, pigs = "real", l_period = 10, I_in = I_in_ref,t_const = [0,0.5],
+    fac = 3, l_period = 10, pigs = "real", I_in = I_in_ref,t_const = [0,0.5],
     randomized_spectra = 0):
     """Computes the number of coexisting species
     
@@ -128,8 +126,9 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
     # compute the equilibria densities for the different light regimes
     equi = np.empty((len(t_const),) + phi.shape)
     unfixed = np.empty((len(t_const),phi.shape[-1]))
-
+    
     for i,t in list(enumerate(t_const)):
+        print(t ,l_period)
         equi[i], unfixed[i] = mf.multispecies_equi(phi/l, k_spec, 
                             I_in(t*l_period))
     # consider only communities, where algorithm found equilibria (all regimes)
@@ -209,7 +208,7 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
 
     while len(undone)>0 and counter <1000:
         sol = own_ode(multi_growth,start_dens, time[[0,-1]], 
-                      args=(I_in, k_spect, phit,lt),steps = len(time))
+                      I_in, k_spect, phit,lt,steps = len(time))
         
         # determine change in densities, av at end and after finding equilibria
         av_end = np.average(sol[-10:], axis = 0) 
