@@ -1,7 +1,9 @@
 """
 @author: Jurg W. Spaak
 
-plots the figure 1B
+Plots the figure 1
+Showing invasion growthrates of the species with and without fluctuating
+incoming light intensity
 """
 
 import matplotlib.pyplot as plt
@@ -36,7 +38,7 @@ sns.violinplot(x = "I_in", y = "Invasion Growth Rate", data = data,cut = 0,
 plt.xlabel("Incoming light condition")
 plt.title("Invasion growth rates of the Huisman model")
 
-plt.savefig("Figure, figure1a, violin plots of invasion growth rate.pdf")
+plt.savefig("Figure, figure1, violin plots of invasion growth rate.pdf")
 
 maximum = round(np.amax(invasion_fluct),4)
 percents = 100*np.sum(invasion_fluct>0)/n
