@@ -130,3 +130,42 @@ def multispecies_equi(fitness, k_spec, I_in = I_in_def(40),runs = 5000):
         i+=1
     #return only communities that found equilibrium
     return equis_fix, unfixed
+    
+if __name__ == "__main__":
+    from scipy.integrate import odeint,simps
+    from load_pigments import real
+    import matplotlib.pyplot as plt
+    pigments = real[[0,5,6]] # chlo_a, phycoerythrin, phycocyanin
+    plt.plot(lambs,pigments.T)
+    plt.title("Pigments used")
+    n_com = 2
+    k_spec, alpha = spectrum_species(pigments, 3, 2, n_com)
+    plt.figure()
+    plt.title("Absorption of species")
+    plt.plot(lambs, k_spec[...,0])
+    phi = 2*1e8*np.random.uniform(0.9,1.1,(2,n_com))
+    l = 0.014*np.random.uniform(0.9,1.1,(2,n_com))
+    plt.show()
+    # check whether multispecies_equi does a good job
+    equi,unfixed = multispecies_equi(phi/l,k_spec)
+    
+    I_in = lambda t: I_in_def(40)
+    # solve with odeint
+    def multi_growth(N_r,t):
+        N = N_r.reshape(-1,n_com)
+        # growth rate of the species
+        # sum(N_j*k_j(lambda))
+        tot_abs = np.einsum("sc,lsc->lc", N, k_spec)[:,np.newaxis]
+        # growth part
+        growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
+                           *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
+        return (N*(growth-l)).flatten()
+        
+    sols = odeint(multi_growth, equi.reshape(-1), np.linspace(0,100,10))
+    print("Solution given by odeint: ",sols[-1].reshape(-1,2))
+    print("Solution by homemade function:",equi)
+    
+    
+    
+    
+    
