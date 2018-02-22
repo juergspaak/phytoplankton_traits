@@ -58,22 +58,22 @@ def I_in_t(I_in1, I_in2, period):
         return part_1*I_in1+(1-part_1)*I_in2
     return fun
     
-def compute_I_out_intensity(N,I_in,k_spec, time):
+def compute_I_out_intensity(N,I_in,k_spec, time, axis = -1):
     # computes intensity of outcoming light, integrated over all wave length
     I_out_data = np.empty((N.shape[0],len(lambs), N.shape[2]))
     for i in range(len(I_out_data)):
         tot_abs = np.einsum("sc,lsc->lc", N[i], k_spec)
-        I_out_data = I_in(time[i]).reshape(-1,1)*np.exp(-tot_abs)\
+        I_out_data[i] = I_in(time[i]).reshape(-1,1)*np.exp(-tot_abs)\
                         /simps(I_in(time[i]),dx = dlam)
     intens = simps(I_out_data, dx = dlam, axis = 1)
-    return np.percentile(intens,[5,25,50,75,95])
+    return np.percentile(intens,[5,25,50,75,95], axis = axis)
 
 # standard incoming light fluctuation    
 I_in_ref = I_in_t(mf.I_in_def(40/300,450,50), mf.I_in_def(40/300,650,50),10)
    
 def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
     fac = 3, l_period = 10, pigs = "real", I_in = I_in_ref,t_const = [0,0.5],
-    randomized_spectra = 0):
+    randomized_spectra = 0, allow_shortcut = False):
     """Computes the number of coexisting species
     
     Parameters:
@@ -128,7 +128,6 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
     unfixed = np.empty((len(t_const),phi.shape[-1]))
     
     for i,t in list(enumerate(t_const)):
-        print(t ,l_period)
         equi[i], unfixed[i] = mf.multispecies_equi(phi/l, k_spec, 
                             I_in(t*l_period))
     # consider only communities, where algorithm found equilibria (all regimes)
@@ -140,16 +139,25 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
 
     # richness in constant lights
     richness_const = np.sum(equi>0, axis = 1)
-    
-    # find cases, where equilibria species change
-    surv = equi>0 # species that survived
-    # XOR(present in one, present in all)
-    change_dom = np.logical_xor(np.sum(surv, axis = 0), 
-                                np.prod(surv, axis = 0))
-    change_dom = change_dom.sum(axis = 0)>0 # at least one species changes
+    if allow_shortcut:
+        # find cases, where equilibria species change
+        surv = equi>0 # species that survived
+        # XOR(present in one, present in all)
+        change_dom = np.logical_xor(np.sum(surv, axis = 0), 
+                                    np.prod(surv, axis = 0))
+        change_dom = change_dom.sum(axis = 0)>0 # at least one species changes
+    else:
+        change_dom = np.full(phi.shape[-1], True, dtype = "bool")
     # outcoming light intensity for the constant light cases
-    intens_const = compute_I_out_intensity(equi, I_in, k_spec, 
-                                         np.array(t_const)*l_period)
+    intens_I_out = np.full((len(t_const)+2,5),np.nan)
+    intens_I_out[:len(t_const)] = compute_I_out_intensity(equi, I_in, k_spec, 
+                                         np.array(t_const)*l_period).T
+
+    # Compute EF, biovolume
+    EF_biovolume = np.full(intens_I_out.shape, np.nan)
+    EF_biovolume[:len(t_const)] = np.percentile(np.sum(equi, axis = 1),
+                                [5,25,50,75,95], axis = -1).T
+    
     # fluctuation is unimportant/didn't change anything
     if change_dom.sum()==0: 
         # find number of coexisting species through time
@@ -158,7 +166,7 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
         ret_mat = np.array([[(richness==i+1).sum() for i in range(10)] for 
             richness in [*richness_const, richness_const_max, richness_fluc]])
         return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1),\
-                intens_const, np.ones(5)*np.nan           
+                intens_I_out , EF_biovolume        
         
     # throw away communities, that have no change in dominance
     phi = phi[...,change_dom]
@@ -167,7 +175,7 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
     equi = equi[..., change_dom]
     
     # set 0 all species that did not survive in any of the cases
-    dead = np.sum(surv[...,change_dom], axis = 0)==0
+    dead = np.sum((equi>0)[...,change_dom], axis = 0)==0
     phi[dead] = 0
     l[dead] = 1 # to aboid division by 0
     k_spec[:,dead] = 0
@@ -233,8 +241,10 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
     #######################################################################
     # preparing return values for richnesses computation
     
-    intens_fluc = compute_I_out_intensity(sols,I_in,k_spec, 
-                                          np.linspace(0,l_period,10))        
+    intens_I_out[-1] = compute_I_out_intensity(sols,I_in,k_spec, 
+                np.linspace(0,l_period,10), axis = (0,1))  
+    EF_biovolume[:len(t_const)] = np.percentile(np.sum(sols, axis = (0,1)),
+                                [5,25,50,75,95], axis = -1)      
     # find number of coexisting species through time
     richness_fluc = np.sum(sols[-1]>0,axis = 0)
     # add the cases where fluctuations didn't change anything
@@ -244,5 +254,4 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
     
     ret_mat = np.array([[(richness==i+1).sum() for i in range(10)] for 
         richness in [*richness_const, richness_const_max, richness_fluc]])
-    return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1),\
-                        intens_const, intens_fluc
+    return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1),intens_I_out, EF_biovolume

@@ -66,8 +66,8 @@ I_in_datas[4] = sigmas
 # different communities, twice constant light, maximum of those, fluctuating
 cases = ["Const1", "Const2", "Const3", "Const4", "max_Const", "Fluctuating"]
 
-percentile_cols = ["const,{}".format(i) for i in ["05",25,50, 75, 95]]\
-                   +["fluct,{}".format(i) for i in ["05",25,50, 75, 95]]
+percentile_cols = ["I_out,{}".format(i) for i in ["05",25,50, 75, 95]]+\
+                   ["biovolume,{}".format(i) for i in ["05",25,50, 75, 95]]
 columns = ['r_pig', 'r_spec', 'r_pig_spec','fac', 'I_in_cond', 'case', 
            'period','pigments'] + list(range(1,11))+percentile_cols \
             + ["loc1", "loc2", "lux1", "lux2", "sigma"]
@@ -81,14 +81,14 @@ for j in range(10):
      # create the light regime
     I_in = fluc_continuous(locs[i], luxs[i], periods[i], sigma = sigmas[i])
     # compute the richnesses
-    richnesses, intens_const, intens_fluct = fluctuating_richness(r_pigs[i], 
+    richnesses, I_out, biovolume = fluctuating_richness(r_pigs[i], 
             r_specs[i], r_pig_specs[i],n_com , facs[i], periods[i],pigments[i],
             I_in,np.linspace(0,0.5,4), randomized_pigments)
     # save to dataframe
     for k in range(len(cases)):
         data.iloc[len(cases)*i+k] = [r_pigs[i], r_specs[i], r_pig_specs[i],
             facs[i], I_in_conds[i], cases[k],periods[i],pigments[i]]\
-            + list(richnesses[k]) +list(intens_const)+list(intens_fluct)\
+            + list(richnesses[k]) +list(I_out[k])+list(biovolume[k])\
             + list(I_in_datas[:,i])
     i+=1
 test_time_end = timer()
