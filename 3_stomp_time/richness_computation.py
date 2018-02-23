@@ -236,14 +236,14 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
         start_dens = sol[-1,:,unfixed].T
         # remove very rare species
         start_dens[start_dens<start_dens.sum(axis = 0)/5000] = 0
-        counter += 1             
+        counter += 1
 
     #######################################################################
     # preparing return values for richnesses computation
     
     intens_I_out[-1] = compute_I_out_intensity(sols,I_in,k_spec, 
                 np.linspace(0,l_period,10), axis = (0,1))  
-    EF_biovolume[:len(t_const)] = np.percentile(np.sum(sols, axis = (0,1)),
+    EF_biovolume[1+len(t_const)] = np.percentile(np.sum(sols, axis = (0,1)),
                                 [5,25,50,75,95], axis = -1)      
     # find number of coexisting species through time
     richness_fluc = np.sum(sols[-1]>0,axis = 0)
@@ -255,3 +255,16 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
     ret_mat = np.array([[(richness==i+1).sum() for i in range(10)] for 
         richness in [*richness_const, richness_const_max, richness_fluc]])
     return ret_mat/ret_mat.sum(axis = 1).reshape(-1,1),intens_I_out, EF_biovolume
+
+if __name__ == "__main__":
+    r_pig = 5
+    r_spec = 10
+    r_pig_spec = 3
+    n_com = 100
+    fac = 3
+    l_period = 10
+    pigs = "real"
+    I_in = I_in_ref
+    t_const = [0,0.5]
+    randomized_spectra = 0
+    allow_shortcut = False
