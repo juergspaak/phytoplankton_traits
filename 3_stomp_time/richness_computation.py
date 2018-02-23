@@ -244,6 +244,7 @@ def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
     intens_I_out[-1] = compute_I_out_intensity(sols,I_in,k_spec, 
                 np.linspace(0,l_period,10), axis = (0,1))  
     EF_biovolume[1+len(t_const)] = np.percentile(np.sum(sols, axis = (0,1)),
+
                                 [5,25,50,75,95], axis = -1)      
     # find number of coexisting species through time
     richness_fluc = np.sum(sols[-1]>0,axis = 0)
