@@ -67,20 +67,24 @@ chlo_a = np.genfromtxt(path+"chloro_stomp.csv", delimiter = ',').T
 chlo_a = interp1d(chlo_a[0], chlo_a[1],kind = "linear")(lambs[::6])
 chlo_a = interp1d(lambs[::6], chlo_a,kind = "cubic")(lambs)
 
-fig, ax = plt.subplots(2,sharex = True, sharey = True, figsize = (9,7))
+fig, ax = plt.subplots(2,1, sharex = True, sharey = True, figsize = (9,7))
 plt.axis([400,700,0,1.2])
-ax[0].plot(lambs, phycocy,'c:', label = "Phycocyanin")
+ax[0].plot(lambs, phycocy,'c--')
 ax[0].plot(lambs, phycocy+chlo_a, 'b', linewidth = 2)
-ax[0].plot(lambs, chlo_a-0.05,'g:')
+ax[0].plot(lambs, chlo_a-0.05,'g--')
 plt.yticks([0.0,0.5,1.0])
 plt.xticks([400,450,510,570,650,700])
+ax[1].plot(lambs, 1e-10*phycocy,'c--', label = "Phycocyanin")
 ax[0].set_xticklabels([400,"blue", "green", "yellow", "red",700], fontsize = 18)
 
 
-ax[1].plot(lambs, phycoer,'r:',label = "phycoerithrin")
+ax[1].plot(lambs, phycoer,'r--',label = "Phycoerythrin")
 
-ax[1].plot(lambs, chlo_a-0.05,'g:', label = "Chlo-A")
+ax[1].plot(lambs, chlo_a-0.05,'g--', label = "Chlo-A")
 ax[1].plot(lambs, phycoer+chlo_a, 'b', linewidth = 2, label = "Absorption")
+ax[1].set_xlabel("Wavelength")
+ax[0].set_ylabel(r"Absorption per biovolume $10^{-9} cm^2 fl^{-1}$")
+ax[1].set_ylabel(r"Absorption per biovolume $10^{-9} cm^2 fl^{-1}$")
 plt.legend(loc = "upper right")
 plt.yticks([0.0,0.5,1.0])
 

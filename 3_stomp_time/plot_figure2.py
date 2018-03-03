@@ -8,14 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plot_name(datas_org,ax = None,pigs = "random"):
-
-    datas = datas_org.copy()
-    datas = datas[datas["pigments"]==pigs[:4]]
-    # compute average for each community
-    num_data = np.array(datas[[str(i+1) for i in range(10)]])
-    ave_data = (np.arange(1,11)*num_data).sum(axis = -1)
-    datas["s_div"] = ave_data
+def plot_name(datas,ax = None, title = None, add_1 = True):
     
     # percentiles to be computed
     perc = np.array([5,25,75,95,50])
@@ -33,32 +26,37 @@ def plot_name(datas_org,ax = None,pigs = "random"):
             percentiles[1,i] = np.percentile(datas[index].s_div,perc)
         except IndexError:
             percentiles[1,i] = np.nan
-    percentiles[:,1] = 1
+    if add_1:
+        percentiles[:,1] = 1
     
     # plot the percentiles
     color = ['orange', 'yellow', 'purple', 'blue','black']
-
     for i in range(len(perc)):
         star, = ax.plot(np.arange(21),percentiles[0,:,i],'*',color = color[i])
         triangle, = ax.plot(np.arange(21),percentiles[1,:,i],'^',
                             color = color[i])
 
     ax.legend([star,triangle],["Fluctuation", "Constant"],loc = "upper left")
-    ax.set_title("{} pigments".format(pigs),fontsize = 16)
+    ax.set_title("{} pigments per species".format(title),fontsize = 16)
     ax.set_xlim([0.8,20.2])
     ax.set_ylim([0.8,4])
 
 try:
     datas
 except NameError:
-    datas = pd.read_csv("data/data_random_continuous_all.csv")    
-fig,ax = plt.subplots(1,2, sharey = True, sharex = True,figsize =(10,5))
-ax[0].set_ylabel("Species diversity", fontsize = 16)
-ax[0].set_xlabel("Trait diversity", fontsize = 16)
-ax[1].set_xlabel("Trait diversity", fontsize = 16)
-plt.title("Species diversity vs Trait diversity", fontsize = 16)
-plot_name(datas, ax[0], "real")
-plot_name(datas, ax[1], "random")
+    datas = pd.read_csv("data/data_random_continuous_all.csv")
+datas_nat = datas[datas.pigments == "real"]
+fig,ax = plt.subplots(3,1, sharex = True, sharey = True, figsize = (9,9))
+
+plot_name(datas_nat[datas_nat.r_pig_spec==1],ax[1], 1)
+plot_name(datas_nat[datas_nat.r_pig_spec==4],ax[2], 5, False)
+plot_name(datas_nat,ax[0], "1-10")
+
+ax[0].set_ylabel("Species richness", fontsize = 16)
+ax[1].set_ylabel("Species richness", fontsize = 16)
+ax[2].set_ylabel("Species richness", fontsize = 16)
+ax[-1].set_xlabel("Regional pigment richness", fontsize = 16)
+plt.suptitle("Species richness vs. Trait richness", fontsize = 16)
 ax[1].set_xticks([1,5,10,15,20])
 ax[1].set_xticks([1,5,10,15,20])
 
