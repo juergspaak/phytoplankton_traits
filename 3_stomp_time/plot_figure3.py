@@ -77,7 +77,7 @@ cov = richnesses*(np.arange(1,r_pig+1)[:,np.newaxis]-av_pig)*\
 
 beta = np.sum(cov)/var_pig
 alpha = av_spe -beta*av_pig
-plt.figure(figsize = (7,7))
+fig, ax = plt.subplots(1,2,figsize = (11,7))
 
 ###############################################################################
 #plot real data
@@ -87,40 +87,96 @@ n_pig = np.array([6,8,12,8,11,12,11,14,15,16,11,14,16,17,18]) #num. of pigments
 
 #linear regression
 slope, intercept, r, p, stderr = linregress(n_pig,trans(n_spe))
-plt.plot(n_pig, trans(n_spe),  'g^', label = "Initial diversity, experimental")
-plt.plot(range(6,20), intercept+slope*np.arange(6,20),'g')
-plt.axis([ 5,19,trans(0.8), trans(20)])
-plt.xlabel("Trait diversity")
-plt.ylabel("Species diversity (log)")
-
-plt.savefig("Figure, Regression of pigments, real data")
+ax[0].plot(n_pig, trans(n_spe),  'go', label = "experimental")
+ax[0].plot(range(6,20), intercept+slope*np.arange(6,20),'g')
+ax[0].axis([ 5,19,trans(0.8), trans(20)])
+ax[0].set_xlabel("Pigment richness", fontsize = 16)
+ax[0].set_ylabel("Species richness (log)", fontsize = 16)
+ax[0].set_title("A", fontsize = 16)
+fig.savefig("Figure, Regression of pigments, real data")
 
 ###############################################################################
 # plot simulated data
-plt.plot( np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis],axis = 0),
-         log_r_range,'ro', label = "Initial diversity, theoretical")
+ax[0].plot( np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis],axis = 0),
+         log_r_range,'ro', label = "theory, short term")
 pig_rich_av = np.sum(richnesses*np.arange(1,r_pig+1)[:,np.newaxis],axis = 0)
 slope, intercept, r, p, stderr = linregress(pig_rich_av,log_r_range)
-plt.plot(range(6,20), intercept+slope*np.arange(6,20),'r:')
-plt.plot(np.arange(r_pig) , alpha+beta*np.arange(r_pig),'r')
+ax[0].plot(range(6,20), intercept+slope*np.arange(6,20),'r:')
+ax[0].plot(np.arange(r_pig) , alpha+beta*np.arange(r_pig),'r')
 
-datas = pd.read_csv("../4_stomp_time/data/data_random_continuous_all.csv")
+try:
+    datas_EF
+except NameError:
+    datas_EF = pd.read_csv("data/data_random_continuous_all_with_EF.csv")
 means = np.zeros(20)
 for i in range(20): # compute the percentiles
-    index = np.logical_and(datas.case=="Const1", datas.r_pig == i+1)
-    index = np.logical_and(index, np.logical_not(np.isnan(datas.s_div)))
-    means[i] = np.median(datas[index].s_div)
+    index = np.logical_and(datas_EF.case=="Const1", datas_EF.r_pig == i+1)
+    index = np.logical_and(index, np.logical_not(np.isnan(datas_EF.s_div)))
+    means[i] = np.median(datas_EF[index].s_div)
 
-plt.plot(np.arange(r_pig), trans(means),'bo',label = "Actual diversity, theoretical")
+ax[0].plot(np.arange(r_pig), trans(means),'^',color = "black", 
+                        label = "theory, long term")
 
-plt.plot(np.arange(r_pig), trans(np.arange(r_pig)),'c',label = "Maximal diversity, theoretical")
-
-
-plt.legend(loc = "lower right")
-plt.savefig("Figure, nature data.pdf")
+ax[0].plot(np.arange(r_pig), trans(np.arange(r_pig)),'c',label = "maximum")
 
 
-plt.show()
+ax[0].legend(loc = "upper left")
+
 print(alpha, beta)
 print(intercept, slope, r)
+###############################################################################
+# plot panel B
+
+def plot_name(datas,y_data = "biovolume,50",ax = None, title = None):
+    
+    # percentiles to be computed
+    perc = np.array([5,95,50])
+    percentiles = np.empty((21,len(perc)))
+    for i in range(21): # compute the percentiles
+        index = np.logical_and(datas.case=="Const1", datas.r_pig == i)
+        index = np.logical_and(index, np.logical_not(np.isnan(datas[y_data])))
+        try:
+            percentiles[i] = np.percentile(datas[index][y_data],perc)
+        except IndexError:
+            percentiles[i] = np.nan
+    
+       # plot the percentiles
+    color = ['orange',  'blue', 'black']
+    for i in range(len(perc)):
+        star, = ax.plot(np.arange(21),percentiles[:,i],'^',color = color[i])
+
+    #ax.legend([star, triangle],["Constant", "fluctuating"],loc = "upper left")
+    ax.set_title("{} pigments per species".format(title),fontsize = 16)
+    ax.set_xlim([0.8,20.2])
+    #ax.semilogy()
+
+try:
+    datas_EF
+except NameError:
+    datas_EF = pd.read_csv("data/data_random_continuous_all_with_EF.csv")
+datas_nat_EF = datas_EF[datas_EF.pigments == "real"]
+
+datas_nat_EF["absorbance"] = np.log(datas_nat_EF["lux1"]/
+                datas_nat_EF["I_out,50"])/datas_nat_EF["biovolume,50"]
+plot_name(datas_nat_EF,"absorbance",ax[1], "1-10")
+
+ax[1].set_ylabel("Total absorbance (per cell)", fontsize = 16)
+
+ax[1].set_xlabel("Pigment richness", fontsize = 16)
+ax[1].set_title("B", fontsize = 16)
+ax[1].set_xticks([1,5,10,15,20])
+
+striebel_data = np.genfromtxt("../../2_data/3. Different pigments/"
+                +"absorbance_pigment_richness_real_data.csv",delimiter = ",")
+
+ax_striebel = ax[1].twinx()
+ax_striebel.plot(*([[1,300]]*striebel_data).T,'go')
+# add linear regession to striebel
+pig_val = np.linspace(6,18,10)
+
+ax_striebel.plot(pig_val, 300*0.005*(pig_val-1),'g')
+ax_striebel.set_ylabel("Total absorbance (per mg C)", fontsize = 16)
+
+
+fig.savefig("Figure, EF vs trait richness.pdf")
     
