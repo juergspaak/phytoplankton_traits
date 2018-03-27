@@ -36,8 +36,8 @@ n_com = 100 # number of communities in each setting
 r_pigs_pre = np.random.randint(2,21,2*iters) 
 r_pig_specs_pre = np.random.randint(1,max_r_spec_rich,2*iters)
 # richness of pigments in community and in each species
-r_pigs = r_pigs_pre[r_pigs_pre>r_pig_specs_pre][:iters]
-r_pig_specs = r_pig_specs_pre[r_pigs_pre>r_pig_specs_pre][:iters]
+r_pigs = r_pigs_pre[r_pigs_pre>=r_pig_specs_pre][:iters]
+r_pig_specs = r_pig_specs_pre[r_pigs_pre>=r_pig_specs_pre][:iters]
 
 r_specs = np.random.randint(1,40,iters) # richness of species
 facs= np.random.uniform(1,5,iters) # maximal fitness differences

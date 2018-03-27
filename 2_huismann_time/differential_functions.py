@@ -61,8 +61,7 @@ def own_ode(f,y0,t, *args, steps = 10, s = 2):
         y0 : array
             Initial condition on y (can be a vector).
         t : array
-            A sequence of time points for which to solve for y. 
-            The initial value point should be the first element of this sequence.
+            Start and endpoint of time
         args : tuple, optional
             Extra arguments to pass to function.
             
@@ -77,7 +76,10 @@ def own_ode(f,y0,t, *args, steps = 10, s = 2):
              [-3/8, 37/24, -59/24, 55/24], # s = 4
              [251/720, -637/360, 109/30, -1387/360, 1901/720]] # s = 5
     coefs = np.array(coefs[s-1]) #choose the coefficients
-    ts, h = np.linspace(*t, steps, retstep = True) # timesteps
+    try:
+        ts, h = np.linspace(*t, steps, retstep = True) # timesteps
+    except TypeError:
+        raise TypeError("`t` must be start and endpoint")
     # to save the solution and the function values at these points
     sol = np.empty((steps,)+ y0.shape)
     dy = np.empty((steps,)+ y0.shape)

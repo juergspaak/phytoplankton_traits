@@ -52,10 +52,8 @@ def spectrum_species(pigments, r_pig, r_spec, n_com, r_pig_spec = 2):
     # check each communitiy has at most r_pig pigments
     if not ((np.sum(check, axis =1)>0).sum(axis = 0)<r_pig+1).all():
         raise
-    # proportion of pigments for each species
-    alpha[data, new, np.arange(n_com)] = np.random.beta(0.1,0.1,(data.shape))
-    #normalize,each species has same amount of pigments
-    alpha /= np.sum(alpha, 0)
+    # normalize,each species has same amount of expected pigments
+    alpha /= r_pig_spec/2
     # absorption spectrum of the species
     k_spec = np.einsum('psc,pl->lsc', alpha,pigments)
     return k_spec, alpha
@@ -132,7 +130,7 @@ def multispecies_equi(fitness, k_spec, I_in = I_in_def(40),runs = 5000):
     return equis_fix, unfixed
     
 if __name__ == "__main__":
-    from scipy.integrate import odeint,simps
+    from scipy.integrate import odeint
     from load_pigments import real
     import matplotlib.pyplot as plt
     pigments = real[[0,5,6]] # chlo_a, phycoerythrin, phycocyanin

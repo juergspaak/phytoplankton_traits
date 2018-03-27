@@ -6,6 +6,7 @@ real_pigments: loads n predefined (in nature occuring) pigments
 random_pigment and realpigments have the same 'in' and 'out' parameters"""
 
 import numpy as np
+import pandas as pd
 from scipy.interpolate import interp1d
 
 lambs, dlam = np.linspace(400,700,101, retstep = True)
@@ -38,17 +39,35 @@ def real_pigments(n):
     path = "pigment_data_python.csv"
     pig_data = (np.genfromtxt(path, delimiter = ',').T)
     lams = np.linspace(400,700,151)
-    #i=i to have different pigs
     return np.array([10**-7*interp1d(lams, pig_data[i])(lambs)
                         for i in range(n)])
     
 real = real_pigments(29)
 rand = random_pigments(29)
 
+# load pigments from küpper
+file = "../../2_data/3. Different pigments/gp_krueger.csv"
+
+gp_data = pd.read_csv(file)
+absorptivity = pd.read_csv(file[:35]+"absorptivity_Krueger.csv")
+
+a = gp_data.iloc[::3,2:].values
+xp = gp_data.iloc[1::3, 2:].values
+sig = gp_data.iloc[2::3,2: ].values
+
+kuepper = np.nansum(a*np.exp(-0.5*((xp-lambs.reshape(-1,1,1))/sig)**2),-1).T
+kuepper *= 1e-8*absorptivity.iloc[:,1].reshape(-1,1)
+real = kuepper[np.isfinite(kuepper[:,0])]
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     plt.plot(lambs, real.T)
     plt.title("real pigments")
     plt.figure()
+    plt.plot(lambs, kuepper.T)
+    plt.title("Pigments form küpper")
+    plt.figure()
     plt.plot(lambs, rand.T)
     plt.title("random pigments")
+    
