@@ -42,6 +42,9 @@ def gen_com(r_pig, r_spec, r_pig_spec, fac,pigs = "real", n_com = 1000):
     if pigs == "rand":
         k_spec, alpha = mf.spectrum_species(lp.random_pigments(r_pig), 
                                             r_pig,r_spec,n_com,r_pig_spec)
+    elif pigs == "kuep":
+        k_spec, alpha = mf.spectrum_species(lp.kuepper, 
+                                            r_pig,r_spec,n_com,r_pig_spec)
     else:
         k_spec, alpha = mf.spectrum_species(lp.real, 
                                             r_pig,r_spec,n_com,r_pig_spec)
@@ -70,7 +73,7 @@ def compute_I_out_intensity(N,I_in,k_spec, time, axis = -1):
 
 # standard incoming light fluctuation    
 I_in_ref = I_in_t(mf.I_in_def(40/300,450,50), mf.I_in_def(40/300,650,50),10)
-   
+
 def fluctuating_richness(r_pig = 5, r_spec = 10, r_pig_spec = 3,n_com = 100,
     fac = 3, l_period = 10, pigs = "real", I_in = I_in_ref,t_const = [0,0.5],
     randomized_spectra = 0, allow_shortcut = False):

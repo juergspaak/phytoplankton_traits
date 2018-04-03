@@ -10,6 +10,8 @@ import richness_computation as rc
 from I_in_functions import I_in_def
 from load_pigments import dlam
 
+time = np.arange(500)
+
 def find_EF(r_spec, r_pig, r_pig_spec, n_com):
     fac = 2
     [phi, l], k_spec, alpha = rc.gen_com(r_pig,r_spec,r_pig_spec, 
@@ -29,15 +31,14 @@ def find_EF(r_spec, r_pig, r_pig_spec, n_com):
         growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
                            *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
         return (N*(growth-l)).flatten()
-    time = [1,2,3,5,10,20,30,40,50,100]
     
     sol_ode = odeint(multi_growth, start_dens.reshape(-1), time)
     sol2 = sol_ode.reshape(len(time),r_spec,n_com)
     return sol2
 
-time = [1,2,3,5,10,20,30,40,50,100]    
+   
 n_com = 50
-iters = 100000
+iters = 10
 r_pig = np.random.randint(1,20,2*iters)
 r_spec = np.random.randint(5,41,iters)
 r_pig_spec = np.random.randint(1,20,2*iters)
@@ -46,31 +47,30 @@ r_pig, r_pig_spec = r_pig[goods][:iters], r_pig_spec[goods][:iters]
 sols = np.zeros((iters, len(time),n_com))
 richness = np.empty((iters, len(time), n_com))
 
-def saveit(sols, richness):
+def saveit(sols, richness,i):
     sols_mean = np.nanmean(sols, axis = -1)
     sols_var = np.nanvar(sols, axis = -1)
     df = pd.DataFrame()
-    df["r_pig"] = r_pig
-    df["r_spec"] = r_spec
-    df["r_pig_spec"] = r_pig_spec
+    df["r_pig"] = r_pig[:i+1]
+    df["r_spec"] = r_spec[:i+1]
+    df["r_pig_spec"] = r_pig_spec[:i+1]
     
-    for i,t in enumerate(time):
-        df["mean at day {}".format(t)] = sols_mean[:,i]
-    for i,t in enumerate(time):
-        df["var at day {}".format(t)] = sols_var[:,i]
+    for j,t in enumerate(time):
+        df["mean at day {}".format(t)] = sols_mean[:,j]
+    for j,t in enumerate(time):
+        df["var at day {}".format(t)] = sols_var[:,j]
     df.to_csv("EF_and_coexistence.csv")
     
     rich_mean = np.nanmean(richness, axis = -1)
     rich_var = np.nanvar(richness, axis = -1)
-    df = pd.DataFrame()
-    df["r_pig"] = r_pig
-    df["r_spec"] = r_spec
-    df["r_pig_spec"] = r_pig_spec
+    df["r_pig"] = r_pig[:i+1]
+    df["r_spec"] = r_spec[:i+1]
+    df["r_pig_spec"] = r_pig_spec[:i+1]
 
-    for i,t in enumerate(time):
-        df["mean at day {}".format(t)] = rich_mean[:,i]
-    for i,t in enumerate(time):
-        df["var at day {}".format(t)] = rich_var[:,i]
+    for j,t in enumerate(time):
+        df["mean at day {}".format(t)] = rich_mean[:,j]
+    for j,t in enumerate(time):
+        df["var at day {}".format(t)] = rich_var[:,j]
     df.to_csv("EF_and_coexistence_richness.csv") 
 
 start = timer()
@@ -81,7 +81,7 @@ for i in range(iters):
     richness[i] = np.nansum(EF>1e7, axis = 1)
     if i%100==99:
         print(i,r_spec[i], r_pig[i], r_pig_spec[i], timer()-start)
-        saveit(sols[:i], richness[:i])
+        saveit(sols[:i+1], richness[:i+1],i)
         
 sols_mean = np.nanmean(sols, axis = -1)
 sols_var = np.nanvar(sols, axis = -1)
