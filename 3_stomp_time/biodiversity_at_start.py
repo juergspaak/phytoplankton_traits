@@ -6,9 +6,6 @@ Plots the regression of pigment richness, real data, purly random and
 model prediction
 """
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from scipy.stats import linregress
 
 pig_spe_id = np.genfromtxt("pig_spe_id.csv",
                            delimiter = ";")[1:-1,1:-1]

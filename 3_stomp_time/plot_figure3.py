@@ -120,6 +120,8 @@ def plot_results(dictionary, ylabel, ax_org, twinx = False, legend = True):
     ax.set_xlabel("Pigment richness")
         
 fig, ax = plt.subplots(1,2,figsize = (9,9))
+ax[0].set_title("A")
+ax[1].set_title("B")
 plot_results(datas_biodiv, "Species richness",ax[0])
 print("new")
 plot_results(datas_EF,r"Biovolume $[fl ml^{-1}]$",ax[1], True, False)
