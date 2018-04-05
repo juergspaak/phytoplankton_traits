@@ -27,7 +27,6 @@ def find_survivors(equi, species_id):
                     for i in range(n_diff_spe)]
 
 def pigment_richness(equi, alpha):
-    print(equi.shape, alpha.shape)
     return np.mean(np.sum(np.sum(equi*alpha, axis = 1)>0, axis = 0))
 
 # standard incoming light fluctuation    
@@ -35,7 +34,7 @@ I_in_ref = I_in_t(mf.I_in_def(40/300,450,50), mf.I_in_def(40/300,650,50),10)
 
 def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
     n_com = 100,fac = 3,randomized_spectra = 0, l_period = 10,
-    I_in = I_in_ref, t_const = [0,0.5], allow_shortcut = False):
+    I_in = I_in_ref, t_const = [0,0.5]):
     """Computes the number of coexisting species
     
     Parameters:
@@ -75,8 +74,7 @@ def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
     # generate species and communities
     par,k_spec,alpha,species_id = gen_com(present_species, r_spec, fac, n_com)
     # compute pigment richness at the beginning (the same in all communities)
-    r_pig_start = np.sum(np.sum(alpha[:len(present_species),:,0], axis = 1)>0,
-                         axis = 0)
+    r_pig_start = pigment_richness(1, alpha)
     if randomized_spectra>0:
         # slightly change the spectra of all species
         # equals interspecific variation of pigments
@@ -193,7 +191,7 @@ def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
     #######################################################################
     # preparing return values for richnesses computation
     EF_biovolume[-1] = np.percentile(np.sum(sols, axis = (0,1)),
-                                [5,25,50,75,95], axis = -1)    
+                                [5,25,50,75,95], axis = -1)/len(sols)   
     # find number of coexisting species through time
     richness_equi[-1] = np.mean(np.sum(sols[-1]>0,axis = 0))
     surviving_species[-1] = find_survivors(sols[-1], species_id)
