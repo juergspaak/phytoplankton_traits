@@ -6,13 +6,11 @@ Plots the regression of pigment richness, real data, purly random and
 model prediction
 """
 import numpy as np
+import pandas as pd
 
-pig_spe_id = np.genfromtxt("pig_spe_id.csv",
-                           delimiter = ";")[1:-1,1:-1]
+pig_spe_id = pd.read_csv("pig_spe_id.csv",delimiter = ",")
 
-# pigments at 3,6,8 are for structurizing only
-pig_spe_id = pig_spe_id[np.array([0,1,2,4,5,7,8]+list(range(10,23)))]
-pig_spe_id = pig_spe_id >0.0
+pig_spe_id = pig_spe_id.values[:,1:] >0.0
 r_pig, r_spe = pig_spe_id.shape
     
 n_exp = 10000 #number of experiments for each richness of species
