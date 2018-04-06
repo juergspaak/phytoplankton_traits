@@ -61,8 +61,8 @@ cases = ["Const1", "Const2", "Const3", "Const4", "Fluctuating"]
 EF_cols = ["Pigment concentration",
                    *["biovolume,{}".format(i) for i in ["05",25,50, 75, 95]]]
 species_cols = ["survive {}".format(i) for i in range(n_diff_spe)]
-columns = ["species","r_spec", "fac","period","I_in_cond","loc1", "loc2",
-           "lux1", "lux2", "sigma", "r_pig_start", "r_pig_equi", 
+columns = ["case","species","r_spec", "fac","period","I_in_cond","loc1",
+            "loc2","lux1", "lux2", "sigma", "r_pig_start", "r_pig_equi", 
            "r_spec_equi"]+species_cols+EF_cols
 
 data = pd.DataFrame(None,columns = columns, index = range(len(cases)*iters))
@@ -78,8 +78,8 @@ def fill_data(i):
             r_specs[i], n_com , facs[i], randomized_pigments, periods[i],
             I_in,np.linspace(0,0.5,4))
     # save to dataframe
-    for k in range(len(cases)):
-        data.iloc[len(cases)*i+k] = [present_species, r_specs[i], facs[i], 
+    for k,case in enumerate(cases):
+        data.iloc[len(cases)*i+k] = [case,present_species, r_specs[i], facs[i], 
                   periods[i], I_in_conds[i], *locs[i], *luxs[i], sigmas[i],
                 r_pig_start, r_pig_equi[k], richness_equi[k], 
                 *surviving_species[k],EF_pigment[k],*EF_biovolume[k]]

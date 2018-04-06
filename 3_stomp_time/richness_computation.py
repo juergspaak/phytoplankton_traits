@@ -27,7 +27,7 @@ def find_survivors(equi, species_id):
                     for i in range(n_diff_spe)]
 
 def pigment_richness(equi, alpha):
-    return np.mean(np.sum(np.sum(equi*alpha, axis = 1)>0, axis = 0))
+    return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
 # standard incoming light fluctuation    
 I_in_ref = I_in_t(mf.I_in_def(40/300,450,50), mf.I_in_def(40/300,650,50),10)
@@ -105,10 +105,12 @@ def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
     richness_equi[:-1] = np.mean(np.sum(equi>0, axis = 1),axis = 1)
     
     surviving_species = np.zeros((len(t_const)+1,n_diff_spe))
-    r_pig_equi = np.zeros(len(t_const)+1)
     for i in range(len(t_const)):
         surviving_species[i] = find_survivors(equi[i], species_id)
-        r_pig_equi[i] = pigment_richness(equi[i], alpha)
+        
+    r_pig_equi = np.zeros(len(t_const)+1)
+    r_pig_equi[:-1] = pigment_richness(equi[:,np.newaxis], alpha)
+
     # Compute EF, biovolume
     EF_biovolume = np.full((len(t_const)+1,5),np.nan)
     EF_biovolume[:len(t_const)] = np.percentile(np.sum(equi, axis = 1),

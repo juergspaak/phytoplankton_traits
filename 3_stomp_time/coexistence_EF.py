@@ -1,27 +1,41 @@
 import numpy as np
-import matplotlib.pyplot as plt
+
 import pandas as pd
-import warnings
+
 from scipy.integrate import simps, odeint
 from timeit import default_timer as timer
 
 import richness_computation as rc
+from generate_species import gen_com, n_diff_spe
+from multispecies_functions import multispecies_equi
 
 from I_in_functions import I_in_def
 from load_pigments import dlam
 
-time = np.arange(500)
+import sys
+# getting data from jobscript 
+try:                    
+    save = sys.argv[1]
+except IndexError:
+    save = np.random.randint(100000)
 
-def find_EF(r_spec, r_pig, r_pig_spec, n_com):
-    fac = 2
-    [phi, l], k_spec, alpha = rc.gen_com(r_pig,r_spec,r_pig_spec, 
-                    fac,n_com = n_com)
-    
-    start_dens = np.full(phi.shape, 1.0)
-    start_dens *= 1e9/np.sum(start_dens, axis = 0)
-    
+save_string = "data/data_EF_time"+str(save)+".csv"
+time = np.array([0,2,5,10,15,20,50,100,500])
+
+def pigment_richness(equi, alpha):
+    return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
+
+def find_EF(r_spec, present_species, n_com):
+    [phi,l], k_spec, alpha, species_id = gen_com(present_species, r_spec, 
+                                        2, n_com)
+    # incoming light regime
     I_in = lambda t: I_in_def(40)
-    # solve with odeint
+    
+    # starting densities is 1% of equilibrium density
+    equi = multispecies_equi(phi/l, k_spec, I_in(0))[0]
+    start_dens = np.mean(equi, axis = 0)/100*np.ones(equi.shape) 
+    
+    # compute densities over time
     def multi_growth(N_r,t):
         N = N_r.reshape(-1,n_com)
         # growth rate of the species
@@ -31,128 +45,51 @@ def find_EF(r_spec, r_pig, r_pig_spec, n_com):
         growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
                            *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
         return (N*(growth-l)).flatten()
-    
     sol_ode = odeint(multi_growth, start_dens.reshape(-1), time)
-    sol2 = sol_ode.reshape(len(time),r_spec,n_com)
-    return sol2
+    sol_ode.shape = len(time), r_spec, n_com
 
-   
-n_com = 50
-iters = 10
-r_pig = np.random.randint(1,20,2*iters)
-r_spec = np.random.randint(5,41,iters)
-r_pig_spec = np.random.randint(1,20,2*iters)
-goods = r_pig>=r_pig_spec
-r_pig, r_pig_spec = r_pig[goods][:iters], r_pig_spec[goods][:iters]
-sols = np.zeros((iters, len(time),n_com))
-richness = np.empty((iters, len(time), n_com))
-
-def saveit(sols, richness,i):
-    sols_mean = np.nanmean(sols, axis = -1)
-    sols_var = np.nanvar(sols, axis = -1)
-    df = pd.DataFrame()
-    df["r_pig"] = r_pig[:i+1]
-    df["r_spec"] = r_spec[:i+1]
-    df["r_pig_spec"] = r_pig_spec[:i+1]
+    ###########################################################################
+    # prepare return fucntions
+    EF = np.mean(np.sum(sol_ode, axis = 1),axis = -1)
+    EF = np.append(EF, np.mean(np.sum(equi, axis = 0)))
     
-    for j,t in enumerate(time):
-        df["mean at day {}".format(t)] = sols_mean[:,j]
-    for j,t in enumerate(time):
-        df["var at day {}".format(t)] = sols_var[:,j]
-    df.to_csv("EF_and_coexistence.csv")
+    r_pig = rc.pigment_richness(sol_ode[:,np.newaxis]>=start_dens,alpha)
+    r_pig = np.append(r_pig, rc.pigment_richness(equi, alpha))
     
-    rich_mean = np.nanmean(richness, axis = -1)
-    rich_var = np.nanvar(richness, axis = -1)
-    df["r_pig"] = r_pig[:i+1]
-    df["r_spec"] = r_spec[:i+1]
-    df["r_pig_spec"] = r_pig_spec[:i+1]
+    r_spec = np.mean(np.sum(sol_ode>= start_dens, axis = 1), axis = -1)
+    r_spec = np.append(r_spec, np.mean(np.sum(equi>0,axis = 0)))
+    return EF, r_pig, r_spec
 
-    for j,t in enumerate(time):
-        df["mean at day {}".format(t)] = rich_mean[:,j]
-    for j,t in enumerate(time):
-        df["var at day {}".format(t)] = rich_var[:,j]
-    df.to_csv("EF_and_coexistence_richness.csv") 
+iters = 5000
+n_com = 100
+r_specs = np.random.randint(1,40,iters) # richness of species
 
+EF_cols = ["EF, t={}".format(t) for t in time]+["EF, equi"]
+EF_cols[0] = "EF, start"
+r_pig_cols = ["r_pig, t={}".format(t) for t in time]+["r_pig, equi"]
+r_pig_cols[0] = "r_pig, start"
+r_spec_cols = ["r_spec, t={}".format(t) for t in time] + ["r_spec, equi"]
+r_spec_cols[0] = "r_spec, start"
+columns = ["species","r_spec"] + EF_cols + r_pig_cols + r_spec_cols
+data = pd.DataFrame(None, columns = columns, index = range(iters))
+
+counter = 0
 start = timer()
-for i in range(iters):
+for i in range(10):
+    print(counter)
+    predef_spe = min(n_diff_spe, np.random.randint(r_specs[i])+1)
+    present_species = np.random.choice(n_diff_spe, predef_spe, replace = False)
+    EF, r_pig,r_spec = find_EF(r_specs[i], present_species, n_com)
+    data.iloc[counter] = [present_species, r_specs[i], *EF, *r_pig, *r_spec]
+    counter += 1
+average_over_10 = timer()-start
+
+while (timer()-start<3600 - average_over_10) and counter < iters:
+    predef_spe = min(n_diff_spe, np.random.randint(r_specs[i])+1)
+    present_species = np.random.choice(n_diff_spe, predef_spe, replace = False)
+    EF, r_pig,r_spec = find_EF(r_specs[i], present_species, n_com)
+    data.iloc[counter] = [present_species, r_specs[i], *EF, *r_pig, *r_spec]
+    counter += 1
     
-    EF = find_EF(r_spec[i], r_pig[i], r_pig_spec[i], n_com)
-    sols[i] = np.nansum(EF, axis = 1)
-    richness[i] = np.nansum(EF>1e7, axis = 1)
-    if i%100==99:
-        print(i,r_spec[i], r_pig[i], r_pig_spec[i], timer()-start)
-        saveit(sols[:i+1], richness[:i+1],i)
-        
-sols_mean = np.nanmean(sols, axis = -1)
-sols_var = np.nanvar(sols, axis = -1)
-df = pd.DataFrame()
-df["r_pig"] = r_pig
-df["r_spec"] = r_spec
-df["r_pig_spec"] = r_pig_spec
-
-for i,t in enumerate(time):
-    df["mean at day {}".format(t)] = sols_mean[:,i]
-for i,t in enumerate(time):
-    df["var at day {}".format(t)] = sols_var[:,i]
-df.to_csv("EF_and_coexistence.csv")
-
-rich_mean = np.nanmean(richness, axis = -1)
-rich_var = np.nanvar(richness, axis = -1)
-df = pd.DataFrame()
-df["r_pig"] = r_pig
-df["r_spec"] = r_spec
-df["r_pig_spec"] = r_pig_spec
-
-for i,t in enumerate(time):
-    df["mean at day {}".format(t)] = rich_mean[:,i]
-for i,t in enumerate(time):
-    df["var at day {}".format(t)] = rich_var[:,i]
-df.to_csv("EF_and_coexistence_richness.csv") 
-
-EF_av = np.nanmean(sols, axis = -1)
-
-datas = [r_pig, r_spec, r_pig_spec]
-labels = ["r_pig", "r_spec", "r_pig_spec", "time [days]"]
-
-for i in range(3):
-    first = datas[i]
-    f_max = max(first)
-    for j in range(3):
-        if j<=i:
-            continue
-        sec = datas[j]
-        s_max = max(sec)
-        EF_data = np.empty((f_max, s_max))
-        with warnings.catch_warnings():
-            for f in range(f_max):
-                for s in range(s_max):
-                    warnings.simplefilter("ignore", category=RuntimeWarning)
-                    ind = (first==f) & (sec==s)
-                    EF_data[f,s] = np.mean(EF_av[ind,-1], axis = 0)
-        plt.figure()
-        plt.imshow(EF_data, cmap = "hot", interpolation = "nearest", 
-                   aspect = "auto")
-        plt.xlabel(labels[j])
-        plt.ylabel(labels[i])
-        plt.colorbar()
-
-max_r_pig = max(r_pig)
-EF_all = np.empty((len(time), max_r_pig))
-for j in range(len(time)):
-    EF_all[j] = [np.nanmean(EF_av[r_pig==i+1,j], axis = 0) 
-            for i in range(max_r_pig)]
-plt.figure(figsize = (8,7))
-plt.imshow(EF_all, cmap = "hot", interpolation = "bilinear", aspect = "auto")
-plt.xlabel("pigment richness")
-plt.ylabel("time [days]")
-
-plt.colorbar()
-
-fig = plt.figure(figsize = (8,7))
-plt.pcolor(EF_all[2:], cmap = "hot")
-plt.xlabel("pigment richness")
-plt.ylabel("time [days]")
-
-plt.colorbar()
-fig.savefig("EF_time_r_pig.pdf")
-
+data = data[0:counter]
+data.to_csv(save_string)
