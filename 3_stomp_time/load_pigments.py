@@ -34,40 +34,35 @@ def random_pigments(n):
                                     /sigma[i]), axis = 1)*10**-8
     return pigs
 
-def real_pigments(n):
-    """Loads n predefined pigments, similar to random_pigment_generator"""
-    path = "pigment_data_python.csv"
-    pig_data = (np.genfromtxt(path, delimiter = ',').T)
-    lams = np.linspace(400,700,151)
-    return np.array([10**-7*interp1d(lams, pig_data[i])(lambs)
-                        for i in range(n)])
-    
-real = real_pigments(29)
-rand = random_pigments(29)
-
 # load pigments from küpper
-file = "../../2_data/3. Different pigments/gp_krueger.csv"
+path = "../../2_data/3. Different pigments/"
 
-gp_data = pd.read_csv(file)
-absorptivity = pd.read_csv(file[:35]+"absorptivity_Krueger.csv")
+gp_data = pd.read_csv(path + "gp_krueger.csv")
+absorptivity = pd.read_csv(path+"absorptivity_Krueger.csv")
+names_pigments = list(absorptivity["Pigment"])
 
 a = gp_data.iloc[::3,2:].values
 xp = gp_data.iloc[1::3, 2:].values
 sig = gp_data.iloc[2::3,2: ].values
 
 kuepper = np.nansum(a*np.exp(-0.5*((xp-lambs.reshape(-1,1,1))/sig)**2),-1).T
-kuepper *= 1e-8*absorptivity.iloc[:,1].reshape(-1,1)
-real = kuepper[np.isfinite(kuepper[:,0])]
+kuepper *= 1e-8*absorptivity.iloc[:,1].reshape(-1,1) 
 
+# load additional pogments from vaious authors
+df_pigs = pd.read_csv(path + "additional_pigments.csv") 
+add_pigs = np.empty((df_pigs.shape[-1]//2, len(lambs)))
+names_pigments.extend(df_pigs.columns[1::2])
 
+for i,pigment in enumerate(df_pigs.columns[1::2]):
+    add_pigs[i] = interp1d(df_pigs["lambs, "+pigment], df_pigs[pigment])(lambs)
+
+# multiply with absorptivity
+add_pigs /= np.nanmax(add_pigs, axis = 1, keepdims = True)
+ref_chla = np.nanmax(kuepper[4])
+absorptivity = ref_chla*np.array([2.0, 1, 1.5, 0.8,0.8])[:,np.newaxis]
+    
+pigments = np.append(kuepper, absorptivity*add_pigs, axis = 0)
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    plt.plot(lambs, real.T)
-    plt.title("real pigments")
-    plt.figure()
-    plt.plot(lambs, kuepper.T)
-    plt.title("Pigments form küpper")
-    plt.figure()
-    plt.plot(lambs, rand.T)
-    plt.title("random pigments")
+    plt.plot(pigments.T)
     

@@ -31,9 +31,11 @@ def find_EF(r_spec, present_species, n_com):
     # incoming light regime
     I_in = lambda t: I_in_def(40)
     
-    # starting densities is 1% of equilibrium density
+    # compute equilibrium densities
     equi = multispecies_equi(phi/l, k_spec, I_in(0))[0]
-    start_dens = np.mean(equi, axis = 0)/100*np.ones(equi.shape) 
+
+    # starting density
+    start_dens = np.full(equi.shape, 1e10)/r_spec
     
     # compute densities over time
     def multi_growth(N_r,t):
@@ -53,10 +55,10 @@ def find_EF(r_spec, present_species, n_com):
     EF = np.mean(np.sum(sol_ode, axis = 1),axis = -1)
     EF = np.append(EF, np.mean(np.sum(equi, axis = 0)))
     
-    r_pig = rc.pigment_richness(sol_ode[:,np.newaxis]>=start_dens,alpha)
+    r_pig = rc.pigment_richness(sol_ode[:,np.newaxis] >= start_dens,alpha)
     r_pig = np.append(r_pig, rc.pigment_richness(equi, alpha))
     
-    r_spec = np.mean(np.sum(sol_ode>= start_dens, axis = 1), axis = -1)
+    r_spec = np.mean(np.sum(sol_ode >= start_dens, axis = 1), axis = -1)
     r_spec = np.append(r_spec, np.mean(np.sum(equi>0,axis = 0)))
     return EF, r_pig, r_spec
 
