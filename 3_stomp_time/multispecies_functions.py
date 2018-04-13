@@ -90,7 +90,7 @@ def multispecies_equi(fitness, k_spec, I_in = I_in_def(40),runs = 5000):
         Equilibrium densitiy of all species, that reached equilibrium      
     """
     # starting densities for iteration, shape = (npi, itera)
-    equis = np.full(fitness.shape, 1e12) # start of iteration
+    equis = np.full(fitness.shape, 1e7) # start of iteration
     equis_fix = np.zeros(equis.shape)
 
     # k_spec(lam), shape = (len(lam), richness, ncom)

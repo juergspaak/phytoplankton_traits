@@ -54,7 +54,9 @@ add_pigs = np.empty((df_pigs.shape[-1]//2, len(lambs)))
 names_pigments.extend(df_pigs.columns[1::2])
 
 for i,pigment in enumerate(df_pigs.columns[1::2]):
-    add_pigs[i] = interp1d(df_pigs["lambs, "+pigment], df_pigs[pigment])(lambs)
+    x = df_pigs["lambs, " + pigment][np.isfinite(df_pigs["lambs, " + pigment])]
+    y = df_pigs[pigment][np.isfinite(df_pigs[pigment])]
+    add_pigs[i] = interp1d(x,y)(lambs)
 
 # multiply with absorptivity
 add_pigs /= np.nanmax(add_pigs, axis = 1, keepdims = True)
