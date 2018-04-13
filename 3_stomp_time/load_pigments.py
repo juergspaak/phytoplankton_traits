@@ -61,10 +61,9 @@ for i,pigment in enumerate(df_pigs.columns[1::2]):
 # multiply with absorptivity
 add_pigs /= np.nanmax(add_pigs, axis = 1, keepdims = True)
 ref_chla = np.nanmax(kuepper[4])
-absorptivity = ref_chla*np.array([2.0, 1, 1.5, 0.8,0.8])[:,np.newaxis]
+absorptivity = ref_chla*np.array([2.0, 1, 1.5, 0.8,0.8,0.5,0.5,0.5])[:,np.newaxis]
     
 pigments = np.append(kuepper, absorptivity*add_pigs, axis = 0)
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     plt.plot(pigments.T)
-    
