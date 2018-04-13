@@ -15,20 +15,24 @@ from load_pigments import dlam
 import sys
 # getting data from jobscript 
 try:                    
-    save = int(sys.argv[1])-1
-    save = [save//4%2, save//2%2, save%2]
+    save = int(sys.argv[1])
+    save = save-1
+    tot_abs = [1.5,2.5,3.5,5,10][save%5]
+    case = save%3
+    save = [tot_abs,case]
 except IndexError:
     save = np.random.randint(100000)
-    save = [0,0,0]
+    tot_abs = 2
+    case = 0
+    
 save_string = "data/data_EF_time"+str(save)+".csv"
-time = 24*np.array([0,2,5,10,15,20,50,100,500])
-
+time = 24*np.array([0,2,5,10,15,20,50])
 def pigment_richness(equi, alpha):
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
-def find_EF(present_species, n_com):
-    [phi,l], k_spec, alpha, species_id = gen_com(present_species, 
-                                        2, n_com, save)
+def find_EF(present_species, n_com,tot_abs, case = case):
+    [phi,l], k_spec, alpha = gen_com(present_species,2, n_com,
+                    tot_abs*1e-7,case)
     r_spec = len(present_species)
     # incoming light regime
     I_in = lambda t: I_in_def(40)
@@ -61,25 +65,27 @@ def find_EF(present_species, n_com):
     # prepare return fucntions
     
     # EF biovolume
-    EF_mean = np.mean(np.sum(sol_ode, axis = 1),axis = -1)
-    EF_var = np.var(np.sum(sol_ode, axis = 1), axis = -1)
+    EF_mean = np.nanmean(np.sum(sol_ode, axis = 1),axis = -1)
+    EF_var = np.nanvar(np.sum(sol_ode, axis = 1), axis = -1)
     
     # total absorption
     tot_abs = np.exp(-np.nansum(sol_ode[:,np.newaxis]*k_spec, axis = 2))
-    abs_mean = np.mean(simps(tot_abs, dx = dlam, axis =1)/300, axis = -1)
-    abs_var = np.var(simps(tot_abs, dx = dlam, axis =1)/300, axis = -1)
+    abs_mean = np.nanmean(simps(tot_abs, dx = dlam, axis =1)/300, axis = -1)
+    abs_var = np.nanvar(simps(tot_abs, dx = dlam, axis =1)/300, axis = -1)
     # pigment richness    
     r_pig = rc.pigment_richness(sol_ode[:,np.newaxis] >= start_dens,alpha)
     # species richness
-    r_spec = np.mean(np.sum(sol_ode >= start_dens, axis = 1), axis = -1)
-    
-    average_abs = np.mean(simps(k_spec, dx = dlam, axis = 0))
-    return EF_mean, EF_var, abs_mean, abs_var, r_pig, r_spec
+    r_spec = np.nanmean(np.sum(sol_ode >= start_dens, axis = 1), axis = -1)
+    dead = np.sum(np.all(np.isnan(equi[0]), axis = 0))/n_com
+    fitness = phi/l*simps(k_spec, axis = 0,dx = dlam)
+    fitness_start = np.nanmean(fitness)
+    fitness_equi = np.nanmean(fitness[equi[0]>0])
+    return EF_mean, EF_var, abs_mean, abs_var, r_pig, r_spec, dead, [fitness_start, fitness_equi]
 
 
 iters = 5000
 n_com = 100
-r_specs = np.random.randint(1,11,iters) # richness of species
+r_specs = np.random.randint(1,15,iters) # richness of species
 
 EF_cols = ["EF, t={}".format(t) for t in time]+["EF, equi"]
 EF_cols[0] = "EF, start"
@@ -91,29 +97,23 @@ r_pig_cols[0] = "r_pig, start"
 r_spec_cols = ["r_spec, t={}".format(t) for t in time] + ["r_spec, equi"]
 r_spec_cols[0] = "r_spec, start"
 columns = ["species","r_spec"] + EF_cols + abs_cols + r_pig_cols + \
-            r_spec_cols + var_cols
+            r_spec_cols + var_cols + ["dead","fit_start", "fit_equi"]
 data = pd.DataFrame(None, columns = columns, index = range(iters))
 
 counter = 0
+average_over_10 = 0
 start = timer()
-for i in range(10):
-    present_species = np.random.choice(n_diff_spe, r_specs[counter], 
-                                       replace = True)
-    EF_mean, EF_var, abs_mean, abs_var, r_pig, r_spec =\
-                    find_EF(present_species, n_com)
-    data.iloc[counter] = [present_species, r_specs[counter], *EF_mean,
-              *abs_mean, *r_pig, *r_spec, *EF_var, *abs_var]
-    counter += 1
-average_over_10 = timer()-start
 
-while (timer()-start<3600 - average_over_10) and counter < iters:
+while (timer()-start<1800 - average_over_10) and counter < iters:
     present_species = np.random.choice(n_diff_spe, r_specs[counter], 
                                        replace = True)
-    EF_mean, EF_var, abs_mean, abs_var, r_pig, r_spec =\
-                    find_EF(present_species, n_com)
+    EF_mean, EF_var, abs_mean, abs_var, r_pig, r_spec,dead,fit=\
+                    find_EF(present_species, n_com,tot_abs)
     data.iloc[counter] = [present_species, r_specs[counter], *EF_mean,
-              *abs_mean, *r_pig, *r_spec, *EF_var, *abs_var]
+              *abs_mean, *r_pig, *r_spec, *EF_var, *abs_var,dead,*fit]
     counter += 1
+    if counter == 10:
+        average_over_10 = timer()-start
     print(counter)
     
 data = data[0:counter]
