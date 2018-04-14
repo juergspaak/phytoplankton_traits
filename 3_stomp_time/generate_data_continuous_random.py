@@ -22,31 +22,24 @@ try:
         save = save +["_randomized_pigments_{}_".format(randomized_pigments)]
 except IndexError:
     save = np.random.randint(100000)
-    max_r_spec_rich = 11
     randomized_pigments = 0
 
-save_string = "data/data_EF"+str(save)+".csv"
+save_string = "data/data_EF_fluct"+str(save)+".csv"
 
 start = timer()
 iters = 10000 # number of random settings
 n_com = 100 # number of communities in each setting
 
 
-r_specs = np.random.randint(1,40,iters) # richness of species
-facs= np.random.uniform(1,5,iters) # maximal fitness differences
-periods = 10**np.random.uniform(0,2, iters) # ranges from 1 to 1000
+r_specs = np.random.randint(1,15,iters) # richness of species
+facs = np.random.uniform(1,5,iters) # maximal fitness differences
+periods = 10**np.random.uniform(0,2, iters) # ranges from 1 to 100
 
 ## Determining the light regime for each setting
 # random incoming light fluctuations
-luxs = np.random.uniform(30/300,100/300,(iters,2))
+luxs = np.random.uniform(30,100,(iters,2))
 sigmas = 2**np.random.uniform(5,9,iters) # ragnes from 16-512
 locs = np.random.uniform(450,650,(iters,2))
-
-I_in_idx = np.random.randint(0,2,iters)
-I_in_pre = np.array(["spectrum", "both"])
-I_in_conds = I_in_pre[I_in_idx] # which light regime to use
-
-luxs[I_in_idx == 0,1] = luxs[I_in_idx == 0,0] # same intensity
 
 # for saving the information
 I_in_datas = np.empty((5,iters))
@@ -58,43 +51,38 @@ I_in_datas[4] = sigmas
 cases = ["Const1", "Const2", "Const3", "Const4", "Fluctuating"]
 
 
-EF_cols = ["Pigment concentration",
-                   *["biovolume,{}".format(i) for i in ["05",25,50, 75, 95]]]
-species_cols = ["survive {}".format(i) for i in range(n_diff_spe)]
-columns = ["case","species","r_spec", "fac","period","I_in_cond","loc1",
+EF_cols = ["biovolume,{}".format(i) for i in ["05",25,50, 75, 95]]
+columns = ["case","species","fac","period","loc1",
             "loc2","lux1", "lux2", "sigma", "r_pig_start", "r_pig_equi", 
-           "r_spec_equi"]+species_cols+EF_cols
+           "r_spec_equi"]+EF_cols
 
 data = pd.DataFrame(None,columns = columns, index = range(len(cases)*iters))
-
-def fill_data(i):
-    print(i)
-    I_in = fluc_continuous(locs[i], luxs[i], periods[i], sigma = sigmas[i])
-    predef_spe = min(n_diff_spe, np.random.randint(r_specs[i])+1)
-    present_species = np.random.choice(n_diff_spe, predef_spe)
-    # compute the richnesses
-    (richness_equi, EF_biovolume, r_pig_equi, EF_pigment, r_pig_start,
-            surviving_species) = rc.fluctuating_richness(present_species, 
-            r_specs[i], n_com , facs[i], randomized_pigments, periods[i],
-            I_in,np.linspace(0,0.5,4))
-    # save to dataframe
-    for k,case in enumerate(cases):
-        data.iloc[len(cases)*i+k] = [case,present_species, r_specs[i], facs[i], 
-                  periods[i], I_in_conds[i], *locs[i], *luxs[i], sigmas[i],
-                r_pig_start, r_pig_equi[k], richness_equi[k], 
-                *surviving_species[k],EF_pigment[k],*EF_biovolume[k]]
+    
 i = 0
 # test how long 10 runs go to end programm early enough
 test_time_start = timer() 
-for j in range(10):
-    fill_data(i)
-    i+=1
-test_time_end = timer()
 
-while timer()-start <3600-(test_time_end-test_time_start):
+time_for_10 = 0
+
+while timer()-start <3600-(time_for_10):
     if i==iters:
         break
-    fill_data(i)
+    I_in = fluc_continuous(locs[i], luxs[i], periods[i], sigma = sigmas[i])
+    present_species = np.random.choice(n_diff_spe, r_specs[i],replace = True)
+    # compute the richnesses
+    (richness_equi, EF_biovolume, r_pig_equi, r_pig_start)\
+            = rc.fluctuating_richness(present_species, 
+            n_com , facs[i], randomized_pigments, periods[i],
+            I_in,np.linspace(0,0.5,4))
+    print(i)
+    # save to dataframe
+    for k,case in enumerate(cases):
+        data.iloc[len(cases)*i+k] = [cases[k],str(present_species), facs[i], 
+                  periods[i], *locs[i], *luxs[i], sigmas[i],
+                r_pig_start, r_pig_equi[k], richness_equi[k], 
+                *EF_biovolume[k]]
     i+=1
+    if i==10:
+        time_for_10 = timer()-test_time_start
 data = data[0:i*len(cases)] 
 data.to_csv(save_string)

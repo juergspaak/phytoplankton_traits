@@ -20,7 +20,7 @@ def random(string,n_start, n_end = None):
         n_start, n_end = int(n_start), int(n_end)
         n_end +=1
     datas_all = pd.DataFrame() # to store all data in
-    save = "data/data_random_{}{}.csv"
+    save = "data/data_{}{}.csv"
     try: # is there already an _all file where data should be appended?
         datas_all = datas_all.append(pd.read_csv(save.format(string,"_all")),
                                      ignore_index = True)
@@ -35,12 +35,8 @@ def random(string,n_start, n_end = None):
             print("File {} not found".format(i))
     # save file
     del datas_all["Unnamed: 0"]
-    # add averages of richness
-    num_data = np.array(datas_all[[str(i+1) for i in range(10)]])
-    ave_data = (np.arange(1,11)*num_data).sum(axis = -1)
-    datas_all["s_div"] = ave_data
-    datas_all = datas_all[np.isfinite(datas_all.s_div)]
-    datas_all.to_csv("data/data_random_{}_all.csv".format(string))
+
+    datas_all.to_csv("data/data_{}_all.csv".format(string))
     return datas_all
 
 import sys

@@ -30,9 +30,9 @@ def pigment_richness(equi, alpha):
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
 # standard incoming light fluctuation    
-I_in_ref = I_in_t(mf.I_in_def(40/300,450,50), mf.I_in_def(40/300,650,50),10)
+I_in_ref = I_in_t(mf.I_in_def(40,450,50), mf.I_in_def(40,650,50),10)
 
-def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
+def fluctuating_richness(present_species = np.arange(5),
     n_com = 100,fac = 3,randomized_spectra = 0, l_period = 10,
     I_in = I_in_ref, t_const = [0,0.5]):
     """Computes the number of coexisting species
@@ -72,7 +72,7 @@ def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
     # find potentially interesting communities
              
     # generate species and communities
-    par,k_spec,alpha,species_id = gen_com(present_species, r_spec, fac, n_com)
+    [phi,l],k_spec,alpha = gen_com(present_species, fac, n_com, 3.5*1e-7,2)
     # compute pigment richness at the beginning (the same in all communities)
     r_pig_start = pigment_richness(1, alpha)
     if randomized_spectra>0:
@@ -80,7 +80,6 @@ def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
         # equals interspecific variation of pigments
         eps = randomized_spectra
         k_spec *= np.random.uniform(1-eps, 1+eps, k_spec.shape)
-    phi,l = par
     
     # compute the equilibria densities for the different light regimes
     equi = np.empty((len(t_const),) + phi.shape)
@@ -95,7 +94,6 @@ def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
     phi = phi[:, fixed]
     l = l[:, fixed]
     k_spec = k_spec[..., fixed]
-    species_id = species_id[...,fixed]
     alpha = alpha[...,fixed]
 
     ###########################################################################
@@ -103,11 +101,7 @@ def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
     # richness in constant lights
     richness_equi = np.zeros(len(t_const)+1)
     richness_equi[:-1] = np.mean(np.sum(equi>0, axis = 1),axis = 1)
-    
-    surviving_species = np.zeros((len(t_const)+1,n_diff_spe))
-    for i in range(len(t_const)):
-        surviving_species[i] = find_survivors(equi[i], species_id)
-        
+            
     r_pig_equi = np.zeros(len(t_const)+1)
     r_pig_equi[:-1] = pigment_richness(equi[:,np.newaxis], alpha)
 
@@ -115,11 +109,6 @@ def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
     EF_biovolume = np.full((len(t_const)+1,5),np.nan)
     EF_biovolume[:len(t_const)] = np.percentile(np.sum(equi, axis = 1),
                                 [5,25,50,75,95], axis = -1).T
-    
-    EF_pigment = np.zeros(len(t_const)+1)
-    EF_pigment[:len(t_const)] = np.mean(np.einsum("tsc,psc->tc",equi,alpha),
-                                    axis = 1)
-
     
     ###########################################################################
     # Prepare computation for fluctuating incoming light
@@ -138,7 +127,6 @@ def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
     l = l[spec_sort, com_ax]
     equi = equi[np.arange(len(t_const)).reshape(-1,1,1),spec_sort, com_ax]
     k_spec = k_spec[np.arange(len(lambs)).reshape(-1,1,1),spec_sort, com_ax]
-    species_id = species_id[spec_sort, com_ax]
     alpha = alpha[:,spec_sort, com_ax]
        
     ###########################################################################
@@ -196,24 +184,17 @@ def fluctuating_richness(present_species = np.arange(5), r_spec = 10,
                                 [5,25,50,75,95], axis = -1)/len(sols)   
     # find number of coexisting species through time
     richness_equi[-1] = np.mean(np.sum(sols[-1]>0,axis = 0))
-    surviving_species[-1] = find_survivors(sols[-1], species_id)
     r_pig_equi[-1] = pigment_richness(sols[-1], alpha)
-    EF_pigment[-1] = np.mean(np.einsum("tsc,psc->c",sols,alpha))/len(sols)
     
-    return (richness_equi, EF_biovolume, r_pig_equi, EF_pigment, r_pig_start,
-            surviving_species)
+    return (richness_equi, EF_biovolume, r_pig_equi, r_pig_start)
             
 
 if __name__ == "__main__":
     present_species = np.arange(5)
-    r_pig = 5
-    r_spec = 10
-    r_pig_spec = 3
     n_com = 100
-    fac = 3
+    fac = 1.1
     l_period = 10
-    pigs = "real"
     I_in = I_in_ref
     t_const = [0,0.5]
     randomized_spectra = 0
-    allow_shortcut = False
+    (richness_equi, EF_biovolume, r_pig_equi, r_pig_start) = fluctuating_richness()

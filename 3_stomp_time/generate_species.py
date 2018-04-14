@@ -34,7 +34,6 @@ def gen_com(present_species, fac, n_com = 100, end = 2e-7,case = 0):
     r_spec = len(present_species)
     if case ==2:
         species_pigments[species_pigments<1] = 0
-        print("here")
     if case==1:
         species_pigments[species_pigments<0.5] = 0
     # check input
