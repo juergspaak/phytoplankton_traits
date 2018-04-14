@@ -6,59 +6,54 @@ Plot the main Figure of the paper
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set_style("ticks")
 
+# load the dataset
+spaak_data = pd.read_csv("data/data_random_EF_fluct_all.csv")
 
-def plot_name(datas,ax = None, title = None, add_1 = True):
-    
-    # percentiles to be computed
-    perc = np.array([5,25,75,95,50])
-    percentiles = np.empty((2,21,len(perc)))
-    for i in range(21): # compute the percentiles
-        index = np.logical_and(datas.case=="Const1", datas.r_pig == i)
-        index = np.logical_and(index, np.logical_not(np.isnan(datas.s_div)))
-        try:
-            percentiles[0,i] = np.percentile(datas[index].s_div,perc)
-        except IndexError:
-            percentiles[0,i] = np.nan
-        index = np.logical_and(datas.case=="Fluctuating", datas.r_pig == i)
-        index = np.logical_and(index, np.logical_not(np.isnan(datas.s_div)))
-        try:
-            percentiles[1,i] = np.percentile(datas[index].s_div,perc)
-        except IndexError:
-            percentiles[1,i] = np.nan
-    if add_1:
-        percentiles[:,1] = 1
-    
-    # plot the percentiles
-    color = ['orange', 'yellow', 'purple', 'blue','black']
-    for i in range(len(perc)):
-        star, = ax.plot(np.arange(21),percentiles[0,:,i],'*',color = color[i])
-        triangle, = ax.plot(np.arange(21),percentiles[1,:,i],'^',
-                            color = color[i])
+# add phylum diversity and species diversity at the beginning
+spaak_data["phylum_diversity"] = [len(set(spec[1:-1].split())) 
+                                        for spec in spaak_data.species]
+                                        
+spaak_data["species_diversity"] = [len(spec[1:-1].split()) 
+                                        for spec in spaak_data.species]
 
-    ax.legend([star,triangle],["Fluctuation", "Constant"],loc = "upper left")
-    ax.set_title("{} pigments per species".format(title),fontsize = 16)
-    ax.set_xlim([0.8,20.2])
-    ax.set_ylim([0.8,4])
+# convert to integer
+spaak_data.r_pig_start = spaak_data.r_pig_start.astype(int)                                        
 
-try:
-    datas
-except NameError:
-    datas = pd.read_csv("data/data_random_continuous_all.csv")
-datas_nat = datas[datas.pigments == "real"]
-fig,ax = plt.subplots(3,1, sharex = True, sharey = True, figsize = (9,9))
+# actual plotting                                      
+fig,ax = plt.subplots(3,1, sharey = True, figsize = (9,9))
 
-plot_name(datas_nat[datas_nat.r_pig_spec==1],ax[1], 1)
-plot_name(datas_nat[datas_nat.r_pig_spec==4],ax[2], 5, False)
-plot_name(datas_nat,ax[0], "1-10")
+# only use one constant light
+index = np.append(np.arange(0,len(spaak_data),5),
+                      np.arange(4,len(spaak_data),5))
+spaak_data = spaak_data.iloc[index,:]
 
-ax[0].set_ylabel("Species richness", fontsize = 16)
-ax[1].set_ylabel("Species richness", fontsize = 16)
-ax[2].set_ylabel("Species richness", fontsize = 16)
-ax[-1].set_xlabel("Regional pigment richness", fontsize = 16)
-plt.suptitle("Species richness vs. Trait richness", fontsize = 16)
-ax[1].set_xticks([1,5,10,15,20])
-ax[1].set_xticks([1,5,10,15,20])
+# Plot pigment versus species richness
+sns.violinplot(x = "r_pig_start", y = "r_spec_equi", data = spaak_data,
+                 hue = "case",split = True,inner = None,cut = 0, ax = ax[0])
+# change legend
+L = ax[0].legend(loc = "upper left")
+L.get_texts()[0].set_text("Constant light")
+L.get_texts()[1].set_text("Fluctuating light")
 
+# plot species richness at start vs. at end
+sns.violinplot(x = "species_diversity", y = "r_spec_equi", data = spaak_data,
+                 hue = "case",split = True,inner = None,cut = 0, ax = ax[1])
+ax[1].legend_.remove()
 
+# plot phylum richness vs. species richness
+sns.violinplot(x = "phylum_diversity", y = "r_spec_equi", data = spaak_data,
+                 hue = "case",split = True,inner = None,cut = 0, ax = ax[2])
+ax[2].legend_.remove()
+
+# change axes labeling
+ax[0].set_ylabel("Species richness")
+ax[1].set_ylabel("Species richness")
+ax[2].set_ylabel("Species richness")
+
+ax[0].set_xlabel("Pigment richness")
+ax[1].set_xlabel("Species richness (start)")
+ax[2].set_xlabel("Phylum richness (start)")
 fig.savefig("Figure, trait species diversity.pdf")
