@@ -121,7 +121,6 @@ def plot_results(dictionary, ylabel, ax, legend = True):
         y_linregres = np.exp(y_linregres)
         ax.plot(ran, y_linregres, color = col)
     if legend:
-        #ax_org.legend(handles = handles,loc = "best", numpoints = 1)
         ax.legend(loc = "best")
     ax.set_xlabel("Pigment richness")
         
@@ -140,6 +139,8 @@ plot_results(datas_biodiv, "Species richness",ax[0])
 print("new")
 plot_results(datas_EF,r"Biovolume $[fl ml^{-1}]$",ax[1], False)
 ax[0].set_xlim(3.5,23.5)
-plt.xticks(range(4,23,2),range(4,23,2))
+plt.xticks(range(4,23,2),range(2,23,2))
 fig.savefig("Figure, biodiv-EF.pdf")
+
+
 

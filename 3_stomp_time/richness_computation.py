@@ -109,6 +109,17 @@ def fluctuating_richness(present_species = np.arange(5),
     EF_biovolume = np.full((len(t_const)+1,5),np.nan)
     EF_biovolume[:len(t_const)] = np.percentile(np.sum(equi, axis = 1),
                                 [5,25,50,75,95], axis = -1).T
+
+    # find the probabilities of coexisting species
+    prob_spec = np.zeros((len(t_const)+1,6))
+    nr_coex = np.sum(equi>0,axis = 1)
+    # probabilities to fine 0 to 5 species
+    prob_spec[:-1] = np.mean(nr_coex[...,np.newaxis] ==[0,1,2,3,4,5],axis = -2)
+    
+    prob_pig = np.zeros((len(t_const)+1,len(alpha)+1))
+    nr_pig = np.sum(np.sum(equi[:,np.newaxis]*alpha,axis=-2)>0,axis = -2)
+    prob_pig[:-1] = np.mean(nr_pig[...,np.newaxis] == np.arange(len(alpha)+1),
+            axis = 1)
     
     ###########################################################################
     # Prepare computation for fluctuating incoming light
@@ -181,12 +192,24 @@ def fluctuating_richness(present_species = np.arange(5),
     #######################################################################
     # preparing return values for richnesses computation
     EF_biovolume[-1] = np.percentile(np.sum(sols, axis = (0,1)),
-                                [5,25,50,75,95], axis = -1)/len(sols)   
-    # find number of coexisting species through time
+                                [5,25,50,75,95], axis = -1)/len(sols)
+    # find average of coexisting species through time
     richness_equi[-1] = np.mean(np.sum(sols[-1]>0,axis = 0))
     r_pig_equi[-1] = pigment_richness(sols[-1], alpha)
     
-    return (richness_equi, EF_biovolume, r_pig_equi, r_pig_start)
+    # find the probabilities of coexisting species
+    nr_coex = np.sum(sols[-1]>0,axis = 0)
+    # probabilities to fine 0 to 5 species
+    prob_spec[-1] = np.mean(nr_coex[:,np.newaxis] == [0,1,2,3,4,5],axis = 0)
+    # include cases with more than 5 species in the last entry
+    prob_spec[:,-1] = 1-np.sum(prob_spec,axis = 1)
+    
+    nr_pig = np.sum(np.sum(sols[-1]*alpha,axis=-2)>0,axis = -2)
+    prob_pig[-1] = np.mean(nr_pig[...,np.newaxis] == np.arange(len(alpha)+1),
+            axis = 0)
+    
+    return (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
+            prob_pig)
             
 
 if __name__ == "__main__":
