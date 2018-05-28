@@ -121,7 +121,7 @@ def plot_results(dictionary, ylabel, ax, legend = True):
         y_linregres = np.exp(y_linregres)
         ax.plot(ran, y_linregres, color = col)
     if legend:
-        ax.legend(loc = "best")
+        ax.legend(loc = "best", numpoints = 1)
     ax.set_xlabel("Pigment richness")
         
 fig, ax = plt.subplots(1,2,figsize = (12,9), sharex = True)
@@ -143,4 +143,19 @@ plt.xticks(range(4,23,2),range(2,23,2))
 fig.savefig("Figure, biodiv-EF.pdf")
 
 
+# create a figure for the presentation of Frederik
+fig, ax = plt.subplots(figsize = (9,9))
+boxs("r_pig, start", "r_spec, t="+str(t),pig_range,ax, c_sta)
+boxs("r_pig, start", "r_spec, equi",pig_range,ax, c_coe)
+plot_results(datas_biodiv, "Species richness",ax)
+
+plt.xlabel("Pigment richness", fontsize = 16)
+plt.ylabel("Species richness", fontsize = 16)
+plt.xlim([3.5,22.5])
+plt.xticks([4,10,15,20,22],[4,10,15,20,22],fontsize = 16)
+plt.yticks(fontsize = 16)
+plt.ylim([0.8,100])
+plt.legend(fontsize = 14, loc = "upper left", numpoints = 1)
+
+fig.savefig("Figure 4a, Frederik.pdf")
 
