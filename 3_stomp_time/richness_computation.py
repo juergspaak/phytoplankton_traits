@@ -72,7 +72,8 @@ def fluctuating_richness(present_species = np.arange(5),
     # find potentially interesting communities
              
     # generate species and communities
-    [phi,l],k_spec,alpha = gen_com(present_species, fac, n_com, 3.5*1e-7,2)
+    [phi,l],k_spec,alpha = gen_com(present_species, fac, n_com, case = 2,
+                    I_ins = np.array([I_in(t*l_period) for t in t_const]))
     # compute pigment richness at the beginning (the same in all communities)
     r_pig_start = pigment_richness(1, alpha)
     if randomized_spectra>0:
@@ -220,4 +221,5 @@ if __name__ == "__main__":
     I_in = I_in_ref
     t_const = [0,0.5]
     randomized_spectra = 0
-    (richness_equi, EF_biovolume, r_pig_equi, r_pig_start) = fluctuating_richness()
+    (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
+            prob_pig) = fluctuating_richness()

@@ -35,7 +35,7 @@ def sinus(t):
 ###############################################################################
 # funtctions that return a callable I_in(t)
 
-def fluc_continuous(w_loc = [450, 650], w_lux = [30/300, 50/300],
+def fluc_continuous(w_loc = [450, 650], w_lux = [30, 50],
                 p_loc = 10, p_lux = None, sigma = 50):
     """returns I_in(t), that continously fluctuates over the spectrum
     
