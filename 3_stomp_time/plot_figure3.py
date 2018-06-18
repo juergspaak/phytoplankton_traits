@@ -73,8 +73,9 @@ def medians(x_val, y_val):
     x_val, y_val = spaak_data[x_val], spaak_data[y_val]
     x_range = np.arange(min(x_val), max(x_val)+1)
     return x_range, np.array([np.nanmedian(y_val[x_val==x]) for x in x_range])
-    
-spaak_data = pd.read_csv("data/data_EF_time[3.5, 2].csv")
+
+spaak_data = pd.read_csv("data/data_EF_time_all.csv")
+
 datas_biodiv["spaak, t="+str(t//24)] = [*medians("r_pig, start","r_spec, t="
                                     +str(t)),c_sta]
 datas_biodiv["spaak, equi"] = [*medians("r_pig, start","r_spec, equi"),c_coe]
@@ -128,7 +129,7 @@ fig, ax = plt.subplots(1,2,figsize = (12,9), sharex = True)
 ax[0].set_title("A")
 ax[1].set_title("B")
 
-pig_range = range(1,23)
+pig_range = range(1,24)
 boxs("r_pig, start", "r_spec, t="+str(t),pig_range,ax[0], c_sta)
 boxs("r_pig, start", "r_spec, equi",pig_range,ax[0], c_coe)
 
@@ -138,8 +139,8 @@ boxs("r_pig, start", "EF, equi",pig_range,ax[1], c_coe)
 plot_results(datas_biodiv, "Species richness",ax[0])
 print("new")
 plot_results(datas_EF,r"Biovolume $[fl ml^{-1}]$",ax[1], False)
-ax[0].set_xlim(3.5,23.5)
-plt.xticks(range(4,23,2),range(2,23,2))
+ax[0].set_xlim(1.5,23.5)
+plt.xticks(range(2,24,2),range(2,24,2))
 fig.savefig("Figure, biodiv-EF.pdf")
 
 

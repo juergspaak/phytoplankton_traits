@@ -97,6 +97,12 @@ def fluctuating_richness(present_species = np.arange(5),
     k_spec = k_spec[..., fixed]
     alpha = alpha[...,fixed]
 
+    # no communities left, call function again
+    if np.sum(fixed) == 0:
+        return fluctuating_richness(present_species, n_com,fac,
+                randomized_spectra, l_period,I_in, t_const)
+        
+
     ###########################################################################
     # return values for constant cases
     # richness in constant lights
@@ -215,7 +221,7 @@ def fluctuating_richness(present_species = np.arange(5),
 
 if __name__ == "__main__":
     present_species = np.arange(5)
-    n_com = 100
+    n_com = 20
     fac = 1.1
     l_period = 10
     I_in = I_in_ref

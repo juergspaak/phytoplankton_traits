@@ -16,23 +16,18 @@ import sys
 # getting data from jobscript 
 try:                    
     save = int(sys.argv[1])
-    save = save-1
-    tot_abs = [1.5,2.5,3.5,5,10][save%5]
-    case = save%3
-    save = [tot_abs,case]
 except IndexError:
     save = np.random.randint(100000)
-    tot_abs = 2
-    case = 0
     
 save_string = "data/data_EF_time"+str(save)+".csv"
 time = 24*np.array([0,2,5,10,15,20,50])
 def pigment_richness(equi, alpha):
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
-def find_EF(present_species, n_com,tot_abs, case = case):
-    [phi,l], k_spec, alpha = gen_com(present_species,2, n_com,
-                    tot_abs*1e-7,case)
+def find_EF(present_species, n_com):
+    [phi,l], k_spec, alpha = gen_com(present_species,2, n_com, case = 2,
+                        I_ins = np.array([I_in_def(40)]))
+    
     r_spec = len(present_species)
     # incoming light regime
     I_in = lambda t: I_in_def(40)
@@ -108,7 +103,7 @@ while (timer()-start<1800 - average_over_10) and counter < iters:
     present_species = np.random.choice(n_diff_spe, r_specs[counter], 
                                        replace = True)
     EF_mean, EF_var, abs_mean, abs_var, r_pig, r_spec,dead,fit=\
-                    find_EF(present_species, n_com,tot_abs)
+                    find_EF(present_species, n_com)
     data.iloc[counter] = [present_species, r_specs[counter], *EF_mean,
               *abs_mean, *r_pig, *r_spec, *EF_var, *abs_var,dead,*fit]
     counter += 1
