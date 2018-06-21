@@ -10,7 +10,7 @@ from scipy.integrate import simps
 
 # to reproduce exact values of paper
 
-pig_spe_id = pd.read_csv("vdHoek,pig_alg.csv")
+pig_spe_id = pd.read_csv("vdHoek,pig_alg_no_protection.csv")
 
 pigment_id = []
 pigment_id_species = []
@@ -31,7 +31,7 @@ species_pigments[np.isnan(species_pigments)] = 0
 n_diff_spe = species_all.shape[-1]-2
                          
 def gen_com(present_species, fac, n_com_org = 100, end = 2e-7,case = 0,
-            I_ins = None):
+            I_ins = None, no_super = False):
     """Generate species for the spectrum model
     
     Generate species with random absorption spectrum according to the table
@@ -54,7 +54,10 @@ def gen_com(present_species, fac, n_com_org = 100, end = 2e-7,case = 0,
             2-> only the main pigments of the species
         I_ins: `None` or list of incoming lights
             Lights at which each species must be able to survive
-        
+        no_super: bool, default is False
+            If True, then all species will have the same total absorption.
+            If False (default), then the species on average will have the same
+            total absorption
             
     Return:
         para: [phi,l]
@@ -96,6 +99,11 @@ def gen_com(present_species, fac, n_com_org = 100, end = 2e-7,case = 0,
 
     # change pigment concentrations accordingly
     alphas = alphas/av_tot_abs[:,np.newaxis]*end
+
+    # don't allow super species, i.e. all species have same total absorption
+    if no_super:
+        alphas = alphas/simps(k_spec, dx=lp.dlam, axis = 0)*end
+        k_spec = k_spec/simps(k_spec, dx=lp.dlam, axis = 0)*end
 
     if not(I_ins is None):
         surv = mono_culture_survive(phi/l,k_spec, I_ins)

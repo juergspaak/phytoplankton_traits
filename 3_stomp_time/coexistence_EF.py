@@ -16,17 +16,23 @@ import sys
 # getting data from jobscript 
 try:                    
     save = int(sys.argv[1])
+    no_super = sys.argv[2] == "True"
 except IndexError:
     save = np.random.randint(100000)
+    no_super = True
     
-save_string = "data/data_EF_time"+str(save)+".csv"
+if no_super:    
+    save_string = "data/data_EF_time_no_super"+str(save)+".csv"
+else:
+    xave_string = "data/data_EF_time"+str(save)+".csv"
+    
 time = 24*np.array([0,2,5,10,15,20,50])
 def pigment_richness(equi, alpha):
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
 def find_EF(present_species, n_com):
     [phi,l], k_spec, alpha = gen_com(present_species,2, n_com, case = 2,
-                        I_ins = np.array([I_in_def(40)]))
+                        I_ins = np.array([I_in_def(40)]), no_super=no_super)
     
     r_spec = len(present_species)
     # incoming light regime

@@ -19,7 +19,10 @@ try:
     save = sys.argv[1]
     randomized_pigments = float(sys.argv[2])
     if randomized_pigments:
-        save = save +["_randomized_pigments_{}_".format(randomized_pigments)]
+        save = "_randomized_pigments_{}".format(randomized_pigments) + save
+    no_super = sys.argv[3] == "True"
+    if no_super:
+        save = "_no_super" + save 
 except IndexError:
     save = np.random.randint(100000)
     randomized_pigments = 0
@@ -75,7 +78,7 @@ while timer()-start <3600-(time_for_10):
     (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
             prob_pig) = rc.fluctuating_richness(present_species, 
             n_com , facs[i], randomized_pigments, periods[i],
-            I_in,np.linspace(0,0.5,4))
+            I_in,np.linspace(0,0.5,4), no_super)
     print(i)
     # save to dataframe
     for k,case in enumerate(cases):

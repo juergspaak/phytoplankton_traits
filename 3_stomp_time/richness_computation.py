@@ -34,7 +34,7 @@ I_in_ref = I_in_t(mf.I_in_def(40,450,50), mf.I_in_def(40,650,50),10)
 
 def fluctuating_richness(present_species = np.arange(5),
     n_com = 100,fac = 3,randomized_spectra = 0, l_period = 10,
-    I_in = I_in_ref, t_const = [0,0.5]):
+    I_in = I_in_ref, t_const = [0,0.5], no_super = False):
     """Computes the number of coexisting species
     
     Parameters:
@@ -73,7 +73,8 @@ def fluctuating_richness(present_species = np.arange(5),
              
     # generate species and communities
     [phi,l],k_spec,alpha = gen_com(present_species, fac, n_com, case = 2,
-                    I_ins = np.array([I_in(t*l_period) for t in t_const]))
+                    I_ins = np.array([I_in(t*l_period) for t in t_const]),
+                    no_super=no_super)
     # compute pigment richness at the beginning (the same in all communities)
     r_pig_start = pigment_richness(1, alpha)
     if randomized_spectra>0:
@@ -100,7 +101,7 @@ def fluctuating_richness(present_species = np.arange(5),
     # no communities left, call function again
     if np.sum(fixed) == 0:
         return fluctuating_richness(present_species, n_com,fac,
-                randomized_spectra, l_period,I_in, t_const)
+                randomized_spectra, l_period,I_in, t_const,no_super)
         
 
     ###########################################################################

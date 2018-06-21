@@ -1,0 +1,11 @@
+Pigment,Found,Cyanophyta,Prochlorophyta,Glaucophyta,Rhodophyta,H/Chrysophycceae,H/Xantophyceae,H/Eustigmatophyceae,H/Bacillariophyceae,"H/Raphodophyceae,freshwater","H/Raphodophyceae,marine",H/Dictyochophyceae,H/Phaeophyceae,Haptopyta,Cryptophyta,Dinophyta I,Dinophyta II,Euglenophyta,Chlorarachniophyta,"Chlorophyta,some",Chlorophyta
+[Mg]-Chl?a,TRUE,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+[Mg]-Chl?b,TRUE,,1,,,,,,,,,,,,,,,1,1,1,1
+[Mg]-Chl?c1,TRUE,,,,,1,0.5,,1,1,1,1,1,1,,,1,,,0.1,
+[Mg]-Chl?c2,TRUE,,,,,1,0.5,,1,1,1,,1,1,1,1,1,,,0.1,
+Phycocyanin,TRUE,1,,1,1,,,,,,,,,,1,,,,,,
+allophycocyanin,TRUE,1,,1,1,,,,,,,,,,,,,,,,
+Phycoerythrin,TRUE,1,,,1,,,,,,,,,,1,,,,,,
+phycobilisome,TRUE,1,,1,1,,,,,,,,,,,,,,,,
+Peridinin,TRUE,,,,,,,,,,,,,,,1,,,,,
+fucoxanthin,TRUE,,,,,1,,,1,,1,1,1,1,,,1,,,,
