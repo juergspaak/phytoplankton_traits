@@ -26,7 +26,7 @@ if no_super:
 else:
     xave_string = "data/data_EF_time"+str(save)+".csv"
     
-time = 24*np.array([0,2,5,10,15,20,50])
+time = 24*np.array([0,2,5,10,15,20,50,100])
 def pigment_richness(equi, alpha):
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 

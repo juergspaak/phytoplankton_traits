@@ -1,11 +1,12 @@
-Pigment,Found,Cyanophyta,Prochlorophyta,Glaucophyta,Rhodophyta,H/Chrysophycceae,H/Xantophyceae,H/Eustigmatophyceae,H/Bacillariophyceae,"H/Raphodophyceae,freshwater","H/Raphodophyceae,marine",H/Dictyochophyceae,H/Phaeophyceae,Haptopyta,Cryptophyta,Dinophyta I,Dinophyta II,Euglenophyta,Chlorarachniophyta,"Chlorophyta,some",Chlorophyta
-[Mg]-Chl?a,TRUE,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-[Mg]-Chl?b,TRUE,,1,,,,,,,,,,,,,,,1,1,1,1
-[Mg]-Chl?c1,TRUE,,,,,1,0.5,,1,1,1,1,1,1,,,1,,,0.1,
-[Mg]-Chl?c2,TRUE,,,,,1,0.5,,1,1,1,,1,1,1,1,1,,,0.1,
-Phycocyanin,TRUE,1,,1,1,,,,,,,,,,1,,,,,,
-allophycocyanin,TRUE,1,,1,1,,,,,,,,,,,,,,,,
-Phycoerythrin,TRUE,1,,,1,,,,,,,,,,1,,,,,,
-phycobilisome,TRUE,1,,1,1,,,,,,,,,,,,,,,,
-Peridinin,TRUE,,,,,,,,,,,,,,,1,,,,,
-fucoxanthin,TRUE,,,,,1,,,1,,1,1,1,1,,,1,,,,
+Pigment,Reference paper,Cyanophyta 1,Cyanophyta 2,Cyanophyta 3,Prochlorophyta,Glaucophyta,Rhodophyta,H/Chrysophycceae,H/Xantophyceae,H/Eustigmatophyceae,H/Bacillariophyceae,"H/Raphodophyceae,freshwater","H/Raphodophyceae,marine",H/Dictyochophyceae,H/Phaeophyceae,Haptopyta,Cryptophyta,Dinophyta I,Dinophyta II,Euglenophyta,Chlorarachniophyta,"Chlorophyta,some",Chlorophyta
+Chl a,Kuepper 2007,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Chl b,Kuepper 2007,,,,1,,,,,,,,,,,,,,,1,1,1,1
+Chl c1,Bricaud 2004,,,,,,,1,0.5,,1,1,1,1,1,1,,,1,,,0.1,
+Chl c2,Bricaud 2004,,,,,,,1,0.5,,1,1,1,,1,1,1,1,1,,,0.1,
+Phycocyanin,Patel 2005,1,,,,1,1,,,,,,,,,,1,,,,,,
+Allophycocyanin,Glazer and Bryant 1975,1,1,1,,1,1,,,,,,,,,,,,,,,,
+Phycoerythrin,Six 2007,,1,1,,,1,,,,,,,,,,1,,,,,,
+Phycobilisome,Jallet 2014,,1,1,,1,1,,,,,,,,,,,,,,,,
+Peridinin,Bricaud 2004,,,,,,,,,,,,,,,,,1,,,,,
+Fucoxanthin,Kuepper 2007,,,,,,,1,,,1,,1,1,1,1,,,1,,,,
+Phycourobilin,Six 2007,,,1,,,,,,,,,,,,,,,,,,,

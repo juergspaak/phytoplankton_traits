@@ -46,7 +46,7 @@ xp = gp_data.iloc[1::3, 2:].values
 sig = gp_data.iloc[2::3,2: ].values
 
 kuepper = np.nansum(a*np.exp(-0.5*((xp-lambs.reshape(-1,1,1))/sig)**2),-1).T
-kuepper *= 1e-8*absorptivity.iloc[:,1].reshape(-1,1) 
+kuepper *= absorptivity.iloc[:,1].reshape(-1,1) 
 
 # load additional pogments from vaious authors
 df_pigs = pd.read_csv(path + "additional_pigments.csv") 
@@ -61,7 +61,7 @@ for i,pigment in enumerate(df_pigs.columns[1::2]):
 # multiply with absorptivity
 add_pigs /= np.nanmax(add_pigs, axis = 1, keepdims = True)
 ref_chla = np.nanmax(kuepper[4])
-absorptivity = ref_chla*np.array([2.0, 1, 1.5, 0.8,0.8,0.5,0.5,0.5])[:,np.newaxis]
+absorptivity = ref_chla*np.array([2.0, 1, 1.5, 0.8,0.8,0.5,0.5,0.5,0.5])[:,np.newaxis]
     
 pigments = np.append(kuepper, absorptivity*add_pigs, axis = 0)
 if __name__ == "__main__":

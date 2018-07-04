@@ -194,7 +194,7 @@ def fluctuating_richness(present_species = np.arange(5),
         phit,lt,k_spect = phi[:, undone], l[:, undone], k_spec[...,undone]
         start_dens = sol[-1,:,unfixed].T
         # remove very rare species
-        start_dens[start_dens<start_dens.sum(axis = 0)/5000] = 0
+        start_dens[start_dens<start_dens.sum(axis = 0)/10000] = 0
         counter += 1
 
     #######################################################################

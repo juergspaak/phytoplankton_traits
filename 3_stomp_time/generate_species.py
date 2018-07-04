@@ -24,6 +24,8 @@ for i,pigment in enumerate(pig_spe_id["Pigment"]):
         
 pigments = lp.pigments[np.array(pigment_id)]
 species_all = pig_spe_id.iloc[np.array(pigment_id_species)]
+                              
+# first two columns are pigment and where to find which pigment
 species_pigments = species_all.iloc[:,2:].values
 species_pigments[np.isnan(species_pigments)] = 0
                  
@@ -82,14 +84,15 @@ def gen_com(present_species, fac, n_com_org = 100, end = 2e-7,case = 0,
         raise ValueError("maximum of `present_species` must be at most"+
                          "{} entries".format(n_diff_spe))
     
-    # growth parameters of each species
+    # photosynthetic efficiency for each species
     phi = 2*1e6*np.random.uniform(1/fac, 1*fac,(r_spec,n_com))
-    l = 0.014*np.random.uniform(1/fac, 1*fac,(r_spec,n_com))
+    # loss rate of the community
+    l = 0.014*np.random.uniform(1/fac, 1*fac,(n_com))
 
     # concentration of each pigment for each species
     alphas = np.random.uniform(1,2,(len(pigments),r_spec,n_com)) *\
                 species_pigments[:,present_species, np.newaxis]
-    
+
     # compute absorption spectrum of each species
     k_spec = np.einsum("pl,psc->lsc",pigments, alphas)
     
@@ -113,7 +116,7 @@ def gen_com(present_species, fac, n_com_org = 100, end = 2e-7,case = 0,
     else:
         spec_id = np.arange(n_com_org)
         dummy_id = np.arange(r_spec).reshape(-1,1)
-    phi,l = phi[dummy_id, spec_id], l[dummy_id, spec_id]
+    phi,l = phi[dummy_id, spec_id], l[spec_id]
     k_spec = k_spec[:,dummy_id, spec_id]
     alphas = alphas[:,dummy_id, spec_id]
     if not(I_ins is None):
@@ -142,9 +145,16 @@ def mono_culture_survive(par, k_spec, I_ins):
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+    
+    fig = plt.figure(figsize=(9,9))
+    plt.plot(lp.lambs,pigments.T, label = "1")
+    plt.xlabel("nm")
+    plt.legend(labels = pigment_names)
+    
+    fig.savefig("Absorption spectrum of the pigments.pdf")
+    plt.figure()
     np.random.seed(5)
-    par, k_spec, alphas = gen_com(np.arange(10),4,100,
-                                  I_ins = np.array([I_in_ref(0),I_in_ref(5)]))
+    par, k_spec, alphas = gen_com(np.arange(10),4,100)
     plt.plot(k_spec[...,0])
     
     
@@ -152,7 +162,4 @@ if __name__ == "__main__":
                                    np.array([I_in_ref(0),I_in_ref(5)]))
     
 
-    surv = mono_culture_survive(par[0]/par[1],k_spec, np.array([I_in_ref(0),I_in_ref(5)]))
-    n_surv = min(n_com_org, *np.sum(surv, axis = -1))
-    spec_id = np.argsort(1-surv,axis = 1)[:,:n_surv]
-    
+    surv = mono_culture_survive(par[0]/par[1],k_spec, np.array([I_in_ref(0),I_in_ref(5)]))    
