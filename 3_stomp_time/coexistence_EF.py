@@ -24,7 +24,7 @@ except IndexError:
 if no_super:    
     save_string = "data/data_EF_time_no_super"+str(save)+".csv"
 else:
-    xave_string = "data/data_EF_time"+str(save)+".csv"
+    save_string = "data/data_EF_time"+str(save)+".csv"
     
 time = 24*np.array([0,2,5,10,15,20,50,100])
 def pigment_richness(equi, alpha):

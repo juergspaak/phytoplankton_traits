@@ -74,7 +74,7 @@ def medians(x_val, y_val):
     x_range = np.arange(min(x_val), max(x_val)+1)
     return x_range, np.array([np.nanmedian(y_val[x_val==x]) for x in x_range])
 
-spaak_data = pd.read_csv("data/data_EF_time_no_protect_all.csv")
+spaak_data = pd.read_csv("data/data_EF_time_no_super_all.csv")
 
 datas_biodiv["spaak, t="+str(t//24)] = [*medians("r_pig, start","r_spec, t="
                                     +str(t)),c_sta]

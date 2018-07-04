@@ -26,6 +26,7 @@ try:
 except IndexError:
     save = np.random.randint(100000)
     randomized_pigments = 0
+    no_super = True
 
 save_string = "data/data_EF_fluct"+str(save)+".csv"
 
