@@ -36,13 +36,13 @@ n_com = 100 # number of communities in each setting
 
 
 r_specs = np.random.randint(1,16,iters) # richness of species
-facs = np.random.uniform(1,5,iters) # maximal fitness differences
+facs = np.random.uniform(1.5,5,iters) # maximal fitness differences
 periods = 10**np.random.uniform(0,2, iters) # ranges from 1 to 100
 
 ## Determining the light regime for each setting
 # random incoming light fluctuations
-luxs = np.random.uniform(8,200,(iters,2))
-sigmas = 2**np.random.uniform(5,9,iters) # ragnes from 16-512
+luxs = np.random.uniform(20,200,(iters,2))
+sigmas = 2**np.random.uniform(6,9,iters) # ragnes from 32-512
 locs = np.random.uniform(450,650,(iters,2))
 
 # for saving the information

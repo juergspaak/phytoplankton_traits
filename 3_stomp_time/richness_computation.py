@@ -34,7 +34,7 @@ I_in_ref = I_in_t(mf.I_in_def(40,450,50), mf.I_in_def(40,650,50),10)
 
 def fluctuating_richness(present_species = np.arange(5),
     n_com = 100,fac = 3,randomized_spectra = 0, l_period = 10,
-    I_in = I_in_ref, t_const = [0,0.5], no_super = False):
+    I_in = I_in_ref, t_const = [0,0.5], no_super = False, iteration = 0):
     """Computes the number of coexisting species
     
     Parameters:
@@ -89,7 +89,7 @@ def fluctuating_richness(present_species = np.arange(5),
     
     for i,t in list(enumerate(t_const)):
         equi[i], unfixed[i] = mf.multispecies_equi(phi/l, k_spec, 
-                            I_in(t*l_period))
+                            I_in(t*l_period), runs = 5000*(1+iteration))
     # consider only communities, where algorithm found equilibria (all regimes)
     fixed = np.logical_not(np.sum(unfixed, axis = 0))
     equi = equi[..., fixed]
@@ -98,14 +98,16 @@ def fluctuating_richness(present_species = np.arange(5),
     k_spec = k_spec[..., fixed]
     alpha = alpha[...,fixed]
     n_fix = np.sum(fixed)
-    # no communities left, call function again
-    if np.sum(fixed) == 0:
+    
+    # no communities left, call function again with higher precision
+    if np.sum(fixed) == 0 and iteration < 5:
+        return fluctuating_richness(present_species, n_com,fac,
+                randomized_spectra, l_period,I_in, t_const,no_super)
+    elif np.sum(fixed) == 0: # increased presicion doesn't suffice, return nan
         return (np.full(len(t_const)+1,np.nan), np.full((len(t_const)+1,5),np.nan),
                 np.full(len(t_const)+1,np.nan),r_pig_start, 
                 np.full((len(t_const)+1,6),np.nan), 
-                np.full((len(t_const)+1,len(alpha)+1),np.nan),0)
-        return fluctuating_richness(present_species, n_com,fac,
-                randomized_spectra, l_period,I_in, t_const,no_super)
+                np.full((len(t_const)+1,len(alpha)+1),np.nan),0, iteration+1)
         
 
     ###########################################################################
