@@ -34,11 +34,9 @@ def random_pigments(n):
                                     /sigma[i]), axis = 1)*10**-8
     return pigs
 
-# load pigments from küpper
-path = "../../2_data/3. Different pigments/"
 
-gp_data = pd.read_csv(path + "gp_krueger.csv")
-absorptivity = pd.read_csv(path+"absorptivity_Krueger.csv")
+gp_data = pd.read_csv("gp_kupper.csv")
+absorptivity = pd.read_csv("absorptivity_kupper.csv")
 names_pigments = list(absorptivity["Pigment"])
 
 a = gp_data.iloc[::3,2:].values
@@ -49,7 +47,7 @@ kuepper = np.nansum(a*np.exp(-0.5*((xp-lambs.reshape(-1,1,1))/sig)**2),-1).T
 kuepper *= absorptivity.iloc[:,1].reshape(-1,1) 
 
 # load additional pogments from vaious authors
-df_pigs = pd.read_csv(path + "additional_pigments.csv") 
+df_pigs = pd.read_csv("additional_pigments.csv") 
 add_pigs = np.empty((df_pigs.shape[-1]//2, len(lambs)))
 names_pigments.extend(df_pigs.columns[1::2])
 
