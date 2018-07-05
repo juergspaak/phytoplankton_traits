@@ -60,7 +60,7 @@ prob_cols = ["spec_rich,{}".format(i) for i in range(6)] \
 EF_cols = ["biovolume,{}".format(i) for i in ["05",25,50, 75, 95]]
 columns = ["case","species","fac","period","loc1",
             "loc2","lux1", "lux2", "sigma", "r_pig_start", "r_pig_equi", 
-           "r_spec_equi"]+EF_cols+ prob_cols
+           "r_spec_equi"]+EF_cols+ prob_cols +["n_fix"]
 
 data = pd.DataFrame(None,columns = columns, index = range(len(cases)*iters))
     
@@ -77,7 +77,7 @@ while timer()-start <3600-(time_for_10):
     present_species = np.random.choice(n_diff_spe, r_specs[i],replace = True)
     # compute the richnesses
     (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
-            prob_pig) = rc.fluctuating_richness(present_species, 
+            prob_pig, n_fix) = rc.fluctuating_richness(present_species, 
             n_com , facs[i], randomized_pigments, periods[i],
             I_in,np.linspace(0,0.5,4), no_super)
     print(i)
@@ -86,7 +86,7 @@ while timer()-start <3600-(time_for_10):
         data.iloc[len(cases)*i+k] = [cases[k],str(present_species), facs[i], 
                   periods[i], *locs[i], *luxs[i], sigmas[i],
                 r_pig_start, r_pig_equi[k], richness_equi[k], 
-                *EF_biovolume[k], *prob_spec[k], *prob_pig[k]]
+                *EF_biovolume[k], *prob_spec[k], *prob_pig[k], n_fix]
     i+=1
     if i==10:
         time_for_10 = timer()-test_time_start

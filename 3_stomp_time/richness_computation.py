@@ -97,9 +97,13 @@ def fluctuating_richness(present_species = np.arange(5),
     l = l[:, fixed]
     k_spec = k_spec[..., fixed]
     alpha = alpha[...,fixed]
-
+    n_fix = np.sum(fixed)
     # no communities left, call function again
     if np.sum(fixed) == 0:
+        return (np.full(len(t_const)+1,np.nan), np.full((len(t_const)+1,5),np.nan),
+                np.full(len(t_const)+1,np.nan),r_pig_start, 
+                np.full((len(t_const)+1,6),np.nan), 
+                np.full((len(t_const)+1,len(alpha)+1),np.nan),0)
         return fluctuating_richness(present_species, n_com,fac,
                 randomized_spectra, l_period,I_in, t_const,no_super)
         
@@ -217,7 +221,7 @@ def fluctuating_richness(present_species = np.arange(5),
             axis = 0)
     
     return (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
-            prob_pig)
+            prob_pig, n_fix)
             
 
 if __name__ == "__main__":
