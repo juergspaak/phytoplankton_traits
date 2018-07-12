@@ -33,8 +33,8 @@ def pigment_richness(equi, alpha):
 I_in_ref = I_in_t(mf.I_in_def(40,450,50), mf.I_in_def(40,650,50),10)
 
 def fluctuating_richness(present_species = np.arange(5),
-    n_com = 100,fac = 3,randomized_spectra = 0, l_period = 10,
-    I_in = I_in_ref, t_const = [0,0.5], no_super = False, iteration = 0):
+    n_com = 100,fac = 3, l_period = 10, I_in = I_in_ref, t_const = [0,0.5],
+     no_super = True, randomized_spectra = 0,k_BG = 0, iteration = 0):
     """Computes the number of coexisting species
     
     Parameters:
@@ -67,7 +67,6 @@ def fluctuating_richness(present_species = np.arange(5),
         Intensity of outcoming light for the constant incoming light cases
     intens_fluct:
         Intensity of outcoming light for the fluctuating incoming light case"""
-    
     ###########################################################################
     # find potentially interesting communities
              
@@ -89,7 +88,7 @@ def fluctuating_richness(present_species = np.arange(5),
     
     for i,t in list(enumerate(t_const)):
         equi[i], unfixed[i] = mf.multispecies_equi(phi/l, k_spec, 
-                            I_in(t*l_period), runs = 5000*(1+iteration))
+            I_in(t*l_period), runs = 5000*(1+iteration),k_BG=k_BG)
     # consider only communities, where algorithm found equilibria (all regimes)
     fixed = np.logical_not(np.sum(unfixed, axis = 0))
     equi = equi[..., fixed]
@@ -101,13 +100,13 @@ def fluctuating_richness(present_species = np.arange(5),
     
     # no communities left, call function again with higher precision
     if np.sum(fixed) == 0 and iteration < 5:
-        return fluctuating_richness(present_species, n_com,fac,
-                randomized_spectra, l_period,I_in, t_const,no_super)
+        return fluctuating_richness(present_species, n_com,fac, l_period,I_in,
+                 t_const,no_super,randomized_spectra, k_BG, iteration+1)
     elif np.sum(fixed) == 0: # increased presicion doesn't suffice, return nan
         return (np.full(len(t_const)+1,np.nan), np.full((len(t_const)+1,5),np.nan),
                 np.full(len(t_const)+1,np.nan),r_pig_start, 
                 np.full((len(t_const)+1,6),np.nan), 
-                np.full((len(t_const)+1,len(alpha)+1),np.nan),0, iteration+1)
+                np.full((len(t_const)+1,len(alpha)+1),np.nan),0)
         
 
     ###########################################################################
@@ -161,7 +160,7 @@ def fluctuating_richness(present_species = np.arange(5),
     def multi_growth(N,t,I_in, k_spec, phi,l):
         # growth rate of the species
         # sum(N_j*k_j(lambda))
-        tot_abs = np.einsum("sc,lsc->lc", N, k_spec)[:,np.newaxis]
+        tot_abs = np.einsum("sc,lsc->lc", N, k_spec)[:,np.newaxis]+k_BG
         # growth part
         growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
                            *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)

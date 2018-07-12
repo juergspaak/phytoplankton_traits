@@ -70,7 +70,7 @@ ax[0,0].set_xlim(ax0_Xlim)
 ax[0,0].set_xticks([1,5,10])
 
 ax[1,1].set_xlim(ax_0Xlim)
-ax[1,1].set_xticks([1,5,10,14])
+ax[1,1].set_xticks([1,5,10,15])
 
 # set axis labels
 ax[0,0].set_ylabel("Final species richness")

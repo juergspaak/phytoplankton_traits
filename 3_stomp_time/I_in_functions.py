@@ -17,7 +17,7 @@ def I_in_def(lux, loc = 550, sigma = 50):
         return lux*prelim/simps(prelim, dx = dlam)
 
 def I_in_composite(n_peaks):
-    "Return light taht is a composite of n_peaks gaussian kernels"
+    "Return light that is a composite of n_peaks gaussian kernels"
     luxs = np.random.uniform(30/300,100/300,n_peaks)
     sigmas = 2**np.random.uniform(4,9,n_peaks) # ragnes from 16-512
     sigmas = sigmas*np.random.binomial(1,0.8,n_peaks) # add some uniform lights

@@ -6,4 +6,4 @@
 #SBATCH -N 1
 
 module load Python/3.5.1-foss-2016a
-python coexistence_EF.py $SLURM_ARRAY_TASK_ID False
+python coexistence_EF.py $SLURM_ARRAY_TASK_ID

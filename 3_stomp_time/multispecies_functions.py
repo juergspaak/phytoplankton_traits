@@ -58,7 +58,8 @@ def spectrum_species(pigments, r_pig, r_spec, n_com, r_pig_spec = 2):
     k_spec = np.einsum('psc,pl->lsc', alpha,pigments)
     return k_spec, alpha
     
-def multispecies_equi(fitness, k_spec, I_in = I_in_def(40),runs = 5000):
+def multispecies_equi(fitness, k_spec, I_in = I_in_def(40),runs = 5000, 
+                      k_BG = 0):
     """Compute the equilibrium density for several species with its pigments
     
     Computes `itera` randomly selected communities, each community contains
@@ -131,7 +132,6 @@ def multispecies_equi(fitness, k_spec, I_in = I_in_def(40),runs = 5000):
     
 if __name__ == "__main__":
     from scipy.integrate import odeint
-    from load_pigments import real
     import matplotlib.pyplot as plt
     pigments = real[[0,5,6]] # chlo_a, phycoerythrin, phycocyanin
     plt.plot(lambs,pigments.T)
