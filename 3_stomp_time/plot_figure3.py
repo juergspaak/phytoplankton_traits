@@ -85,9 +85,9 @@ for col in spaak_data.columns:
         spaak_data[col] *=1e-9
                         
 pig_range, EF_equi = medians("r_pig, start", "EF, equi")
-pig_range, EF_t15 = medians("r_pig, start", "EF, t="+str(t))
+pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t))
 datas_EF["spaak, equi"] = [pig_range, EF_equi, c_coe]
-datas_EF["spaak, t="+str(t//24)] = [pig_range, EF_t15, c_sta]
+datas_EF["spaak, t="+str(t//24)] = [pig_range, EF_t, c_sta]
 
 
 ###############################################################################
@@ -138,7 +138,7 @@ boxs("r_pig, start", "EF, equi",pig_range,ax[1], c_coe)
 
 plot_results(datas_biodiv, "Species richness",ax[0])
 print("new")
-plot_results(datas_EF,r"Biovolume $[fl ml^{-1}]$",ax[1], False)
+plot_results(datas_EF,r"Biovolume $[fl\,ml^{-1}]$",ax[1], False)
 ax[0].set_xlim(0.5,23.5)
 plt.xticks(range(2,24,2),range(2,24,2))
 fig.savefig("Figure, biodiv-EF.pdf")

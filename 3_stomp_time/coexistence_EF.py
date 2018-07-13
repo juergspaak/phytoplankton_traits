@@ -16,15 +16,10 @@ import sys
 # getting data from jobscript 
 try:                    
     save = int(sys.argv[1])
-    no_super = sys.argv[2] == "True"
 except IndexError:
     save = np.random.randint(100000)
-    no_super = True
     
-if no_super:    
-    save_string = "data/data_EF_time_no_super"+str(save)+".csv"
-else:
-    save_string = "data/data_EF_time"+str(save)+".csv"
+save_string = "data/data_EF_time"+str(save)+".csv"
     
 time = 24*np.array([0,2,5,10,15,20,50,100])
 def pigment_richness(equi, alpha):
@@ -32,7 +27,7 @@ def pigment_richness(equi, alpha):
 
 def find_EF(present_species, n_com):
     [phi,l], k_spec, alpha = gen_com(present_species,2, n_com, case = 2,
-                        I_ins = np.array([I_in_def(40)]), no_super=no_super)
+                        I_ins = np.array([I_in_def(40)]))
     
     r_spec = len(present_species)
     # incoming light regime
@@ -78,7 +73,7 @@ def find_EF(present_species, n_com):
     # species richness
     r_spec = np.nanmean(np.sum(sol_ode >= start_dens, axis = 1), axis = -1)
     dead = np.sum(np.all(np.isnan(equi[0]), axis = 0))/n_com
-    fitness = phi/l*simps(k_spec, axis = 0,dx = dlam)
+    fitness = phi/l
     fitness_start = np.nanmean(fitness)
     fitness_equi = np.nanmean(fitness[equi[0]>0])
     return EF_mean, EF_var, abs_mean, abs_var, r_pig, r_spec, dead, [fitness_start, fitness_equi]
