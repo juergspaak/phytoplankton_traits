@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # load the dataset
-spaak_data = pd.read_csv("data/data_EF_fluct_no_super_all.csv")
+spaak_data = pd.read_csv("data/data_appendix_all.csv")
 # add phylum diversity and species diversity at the beginning
 spaak_data["phylum_diversity"] = [len(set(spec[1:-1].split())) 
                                         for spec in spaak_data.species]
@@ -88,4 +88,4 @@ fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 fig.colorbar(im, cax=cbar_ax)
 
-fig.savefig("Figure, trait species diversity_no_super.pdf")
+fig.savefig("Figure,ap_diversity.pdf")

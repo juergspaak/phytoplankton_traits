@@ -6,7 +6,7 @@ import numpy as np
 from scipy.stats import entropy
 from scipy.integrate import simps
 
-from load_pigments import lambs, dlam
+from pigments import lambs, dlam
 
 def I_in_def(lux, loc = 550, sigma = 50):
     """ returns a gaussian kernel incoming light function"""

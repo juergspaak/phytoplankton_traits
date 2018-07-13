@@ -5,12 +5,12 @@ uses the table of the EAWAG"""
 import pandas as pd
 import numpy as np
 
-import load_pigments as lp
+import pigments as lp
 from scipy.integrate import simps
 
 # to reproduce exact values of paper
 
-pig_spe_id = pd.read_csv("vdHoek,pig_alg_no_protection.csv")
+pig_spe_id = pd.read_csv("Pigment_algae_table.csv")
 
 pigment_id = []
 pigment_id_species = []

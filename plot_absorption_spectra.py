@@ -8,18 +8,19 @@ of one winning species
 import numpy as np
 import matplotlib.pyplot as plt
 from generate_species import gen_com, pigments, pigment_names
-import multispecies_functions as mf
-from load_pigments import lambs
+import richness_computation as rc
+import I_in_functions as I_in
+from pigments import lambs
 
 # fix randomness
 np.random.seed(20110505)
 
-I_in = mf.I_in_def(40,550,100)
+I_in = I_in.I_in_def(40,550,100)
 
 [phi,l],k_spec,alpha = gen_com([3,-6], 3, 50, case = 2,
                     I_ins = I_in, no_super=True)
 
-equi,unfixed = mf.multispecies_equi(phi/l,k_spec, I_in)
+equi,unfixed = rc.multispecies_equi(phi/l,k_spec, I_in)
 
 # remove all species where we have not found equilibrium
 equi = equi*(1-unfixed)
@@ -73,4 +74,4 @@ ax[1].set_title("B", loc = "left")
 ax[2].set_title("C", loc = "left")
 
 
-fig.savefig("Figure, absorption spectra.pdf")
+fig.savefig("Figure,absorption_spectra.pdf")

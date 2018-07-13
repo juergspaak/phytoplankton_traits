@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-spaak = pd.read_csv("data/data_EF_time_no_super_all.csv")
+spaak = pd.read_csv("data/data_EF_all.csv")
 
 for col in spaak.columns:
     if col[:2] == "EF":
@@ -45,4 +45,4 @@ ax.set_xlabel("Pigment richness")
 ax.set_ylabel(r"Biovolume $[fl\,ml^{-1}]$")
 axt.set_ylabel(r"Base productivity ($\phi\cdot l^{-1}$)")
 
-fig.savefig("Figure,appendix_sampling.pdf")
+fig.savefig("Figure,ap_sampling_effect.pdf")

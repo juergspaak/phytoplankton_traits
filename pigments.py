@@ -11,29 +11,6 @@ from scipy.interpolate import interp1d
 
 lambs, dlam = np.linspace(400,700,101, retstep = True)
 
-def random_pigments(n):
-    """randomly generates `n` absorption spectra
-    
-    n: number of absorption pigments to create
-    
-    Returns: pigs, a list of functions. Each function in pigs (`pigs[i]`) is
-        the absorption spectrum of this pigment.
-    `pig[i](lam)` = sum_peak(gamma*e^(-(lam-peak)**2/sigma)"""
-    #number of peaks for each pigment:
-    npeak = 2+np.random.randint(5,size = n)
-    # location of peaks
-    peak = [np.random.uniform(400,700,(1,npeak[i])) for i in range(n)]
-    # shape of peack
-    sigma = [np.random.uniform(100,900, size = (1,npeak[i])) for i in range(n)]
-    # magnitude of peak
-    gamma = [np.random.uniform(0,1, size = (1,npeak[i])) for i in range(n)]
-    pigs = np.empty((n,101))
-    for i in range(n):
-        # pigs[i](lam) = sum_peak(gamma*e^(-(lam-peak)**2/sigma)
-        pigs[i] = np.sum(gamma[i]*np.exp(-(lambs[:,np.newaxis]-peak[i])**2
-                                    /sigma[i]), axis = 1)*10**-8
-    return pigs
-
 
 gp_data = pd.read_csv("gp_kupper.csv")
 absorptivity = pd.read_csv("absorptivity_kupper.csv")

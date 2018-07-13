@@ -7,11 +7,11 @@ light
 import numpy as np
 from scipy.integrate import simps
 
-from load_pigments import lambs, dlam
-import multispecies_functions as mf
+from pigments import lambs, dlam
 from generate_species import gen_com, n_diff_spe
+import I_in_functions as I_in
 
-from differential_functions_copy import own_ode
+from differential_functions import own_ode
                     
 def I_in_t(I_in1, I_in2, period):
     # returns light at given time t, fluctuates between I_in1, I_in2
@@ -30,7 +30,80 @@ def pigment_richness(equi, alpha):
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
 # standard incoming light fluctuation    
-I_in_ref = I_in_t(mf.I_in_def(40,450,50), mf.I_in_def(40,650,50),10)
+I_in_ref = I_in.fluc_nconst([I_in.I_in_def(40,450,50), 
+                            I_in.I_in_def(40,650,50)],10)
+
+def multispecies_equi(fitness, k_spec, I_in = I_in.I_in_def(40),runs = 5000, 
+                      k_BG = 0):
+    """Compute the equilibrium density for several species with its pigments
+    
+    Computes `itera` randomly selected communities, each community contains
+    at most len(`pigs`) different species. Returns equilibrium densities
+    for each community.
+    
+    Parameters
+    ----------
+    pigs : list of functions
+        Each element `pig` of pigs must be the absorption spectrum of that 
+        pigment. Each `pig` must be a function that returns a float
+    itera : int, optional
+        number of generated communities
+    runs : int, optional
+        number of iterations to find equilibrium
+    av_fit: float, optional
+        Average fitness of all species
+    pow_fit: float, optional
+        Fitness of each species ill be in [1/pow_fit, pow_fit]*av_fit
+    per_fix: Bool, optional
+        Percent of fixed species is printed if True
+    sing_pig: Bool, optional
+        Determines if species have only one pigment. If False, species 
+        absorption spectrum will be a sum of different pigments        
+        
+    Returns
+    -------
+    equis:
+        Equilibrium densitiy of all species, that reached equilibrium      
+    """
+    # starting densities for iteration, shape = (npi, itera)
+    equis = np.full(fitness.shape, 1e7) # start of iteration
+    equis_fix = np.zeros(equis.shape)
+
+    # k_spec(lam), shape = (len(lam), richness, ncom)
+    abs_points = k_spec.copy()
+    I_in = I_in[:,np.newaxis]
+    unfixed = np.full(fitness.shape[-1], True, dtype = bool)
+    n = 20
+    i = 0
+    #print(equis.shape, equis_fix.shape, fitness.shape, np.sum(unfixed), abs_points.shape)
+    while np.sum(unfixed)/equis.shape[-1]>0.01 and i<runs:          
+        # sum_i(N_i*sum_j(a_ij*k_j(lam)), shape = (len(lam),itera)
+        tot_abs = np.einsum('ni,lni->li', equis, abs_points)
+        # N_j*k_j(lam), shape = (npi, len(lam), itera)
+        all_abs = equis*abs_points #np.einsum('ni,li->nli', equis, abs_points)
+        # N_j*k_j(lam)/sum_j(N_j*k_j)*(1-e^(-sum_j(N_j*k_j))), shape =(npi, len(lam), itera)
+        y_simps = all_abs*(I_in/tot_abs*(1-np.exp(-tot_abs)))[:,np.newaxis]
+        # fit*int(y_simps)
+        equis = fitness*simps(y_simps, dx = dlam, axis = 0)
+        # remove rare species
+        equis[equis<1] = 0
+        if i % n==n-2:
+            # to check stability of equilibrium in next run
+            equis_old = equis.copy()
+        if i % n==n-1:
+            
+            stable = np.logical_or(equis == 0, #no change or already 0
+                                   np.abs((equis-equis_old)/equis)<1e-3)
+            cond = np.logical_not(np.prod(stable, 0)) #at least one is unstable
+            equis_fix[:,unfixed] = equis #copy the values
+            # prepare for next runs
+            unfixed[unfixed] = cond
+            equis = equis[:,cond]
+            abs_points = abs_points[...,cond]
+            fitness = fitness[:,cond]
+        i+=1
+    #return only communities that found equilibrium
+    return equis_fix, unfixed
 
 def fluctuating_richness(present_species = np.arange(5),
     n_com = 100,fac = 3, l_period = 10, I_in = I_in_ref, t_const = [0,0.5],
@@ -87,7 +160,7 @@ def fluctuating_richness(present_species = np.arange(5),
     unfixed = np.empty((len(t_const),phi.shape[-1]))
     
     for i,t in list(enumerate(t_const)):
-        equi[i], unfixed[i] = mf.multispecies_equi(phi/l, k_spec, 
+        equi[i], unfixed[i] = multispecies_equi(phi/l, k_spec, 
             I_in(t*l_period), runs = 5000*(1+iteration),k_BG=k_BG)
     # consider only communities, where algorithm found equilibria (all regimes)
     fixed = np.logical_not(np.sum(unfixed, axis = 0))

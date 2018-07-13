@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 import I_in_functions as I_inf
-from load_pigments import lambs
+from pigments import lambs
 
 I_in = [I_inf.I_in_def(30,450), I_inf.I_in_def(50,650)]
 
@@ -73,4 +73,4 @@ for i,t in enumerate(times):
 ax[1,0].legend(loc = "upper left")
 ax[1,1].legend(loc = "upper left")
 
-fig.savefig("Figure, Ap, Fluctuating lights.pdf")
+fig.savefig("Figure,ap_I_in_fluct.pdf")

@@ -20,7 +20,7 @@ try:
 except IndexError:
     save = np.random.randint(100000)
 
-save_string = "data/data_EF_fluct"+str(save)+".csv"
+save_string = "data/data_richness"+str(save)+".csv"
 
 start = timer()
 iters = 10000 # number of random settings
