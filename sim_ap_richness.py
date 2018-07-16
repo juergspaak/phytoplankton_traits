@@ -1,8 +1,12 @@
-"""@author: J.W.Spaak
+"""
+@author: J. W. Spaak, jurg.spaak@unamur.be
 
-Computes the number of coexisting species for random settings
-uses continuously changing lightspectrum
-Incoming light is one gaussian which shifts its peak"""
+Similar to sim_richness.py
+Differences are:
+    Nonzero background absorptivity
+    Pigments are slightly different in different spieces
+
+generates the data data_ap_richness*.csv that is used in plot_ap_richness.py"""
 
 import pandas as pd
 import numpy as np
@@ -11,16 +15,16 @@ from timeit import default_timer as timer
 from I_in_functions import fluc_nconst, I_in_def
 from generate_species import n_diff_spe,pigments
 import sys
-sys.path.append("../3_different_pigments")
 import richness_computation as rc
 
 # getting data from jobscript 
 try:                    
     save = sys.argv[1]
+    np.random.seed(int(save))
 except IndexError:
     save = np.random.randint(100000)
 
-save_string = "data/data_appendix"+str(save)+".csv"
+save_string = "data/data_ap_richness"+str(save)+".csv"
 
 start = timer()
 iters = 10000 # number of random settings

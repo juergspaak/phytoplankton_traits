@@ -3,7 +3,10 @@
 
 Contains functions that generate coexisting communities with changing incoming
 light
+
+For examples see the sim* files and at the end of the file
 """
+
 import numpy as np
 from scipy.integrate import simps
 
@@ -12,14 +15,6 @@ from generate_species import gen_com, n_diff_spe
 import I_in_functions as I_in
 
 from differential_functions import own_ode
-                    
-def I_in_t(I_in1, I_in2, period):
-    # returns light at given time t, fluctuates between I_in1, I_in2
-    def fun(t):
-        t_rel = (t%period)/period
-        part_1 = 2*np.abs(t_rel-0.5)
-        return part_1*I_in1+(1-part_1)*I_in2
-    return fun
     
 def find_survivors(equi, species_id):
     # compute the average amount of each species in the communities
@@ -29,7 +24,7 @@ def find_survivors(equi, species_id):
 def pigment_richness(equi, alpha):
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
-# standard incoming light fluctuation    
+# for default setting of the functions    
 I_in_ref = I_in.fluc_nconst([I_in.I_in_def(40,450,50), 
                             I_in.I_in_def(40,650,50)],10)
 
@@ -37,33 +32,28 @@ def multispecies_equi(fitness, k_spec, I_in = I_in.I_in_def(40),runs = 5000,
                       k_BG = 0):
     """Compute the equilibrium density for several species with its pigments
     
-    Computes `itera` randomly selected communities, each community contains
-    at most len(`pigs`) different species. Returns equilibrium densities
-    for each community.
+    Compute the equilibrium density for the species with the parameters
+    fitness and k_spec for the the incoming light I_in (constant over time)
     
     Parameters
     ----------
-    pigs : list of functions
-        Each element `pig` of pigs must be the absorption spectrum of that 
-        pigment. Each `pig` must be a function that returns a float
-    itera : int, optional
-        number of generated communities
-    runs : int, optional
-        number of iterations to find equilibrium
-    av_fit: float, optional
-        Average fitness of all species
-    pow_fit: float, optional
-        Fitness of each species ill be in [1/pow_fit, pow_fit]*av_fit
-    per_fix: Bool, optional
-        Percent of fixed species is printed if True
-    sing_pig: Bool, optional
-        Determines if species have only one pigment. If False, species 
-        absorption spectrum will be a sum of different pigments        
+    fitness: array (shape = m,n)
+        Base fitness, \phi/l for each species
+    k_spec: array (shape = len(lambs), m, n)
+        Absorption spectrum of the species
+    I_in: array (shape = len(lambs),m)
+        Incoming lights at which equilibrium must be computed
+    runs: int
+        Number of iterations to find equilibrium
+    k_BG: float
+        background absorptivity
         
     Returns
     -------
-    equis:
-        Equilibrium densitiy of all species, that reached equilibrium      
+    equis: array, (shape = m,n)
+        Equilibrium densitiy of all species, that reached equilibrium
+    unfixed: array, (shape = n)
+        Boolean array indicating in which communitiy an equilibrium was found
     """
     # starting densities for iteration, shape = (npi, itera)
     equis = np.full(fitness.shape, 1e7) # start of iteration
@@ -102,17 +92,20 @@ def multispecies_equi(fitness, k_spec, I_in = I_in.I_in_def(40),runs = 5000,
             abs_points = abs_points[...,cond]
             fitness = fitness[:,cond]
         i+=1
-    #return only communities that found equilibrium
     return equis_fix, unfixed
 
-def fluctuating_richness(present_species = np.arange(5),
-    n_com = 100,fac = 3, l_period = 10, I_in = I_in_ref, t_const = [0,0.5],
-     no_super = True, randomized_spectra = 0,k_BG = 0, iteration = 0):
-    """Computes the number of coexisting species
+def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
+    l_period = 10, I_in = I_in_ref, t_const = [0,0.5], randomized_spectra = 0,
+    k_BG = 0, _iteration = 0):
+    """Computes the number of coexisting species in fluctuating incoming light
+    
+    Returns the richness, biovolume, pigment richness and some other parameters
+    at equilibrium. Each of the parameters is returned for each timepoint in
+    `t_const` and for the fluctuating time, this is indicated by the value `t`
     
     Parameters:
-    r_spec: int
-        richness of species in the regional community
+    present_species: list of integeters
+        Id. of present species
     n_com: int
         Number of communities to generate
     fac: float
@@ -120,33 +113,43 @@ def fluctuating_richness(present_species = np.arange(5),
     l_period: float
         Lenght of period of fluctuating incoming light
     I_in: callable
-        Must return an array of shape (101,). Incoming light at time t
+        Must return an array of shape (len(lambs),). Incoming light at time t
     t_const: array-like
         Times at which species richness must be computed for constant light
-    randomized_spectra: float
-        amout by which pigments spectra differ from species
-    allow_shortcut: boolean
-        If True, when for all constant light cases the same species coexist,
-        then fluctuating incoming light is not computed
+    randomized_spectra: float in [0,1]
+        percentage by which pigments differ between species
+    k_BG: float
+        background absorptivity
+    _iteration: int
+        Should not be set manually, tracks how often function already called
+        itself
     
+    
+        
     Returns:
-    ret_mat: array, shape (len(t_const)+2, 10)
-        ret_mat[i,j] Percentages of communities that have j coexisting species
-        in the incoming light situation j. j in range(len(t_const)) means
-        I_in(t_const[j]*period) as incoming light. j=len(t_const) is the 
-        maximum of all constant incoming lights and the last one is the
-        fluctuation incoming light
-    intens_const:
-        Intensity of outcoming light for the constant incoming light cases
-    intens_fluct:
-        Intensity of outcoming light for the fluctuating incoming light case"""
+    richness_equi: array (shape = t)
+        species richness at equilibrium
+    EF_biovolume: array (shape = 5,t)
+        biovolume, i.e. sum of all species abundancies. given are the 
+        5,25,50,75,95 percentiles of the communities
+    r_pig_equi array, (shape = t)
+        pigment richness at equilibrium
+    r_pig_start: int
+        pigment richness at start of the communtiy (without comp. exclusion)
+    prob_spec: array (shape = 5,`t`)
+        Probability of finding a community with i species at equilibrium
+    prob_pig:
+            similar to prob_spec for pigments
+    n_fix:
+        Number of communities that reached equilibrium in all constant light
+        cases.
+    """
     ###########################################################################
     # find potentially interesting communities
              
     # generate species and communities
-    [phi,l],k_spec,alpha = gen_com(present_species, fac, n_com, case = 2,
-                    I_ins = np.array([I_in(t*l_period) for t in t_const]),
-                    no_super=no_super)
+    [phi,l],k_spec,alpha = gen_com(present_species, fac, n_com,
+                    I_ins = np.array([I_in(t*l_period) for t in t_const]))
     # compute pigment richness at the beginning (the same in all communities)
     r_pig_start = pigment_richness(1, alpha)
     if randomized_spectra>0:
@@ -161,7 +164,7 @@ def fluctuating_richness(present_species = np.arange(5),
     
     for i,t in list(enumerate(t_const)):
         equi[i], unfixed[i] = multispecies_equi(phi/l, k_spec, 
-            I_in(t*l_period), runs = 5000*(1+iteration),k_BG=k_BG)
+            I_in(t*l_period), runs = 5000*(1+_iteration),k_BG=k_BG)
     # consider only communities, where algorithm found equilibria (all regimes)
     fixed = np.logical_not(np.sum(unfixed, axis = 0))
     equi = equi[..., fixed]
@@ -172,9 +175,9 @@ def fluctuating_richness(present_species = np.arange(5),
     n_fix = np.sum(fixed)
     
     # no communities left, call function again with higher precision
-    if np.sum(fixed) == 0 and iteration < 5:
+    if np.sum(fixed) == 0 and _iteration < 5:
         return fluctuating_richness(present_species, n_com,fac, l_period,I_in,
-                 t_const,no_super,randomized_spectra, k_BG, iteration+1)
+                 t_const,randomized_spectra, k_BG, _iteration+1)
     elif np.sum(fixed) == 0: # increased presicion doesn't suffice, return nan
         return (np.full(len(t_const)+1,np.nan), np.full((len(t_const)+1,5),np.nan),
                 np.full(len(t_const)+1,np.nan),r_pig_start, 
@@ -299,6 +302,7 @@ def fluctuating_richness(present_species = np.arange(5),
             
 
 if __name__ == "__main__":
+    # short example, can be used for debugging
     present_species = np.arange(5)
     n_com = 20
     fac = 1.1
@@ -307,4 +311,4 @@ if __name__ == "__main__":
     t_const = [0,0.5]
     randomized_spectra = 0
     (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
-            prob_pig) = fluctuating_richness()
+            prob_pig, n_fix) = fluctuating_richness()

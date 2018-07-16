@@ -1,8 +1,11 @@
-"""@author: J.W.Spaak
+"""
+@author: J. W. Spaak, jurg.spaak@unamur.be
 
 Computes the number of coexisting species for random settings
 uses continuously changing lightspectrum
-Incoming light is one gaussian which shifts its peak"""
+Incoming light is one gaussian which shifts its peak
+
+generates the data data_richness*.csv that is used in plot_richness.py"""
 
 import pandas as pd
 import numpy as np
@@ -11,12 +14,13 @@ from timeit import default_timer as timer
 from I_in_functions import fluc_continuous
 from generate_species import n_diff_spe,pigments
 import sys
-sys.path.append("../3_different_pigments")
 import richness_computation as rc
 
 # getting data from jobscript 
 try:                    
     save = sys.argv[1]
+    # to reproduce the exacte data used in the paper
+    np.random.seed(int(save))
 except IndexError:
     save = np.random.randint(100000)
 
@@ -31,7 +35,7 @@ r_specs = np.random.randint(1,16,iters) # richness of species
 facs = np.random.uniform(1.5,5,iters) # maximal fitness differences
 periods = 10**np.random.uniform(0,2, iters) # ranges from 1 to 100
 
-## Determining the light regime for each setting
+# Determining the light regime for each setting
 # random incoming light fluctuations
 luxs = np.random.uniform(20,200,(iters,2))
 sigmas = 2**np.random.uniform(6,9,iters) # ragnes from 32-512

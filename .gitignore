@@ -1,10 +1,9 @@
-*.npz
 __pycache__/
-Figure*
+
 
 test*
-Prelim,*
-data*
+
+data/
 
 *.pdf
 *.png

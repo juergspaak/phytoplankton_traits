@@ -6,4 +6,4 @@
 #SBATCH -N 1
 
 module load Python/3.5.1-foss-2016a
-python sim_appendix.py $SLURM_ARRAY_TASK_ID 
+python sim_ap_appendix.py $SLURM_ARRAY_TASK_ID 
