@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 from timeit import default_timer as timer
 
-from I_in_functions import fluc_nconst, I_in_def
+from I_in_functions import fluc_light
 from generate_species import n_diff_spe,pigments
 import sys
 import richness_computation as rc
@@ -35,17 +35,9 @@ r_specs = np.random.randint(1,16,iters) # richness of species
 facs = np.random.uniform(1.5,5,iters) # maximal fitness differences
 periods = 10**np.random.uniform(0,2, iters) # ranges from 1 to 100
 
-## Determining the light regime for each setting
+# Determining the light regime for each setting
 # random incoming light fluctuations
 luxs = np.random.uniform(20,200,(iters,2))
-sigmas = 2**np.random.uniform(6,9,(iters,2)) # ragnes from 32-512
-locs = np.random.uniform(450,650,(iters,2))
-
-# for saving the information
-I_in_datas = np.empty((6,iters))
-I_in_datas[0:2] = locs.T
-I_in_datas[2:4] = luxs.T
-I_in_datas[4:6] = sigmas.T
 
 # background absorption
 k_BGs = np.random.uniform(0,0.5, iters)
@@ -57,9 +49,8 @@ prob_cols = ["spec_rich,{}".format(i) for i in range(6)] \
             + ["pig_rich,{}".format(i) for i in range(len(pigments)+1)]
 
 EF_cols = ["biovolume,{}".format(i) for i in ["05",25,50, 75, 95]]
-columns = ["case","species","fac","period","loc1",
-            "loc2","lux1", "lux2", "sigma1", "sigma2", "r_pig_start", "r_pig_equi", 
-           "r_spec_equi"]+EF_cols+ prob_cols +["n_fix", "k_BG"]
+columns = ["case","species","fac","period","lux1", "lux2", "r_pig_start",
+           "r_pig_equi", "r_spec_equi"]+EF_cols+ prob_cols +["n_fix", "k_BG"]
 
 data = pd.DataFrame(None,columns = columns, index = range(len(cases)*iters))
     
@@ -72,9 +63,7 @@ time_for_10 = 0
 while timer()-start <3600-(time_for_10):
     if i==iters:
         break
-    I_ins = [I_in_def(luxs[i,0],locs[i,0],sigmas[i,0]),
-                     I_in_def(luxs[i,1],locs[i,1],sigmas[i,1])]
-    I_in = fluc_nconst(I_ins, periods[i])
+    I_in = fluc_light(luxs[i], periods[i])
     present_species = np.random.choice(n_diff_spe, r_specs[i],replace = True)
     # compute the richnesses
     (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
@@ -85,9 +74,8 @@ while timer()-start <3600-(time_for_10):
     # save to dataframe
     for k,case in enumerate(cases):
         data.iloc[len(cases)*i+k] = [cases[k],str(present_species), facs[i], 
-                  periods[i], *locs[i], *luxs[i], *sigmas[i],
-                r_pig_start, r_pig_equi[k], richness_equi[k], 
-                *EF_biovolume[k], *prob_spec[k], *prob_pig[k], n_fix, k_BGs[i]]
+            periods[i], *luxs[i], r_pig_start, r_pig_equi[k], richness_equi[k], 
+            *EF_biovolume[k], *prob_spec[k], *prob_pig[k], n_fix, k_BGs[i]]
     i+=1
     if i==10:
         time_for_10 = timer()-test_time_start

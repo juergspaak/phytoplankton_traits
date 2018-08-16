@@ -13,7 +13,7 @@ from pigments import lambs, dlam
 def I_in_def(lux, loc = 550, sigma = 50):
     """ returns a gaussian kernel incoming light function"""
     if sigma == 0: # constant incoming light intensity
-        return np.full(lambs.shape, lux, dtype = "float")
+        return np.full(lambs.shape, lux, dtype = "float")/300
     else:
         prelim = np.exp(-(lambs-loc)**2/(2*sigma**2))
         return lux*prelim/simps(prelim, dx = dlam)
@@ -84,6 +84,22 @@ def fluc_nconst(I_ins = def_I_ins, period = 10, fluc_case = "sinus"):
         return (prop_I[:-1]*I_ins).sum(axis = 0)
     return I_in
     
+def fluc_light(lux = [20,200], period = 10):
+    """returns whithe light that changes total intensity over time
+    
+    lux: array of shape (2), minimal and maximal lux of the incoming light
+    period: float, length of period
+    
+    Returns: I_in(t), function returning incoming light at given time t"""
+    def I_in(t):
+        "gives white light at time t"
+        
+        alpha = (np.cos(2*t*np.pi/period)+1)/2
+        lux_t = alpha*lux[0] + (1-alpha)*lux[1]
+        return I_in_def(lux_t,0,0)
+        
+    return I_in
+
 if __name__ == "__main__":# examples
     # For further examples see plot_ap_I_in_fluct.py
     
