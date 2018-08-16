@@ -1,5 +1,8 @@
 """
-@author: J.W. Spaak, jurg.spaak@unamur.be
+@author: J. W. Spaak, jurg.spaak@unamur.be
+
+Plot a figure used in the main text,
+for more information check the description in the main text
 
 Plots the regression of pigment richness, real data, purly random and 
 model prediction
@@ -22,7 +25,6 @@ datas_EF = {}
 c_est = "red" # color for all estrada data
 estrada = pd.read_csv("EF,estrada.csv", delimiter = ",",
                       engine = "python")
-estrada = estrada.convert_objects(convert_numeric = True)
 estrada = estrada[estrada.Salinity<16]
 
 datas_biodiv["estrada"] = [estrada['SP Pigments detected by HPLC'],
@@ -43,7 +45,6 @@ striebel_field_pigs = pd.read_csv("EF,striebel,field,pigments.csv",
                                   delimiter= ",")
 striebel_field_spec = pd.read_csv("EF,striebel,field,species.csv",
                                   delimiter= ",")                    
-striebel_field_spec = striebel_field_spec.convert_objects(convert_numeric = 1)
 r_pig = np.nansum(striebel_field_pigs.iloc[:,1:-2]>0,axis = 1)
 datas_biodiv["striebel, field"] = [r_pig                
                 ,np.nansum(striebel_field_spec.iloc[:,1:-1]>0,axis = 1), c_fie]
@@ -71,7 +72,7 @@ def medians(x_val, y_val):
     x_range = np.arange(min(x_val), max(x_val)+1)
     return x_range, np.array([np.nanmedian(y_val[x_val==x]) for x in x_range])
 
-spaak_data = pd.read_csv("data/data_EF_all.csv")
+spaak_data = pd.read_csv("data/data_EF_time_all.csv")
 
 datas_biodiv["spaak, t="+str(t//24)] = [*medians("r_pig, start","r_spec, t="
                                     +str(t)),c_sta]
@@ -134,7 +135,7 @@ boxs("r_pig, start", "EF, t="+str(t),pig_range,ax[1], c_sta)
 boxs("r_pig, start", "EF, equi",pig_range,ax[1], c_coe)
 
 plot_results(datas_biodiv, "Species richness",ax[0])
-print("new")
+
 plot_results(datas_EF,r"Biovolume $[fl\,ml^{-1}]$",ax[1], False)
 ax[0].set_xlim(0.5,23.5)
 plt.xticks(range(2,24,2),range(2,24,2))

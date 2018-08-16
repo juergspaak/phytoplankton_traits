@@ -1,7 +1,10 @@
 """
-@author: J.W. Spaak, jurg.spaak@unamur.be
+@author: J. W. Spaak, jurg.spaak@unamur.be
 
-Plot the different incoming light conditions for the different fluctuations
+Plot a figure used in the appendix,
+for more information check the description in the appendix
+
+Plot different cases of fluctiating incoming light cases
 """
 
 import numpy as np

@@ -1,8 +1,11 @@
-# -*- coding: utf-8 -*-
 """
-@author: J.W.Spaak
-Plot the absorption spectrum of all pigments involved as well as the spectrum
-of one winning species
+@author: J. W. Spaak, jurg.spaak@unamur.be
+
+Plot a figure used in the main text,
+for more information check the description in the main text
+
+Plot the absorption spectrum of all pigments involved
+Plot the example absorption spectrum of two coexisting species
 """
 
 import numpy as np
@@ -17,8 +20,7 @@ np.random.seed(20110505)
 
 I_in = I_in.I_in_def(40,550,100)
 
-[phi,l],k_spec,alpha = gen_com([3,-6], 3, 50, case = 2,
-                    I_ins = I_in, no_super=True)
+[phi,l],k_spec,alpha = gen_com([3,-5], 3, 50,I_ins = I_in)
 
 equi,unfixed = rc.multispecies_equi(phi/l,k_spec, I_in)
 

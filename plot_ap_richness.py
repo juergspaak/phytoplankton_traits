@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-@author: J.W.Spaak
-Plot the main Figure of the paper
+@author: J. W. Spaak, jurg.spaak@unamur.be
+
+Plot a figure used in the appendix,
+for more information check the description in the appendix
 """
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 # load the dataset
-spaak_data = pd.read_csv("data/data_appendix_all.csv")
+spaak_data = pd.read_csv("data/data_richness_all.csv")
 # add phylum diversity and species diversity at the beginning
 spaak_data["phylum_diversity"] = [len(set(spec[1:-1].split())) 
                                         for spec in spaak_data.species]
@@ -26,7 +28,6 @@ def plot_imshow(data, x_val, ax,x_lim):
     
     # maximum value of x
     max_x = max(spaak_data[x_val])+1
-    print(max_x)
     # array to contain information about probabilities
     x_spe = np.zeros((6,max_x))
     for ss in range(max_x):

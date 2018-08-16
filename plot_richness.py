@@ -26,7 +26,6 @@ def plot_imshow(data, x_val, ax,x_lim):
     
     # maximum value of x
     max_x = max(spaak_data[x_val])+1
-    print(max_x)
     # array to contain information about probabilities
     x_spe = np.zeros((6,max_x))
     for ss in range(max_x):
