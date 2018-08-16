@@ -6,6 +6,8 @@ for illustrations of the different fluctuating types see: plot_ap_I_In_fluct.py
 """
 
 import numpy as np
+import pandas as pd
+from scipy.interpolate import interp1d
 from scipy.integrate import simps
 
 from pigments import lambs, dlam
@@ -83,20 +85,25 @@ def fluc_nconst(I_ins = def_I_ins, period = 10, fluc_case = "sinus"):
         prop_I[0] += prop_I[-1]
         return (prop_I[:-1]*I_ins).sum(axis = 0)
     return I_in
-    
-def fluc_light(lux = [20,200], period = 10):
+ 
+sun_spectrum = pd.read_csv("sunlight.csv")
+sun_spectrum = interp1d(sun_spectrum["lambs"], sun_spectrum["I_in"])(lambs)
+sun_spectrum = sun_spectrum/simps(sun_spectrum,dx = dlam)
+def sun_light(lux = [20,200], period = 10):
     """returns whithe light that changes total intensity over time
     
     lux: array of shape (2), minimal and maximal lux of the incoming light
     period: float, length of period
     
     Returns: I_in(t), function returning incoming light at given time t"""
+    
+
     def I_in(t):
         "gives white light at time t"
         
         alpha = (np.cos(2*t*np.pi/period)+1)/2
         lux_t = alpha*lux[0] + (1-alpha)*lux[1]
-        return I_in_def(lux_t,0,0)
+        return lux_t*sun_spectrum
         
     return I_in
 

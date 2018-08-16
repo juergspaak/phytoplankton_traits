@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 from timeit import default_timer as timer
 
-from I_in_functions import fluc_light
+from I_in_functions import sun_light
 from generate_species import n_diff_spe,pigments
 import sys
 import richness_computation as rc
@@ -60,7 +60,7 @@ time_for_10 = 0
 while timer()-start <3600-(time_for_10):
     if i==iters:
         break
-    I_in = fluc_light(luxs[i], periods[i])
+    I_in = sun_light(luxs[i], periods[i])
     present_species = np.random.choice(n_diff_spe, r_specs[i],replace = True)
     # compute the richnesses
     (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 

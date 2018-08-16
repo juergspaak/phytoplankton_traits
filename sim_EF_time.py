@@ -14,7 +14,7 @@ from timeit import default_timer as timer
 
 import richness_computation as rc
 from generate_species import gen_com, n_diff_spe
-from I_in_functions import I_in_def
+from I_in_functions import sun_spectrum
 from pigments import dlam
 
 
@@ -60,11 +60,11 @@ def find_EF(present_species, n_com):
     
     # generate species
     [phi,l], k_spec, alpha = gen_com(present_species,2, n_com,
-                        I_ins = np.array([I_in_def(40,sigma = 0)]))
+                        I_ins = np.array([40*sun_spectrum]))
     
     r_spec = len(present_species)
     # incoming light regime
-    I_in = lambda t: I_in_def(40, sigma = 0)
+    I_in = lambda t: 40*sun_spectrum
     # compute equilibrium densities
     equi = rc.multispecies_equi(phi/l, k_spec, I_in(0))[0]
     # when species can't survive equi returns nan
