@@ -34,7 +34,7 @@ def pigment_richness(dens, alpha):
     # compute the pigment richness for given densities dens
     return np.mean(np.sum(np.sum(dens*alpha, axis = -2)>0, axis = -2),-1)
 
-def find_EF(present_species, n_com):
+def find_EF(present_species, n_com, sky, lux):
     """compute the EF over time for the species
     
     Generates random species and simulates them for `time` and solves
@@ -60,11 +60,11 @@ def find_EF(present_species, n_com):
     
     # generate species
     [phi,l], k_spec, alpha = gen_com(present_species,2, n_com,
-                        I_ins = np.array([40*sun_spectrum]))
+                        I_ins = np.array([lux*sun_spectrum[sky]]))
     
     r_spec = len(present_species)
     # incoming light regime
-    I_in = lambda t: 40*sun_spectrum
+    I_in = lambda t: lux*sun_spectrum[sky]
     # compute equilibrium densities
     equi = rc.multispecies_equi(phi/l, k_spec, I_in(0))[0]
     # when species can't survive equi returns nan
@@ -127,8 +127,16 @@ r_spec_cols = ["r_spec, t={}".format(t) for t in time] + ["r_spec, equi"]
 r_spec_cols[0] = "r_spec, start"
 fit_cols = ["base_prod, t={}".format(t) for t in time] + ["base_prod, equi"]
 fit_cols[0] = "base_prod, start"
-columns = ["species","r_spec"] + EF_cols + r_pig_cols + \
+
+# light information
+skys = np.array(sorted(sun_spectrum.keys()))
+skys = skys[np.random.randint(len(skys), size = iters)]
+lux = np.random.uniform(20,1000,size = iters)
+
+columns = ["species","r_spec", "sky", "lux"] + EF_cols + r_pig_cols + \
             r_spec_cols + var_cols + fit_cols
+            
+            
 data = pd.DataFrame(None, columns = columns, index = range(iters))
 
 counter = 0
@@ -139,10 +147,11 @@ while (timer()-start<1800 - average_over_10) and counter < iters:
     present_species = np.random.choice(n_diff_spe, r_specs[counter], 
                                        replace = True)
     
-    EF_mean, EF_var,  r_pig, r_spec,fit=find_EF(present_species, n_com)
+    EF_mean, EF_var,  r_pig, r_spec,fit=find_EF(present_species, n_com, 
+                                                skys[counter], lux[counter])
     
-    data.iloc[counter] = [present_species, r_specs[counter], *EF_mean,
-              *r_pig, *r_spec, *EF_var,*fit]
+    data.iloc[counter] = [present_species, r_specs[counter], skys[counter],
+              lux[counter],*EF_mean,*r_pig, *r_spec, *EF_var,*fit]
               
     counter += 1
     if counter == 10:

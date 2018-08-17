@@ -85,11 +85,18 @@ def fluc_nconst(I_ins = def_I_ins, period = 10, fluc_case = "sinus"):
         prop_I[0] += prop_I[-1]
         return (prop_I[:-1]*I_ins).sum(axis = 0)
     return I_in
- 
-sun_spectrum = pd.read_csv("sunlight.csv")
-sun_spectrum = interp1d(sun_spectrum["lambs"], sun_spectrum["I_in"])(lambs)
-sun_spectrum = sun_spectrum/simps(sun_spectrum,dx = dlam)
-def sun_light(lux = [20,200], period = 10):
+
+sun_data = pd.read_csv("sunlight.csv")
+sun_spectrum = {}    
+for key in ["usual", "direct full", "blue sky", "clouded"]:
+    x = sun_data["lambs, " + key]
+    y = sun_data[key]
+    x = x[np.isfinite(x)]
+    y = y[np.isfinite(y)]
+    sun_spectrum[key] = interp1d(x,y)(lambs)
+    sun_spectrum[key] = sun_spectrum[key]/simps(sun_spectrum[key],dx = dlam)
+
+def sun_light(lux = [20,200], period = 10, sky = "blue sky"):
     """returns whithe light that changes total intensity over time
     
     lux: array of shape (2), minimal and maximal lux of the incoming light
@@ -103,11 +110,11 @@ def sun_light(lux = [20,200], period = 10):
         
         alpha = (np.cos(2*t*np.pi/period)+1)/2
         lux_t = alpha*lux[0] + (1-alpha)*lux[1]
-        return lux_t*sun_spectrum
+        return lux_t*sun_spectrum[sky]
         
     return I_in
 
-if __name__ == "__main__":# examples
+if False and __name__ == "__main__":# examples
     # For further examples see plot_ap_I_in_fluct.py
     
     import matplotlib.pyplot as plt
