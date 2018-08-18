@@ -24,12 +24,8 @@ def find_survivors(equi, species_id):
 def pigment_richness(equi, alpha):
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
-# for default setting of the functions    
-I_in_ref = I_in.fluc_nconst([I_in.I_in_def(40,450,50), 
-                            I_in.I_in_def(40,650,50)],10)
-
-def multispecies_equi(fitness, k_spec, I_in = I_in.I_in_def(40),runs = 5000, 
-                      k_BG = 0):
+def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
+                      runs = 5000, k_BG = 0):
     """Compute the equilibrium density for several species with its pigments
     
     Compute the equilibrium density for the species with the parameters
@@ -55,20 +51,22 @@ def multispecies_equi(fitness, k_spec, I_in = I_in.I_in_def(40),runs = 5000,
     unfixed: array, (shape = n)
         Boolean array indicating in which communitiy an equilibrium was found
     """
+    k_BG = np.asarray(k_BG)
+    k_BG.shape = -1,1
     # starting densities for iteration, shape = (npi, itera)
     equis = np.full(fitness.shape, 1e7) # start of iteration
     equis_fix = np.zeros(equis.shape)
 
     # k_spec(lam), shape = (len(lam), richness, ncom)
     abs_points = k_spec.copy()
-    I_in = I_in[:,np.newaxis]
+    I_in.shape = -1,1
     unfixed = np.full(fitness.shape[-1], True, dtype = bool)
     n = 20
     i = 0
     #print(equis.shape, equis_fix.shape, fitness.shape, np.sum(unfixed), abs_points.shape)
     while np.sum(unfixed)/equis.shape[-1]>0.01 and i<runs:          
         # sum_i(N_i*sum_j(a_ij*k_j(lam)), shape = (len(lam),itera)
-        tot_abs = np.einsum('ni,lni->li', equis, abs_points)
+        tot_abs = np.einsum('ni,lni->li', equis, abs_points) + k_BG
         # N_j*k_j(lam), shape = (npi, len(lam), itera)
         all_abs = equis*abs_points #np.einsum('ni,li->nli', equis, abs_points)
         # N_j*k_j(lam)/sum_j(N_j*k_j)*(1-e^(-sum_j(N_j*k_j))), shape =(npi, len(lam), itera)
@@ -77,11 +75,13 @@ def multispecies_equi(fitness, k_spec, I_in = I_in.I_in_def(40),runs = 5000,
         equis = fitness*simps(y_simps, dx = dlam, axis = 0)
         # remove rare species
         equis[equis<1] = 0
+        if np.any(np.isnan(equis)):
+            print(i, "error occured")
+            return(equis, tot_abs)
         if i % n==n-2:
             # to check stability of equilibrium in next run
             equis_old = equis.copy()
         if i % n==n-1:
-            
             stable = np.logical_or(equis == 0, #no change or already 0
                                    np.abs((equis-equis_old)/equis)<1e-3)
             cond = np.logical_not(np.prod(stable, 0)) #at least one is unstable
@@ -93,10 +93,10 @@ def multispecies_equi(fitness, k_spec, I_in = I_in.I_in_def(40),runs = 5000,
             fitness = fitness[:,cond]
         i+=1
     return equis_fix, unfixed
-
+    
 def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
-    l_period = 10, I_in = I_in_ref, t_const = [0,0.5], randomized_spectra = 0,
-    k_BG = 0, _iteration = 0):
+    l_period = 10, I_in = I_in.sun_light(), t_const = [0,0.5], 
+    randomized_spectra = 0, k_BG = 0, _iteration = 0):
     """Computes the number of coexisting species in fluctuating incoming light
     
     Returns the richness, biovolume, pigment richness and some other parameters
@@ -307,8 +307,7 @@ if __name__ == "__main__":
     n_com = 20
     fac = 1.1
     l_period = 10
-    I_in = I_in_ref
     t_const = [0,0.5]
     randomized_spectra = 0
-    (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
-            prob_pig, n_fix) = fluctuating_richness()
+    #(richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
+    #        prob_pig, n_fix) = fluctuating_richness()

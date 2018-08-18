@@ -7,6 +7,7 @@ Create randomized species according to methods
 import pandas as pd
 import numpy as np
 from scipy.integrate import simps
+import I_in_functions as I_inf
 
 import pigments as lp
 
@@ -34,7 +35,8 @@ species_pigments[np.isnan(species_pigments)] = 0
 # minus 2, because of pigment labeling and whether pigments are found
 n_diff_spe = len(pigments)
                          
-def gen_com(present_species, fac, n_com_org = 100, I_ins = None):
+def gen_com(present_species, fac, n_com_org = 100, I_ins = None, k_BG = None,
+            run = 0):
     """Generate random species
     
     Generate species with random absorption spectrum according to the table
@@ -59,6 +61,8 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None):
             The absorption spectrum of each species in each community
         alphas: array with shape (len(pigments), len(present_species),n_com)
             Concentration of each pigment for each species in each community"""
+    if run == 2:
+        return [None, None], None, None, False
     # internally generate to many species, as some will not survive
     n_com = n_com_org*10
     
@@ -92,23 +96,29 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None):
     
     # check survivability in monoculture
     if not(I_ins is None):
-        # in some unprobable cases this might generate less than n_com species
-        surv = mono_culture_survive(phi/l,k_spec, I_ins)
+        surv = mono_culture_survive(phi/l,k_spec, I_ins,k_BG)
         n_surv = min(n_com_org, *np.sum(surv, axis = -1))
+        
+        # in some unprobable cases this might generate less than n_com species
+        if n_surv == 0:
+            return gen_com(present_species, fac, n_com_org, I_ins, k_BG, run+1)
+            
         spec_id = np.argsort(1-surv,axis = 1)[:,:n_surv]
         dummy_id = np.arange(r_spec).reshape(-1,1)
     else:
         spec_id = np.arange(n_com_org)
         dummy_id = np.arange(r_spec).reshape(-1,1)
+    
+        
         
     # remove species that would not survive
     phi,l = phi[dummy_id, spec_id], l[spec_id]
     k_spec = k_spec[:,dummy_id, spec_id]
     alphas = alphas[:,dummy_id, spec_id]
     
-    return np.array([phi,l]), k_spec, alphas
+    return np.array([phi,l]), k_spec, alphas, True
 
-def mono_culture_survive(par, k_spec, I_ins):
+def mono_culture_survive(par, k_spec, I_ins, k_BG = None):
     """check whether each species could survive in monoculture
     
     par: phi/l
@@ -118,9 +128,14 @@ def mono_culture_survive(par, k_spec, I_ins):
     Returns:
         Surv: boolean array with same shape as par, indicating which species
         survive in all light conditions"""
+    # light condition
+    if k_BG is None:
+        light = I_ins.view()
+    else:
+        light = I_ins*(1-np.exp(-k_BG))/k_BG
+    light.shape = -1,len(lp.lambs),1,1
     # initial growth rate
-    I_ins = I_ins.reshape(-1,len(lp.lambs),1,1)
-    init_growth = par*simps(I_ins*k_spec,dx = lp.dlam,axis = 1)-1
+    init_growth = par*simps(light*k_spec,dx = lp.dlam,axis = 1)-1
     # initial growth rate must be larger than 0 for all lights
     survive = np.all(init_growth>0,axis = 0)
     return survive
@@ -138,5 +153,6 @@ if __name__ == "__main__":
     
     # plot the absorption spectrum of random species
     plt.figure()
-    par, k_spec, alphas = gen_com(np.random.randint(11,size = 5),4,100)
+    par, k_spec, alphas = gen_com(np.random.randint(11,size = 5),4,100,
+                        50*I_inf.sun_spectrum["blue sky"], I_inf.k_BG["ocean"])
     plt.plot(k_spec[...,0])   

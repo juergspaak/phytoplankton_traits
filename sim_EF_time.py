@@ -15,6 +15,7 @@ from timeit import default_timer as timer
 import richness_computation as rc
 from generate_species import gen_com, n_diff_spe
 from I_in_functions import sun_spectrum
+import I_in_functions as I_inf
 from pigments import dlam
 
 
@@ -34,7 +35,7 @@ def pigment_richness(dens, alpha):
     # compute the pigment richness for given densities dens
     return np.mean(np.sum(np.sum(dens*alpha, axis = -2)>0, axis = -2),-1)
 
-def find_EF(present_species, n_com, sky, lux):
+def find_EF(present_species, n_com, sky, lux, envi):
     """compute the EF over time for the species
     
     Generates random species and simulates them for `time` and solves
@@ -57,11 +58,16 @@ def find_EF(present_species, n_com, sky, lux):
     fitness_t: similar to EF_mean, but average base productivity of the species
         still present at this point
     """
-    
+    k_BG = I_inf.k_BG[envi]
+    k_BG.shape = -1,1,1
     # generate species
-    [phi,l], k_spec, alpha = gen_com(present_species,2, n_com,
-                        I_ins = np.array([lux*sun_spectrum[sky]]))
+    [phi,l], k_spec, alpha, feasible = gen_com(present_species,2, n_com,
+                I_ins = np.array([lux*sun_spectrum[sky]]),k_BG = k_BG)
     
+    if not feasible:
+        return np.full((5,len(time)+1),np.nan)
+    # for the rare case where less species have been generated than predicted
+    n_com = k_spec.shape[-1]
     r_spec = len(present_species)
     # incoming light regime
     I_in = lambda t: lux*sun_spectrum[sky]
@@ -82,7 +88,7 @@ def find_EF(present_species, n_com, sky, lux):
         N = N_r.reshape(-1,n_com)
         # growth rate of the species
         # sum(N_j*k_j(lambda))
-        tot_abs = np.nansum(N*k_spec, axis = 1, keepdims = True)
+        tot_abs = np.nansum(N*k_spec, axis = 1, keepdims = True)# + zm*k_BG
         # growth part
         growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
                            *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
@@ -130,33 +136,37 @@ fit_cols[0] = "base_prod, start"
 
 # light information
 skys = np.array(sorted(sun_spectrum.keys()))
-skys = skys[np.random.randint(len(skys), size = iters)]
-lux = np.random.uniform(20,1000,size = iters)
+skys = np.random.choice(skys, iters)
+lux = np.random.choice([40, 50, 100, 200, 400, 1000],iters)
 
-columns = ["species","r_spec", "sky", "lux"] + EF_cols + r_pig_cols + \
+# environment information
+environments = np.array(sorted(I_inf.k_BG.keys()))
+environments = environments[np.random.randint(len(environments), size = iters)]
+
+columns = ["species","r_spec", "sky", "lux", "envi"] + EF_cols + r_pig_cols + \
             r_spec_cols + var_cols + fit_cols
             
             
 data = pd.DataFrame(None, columns = columns, index = range(iters))
 
-counter = 0
+i = 0
 average_over_10 = 0
 start = timer()
 
-while (timer()-start<1800 - average_over_10) and counter < iters:
-    present_species = np.random.choice(n_diff_spe, r_specs[counter], 
+while (timer()-start<1800 - average_over_10) and i < iters:
+    present_species = np.random.choice(n_diff_spe, r_specs[i], 
                                        replace = True)
     
     EF_mean, EF_var,  r_pig, r_spec,fit=find_EF(present_species, n_com, 
-                                                skys[counter], lux[counter])
+                        skys[i], lux[i], environments[i])
     
-    data.iloc[counter] = [present_species, r_specs[counter], skys[counter],
-              lux[counter],*EF_mean,*r_pig, *r_spec, *EF_var,*fit]
+    data.iloc[i] = [present_species, r_specs[i], skys[i],
+              lux[i],environments[i],*EF_mean,*r_pig, *r_spec, *EF_var,*fit]
               
-    counter += 1
-    if counter == 10:
+    i += 1
+    if i == 10:
         average_over_10 = timer()-start
-    print(counter)
+    print(i)
     
-data = data[0:counter]
+data = data[0:i]
 data.to_csv(save_string)
