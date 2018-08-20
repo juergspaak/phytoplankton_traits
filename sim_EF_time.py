@@ -60,9 +60,10 @@ def find_EF(present_species, n_com, sky, lux, envi):
     """
     k_BG = I_inf.k_BG[envi]
     k_BG.shape = -1,1,1
+    zm = I_inf.zm[envi]
     # generate species
     [phi,l], k_spec, alpha, feasible = gen_com(present_species,2, n_com,
-                I_ins = np.array([lux*sun_spectrum[sky]]),k_BG = k_BG)
+                I_ins = np.array([lux*sun_spectrum[sky]]),k_BG = k_BG, zm = zm)
     
     if not feasible:
         return np.full((5,len(time)+1),np.nan)
@@ -71,15 +72,15 @@ def find_EF(present_species, n_com, sky, lux, envi):
     r_spec = len(present_species)
     # incoming light regime
     I_in = lambda t: lux*sun_spectrum[sky]
+
     # compute equilibrium densities
-    equi = rc.multispecies_equi(phi/l, k_spec, I_in(0))[0]
+    equi = rc.multispecies_equi(phi/l, k_spec, I_in(0), k_BG, zm)[0]
     # when species can't survive equi returns nan
     equi[np.isnan(equi)] = 0
     equi.shape = 1,*equi.shape
     
     # starting density
     start_dens = np.full(equi.shape, 1e7)/r_spec
-    
     # compute densities over time
     def multi_growth(N_r,t):
         # compute the growth rate of the species at densities N_r and time t
@@ -88,11 +89,11 @@ def find_EF(present_species, n_com, sky, lux, envi):
         N = N_r.reshape(-1,n_com)
         # growth rate of the species
         # sum(N_j*k_j(lambda))
-        tot_abs = np.nansum(N*k_spec, axis = 1, keepdims = True)# + zm*k_BG
+        tot_abs = zm*(np.nansum(N*k_spec, axis = 1, keepdims = True) + k_BG)
         # growth part
         growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
                            *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
-        
+    
         return (N*(growth-l)).flatten() # flatten for odeint
         
     sol_ode = odeint(multi_growth, start_dens.reshape(-1), time)
@@ -117,8 +118,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
     fitness = phi/l
     fitness_t = [np.nanmean(fitness[d>=start_dens[0]]) for d in dens]
     return EF_mean, EF_var, r_pig, r_spec, fitness_t
-
-
+ 
 iters = 5000
 n_com = 100
 r_specs = np.random.randint(1,15,iters) # richness of species
@@ -145,8 +145,7 @@ environments = environments[np.random.randint(len(environments), size = iters)]
 
 columns = ["species","r_spec", "sky", "lux", "envi"] + EF_cols + r_pig_cols + \
             r_spec_cols + var_cols + fit_cols
-            
-            
+                       
 data = pd.DataFrame(None, columns = columns, index = range(iters))
 
 i = 0

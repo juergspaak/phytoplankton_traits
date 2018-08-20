@@ -17,6 +17,7 @@ from pigments import lambs, dlam
 # Sun light data
 
 sun_data = pd.read_csv("sunlight.csv")
+# units: [sun_spectrum] = (mu mol photons) * m^-2 * s^-1 * nm^-1
 sun_spectrum = {}    
 for key in ["usual", "direct full", "blue sky", "clouded"]:
     x = sun_data["lambs, " + key]
@@ -56,16 +57,15 @@ k_water = interp1d(k_water[0][ind], k_water[1][ind])(lambs)
 k_gli_tri = interp1d(background["lambs, GliTri"], background["GliTri"])(lambs)
 
 # different background absorptions depending on the environment
-k_BG_rel = {"ocean": k_water,
-        "baltic sea": k_water + k_gli_tri,
-        "peat lake": k_water + k_gli_tri/k_gli_tri[50]*2}
+# units: [k_BG_rel] = cm^-1
+k_BG = {"ocean": k_water/100,
+        "baltic sea": (k_water + k_gli_tri)/100,
+        "peat lake": (k_water + k_gli_tri/k_gli_tri[50]*2)/100,
+        "clear": k_water*0}
 
 # mixing depth in meters depending on the environment
-zm = {"ocean": 60, "baltic sea": 10, "peat lake": 1}
-
-# relative background absorption not needed, only total background absorption
-k_BG = {key: k_BG_rel[key]*zm[key] for key in zm.keys()}
-
+# units: [zm] = cm
+zm = {"ocean": 60*100, "baltic sea": 10*100, "peat lake": 1*100, "clear": 100}
 
 if False and __name__ == "__main__":# examples
     # For further examples see plot_ap_I_in_fluct.py

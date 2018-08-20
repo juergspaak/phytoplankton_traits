@@ -35,8 +35,8 @@ species_pigments[np.isnan(species_pigments)] = 0
 # minus 2, because of pigment labeling and whether pigments are found
 n_diff_spe = len(pigments)
                          
-def gen_com(present_species, fac, n_com_org = 100, I_ins = None, k_BG = None,
-            run = 0):
+def gen_com(present_species, fac, n_com_org = 100, I_ins = None, 
+            k_BG = None, zm = 1, run = 0):
     """Generate random species
     
     Generate species with random absorption spectrum according to the table
@@ -60,7 +60,13 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None, k_BG = None,
         k_spec: array with shape (len(lambs), len(present_species),n_com)
             The absorption spectrum of each species in each community
         alphas: array with shape (len(pigments), len(present_species),n_com)
-            Concentration of each pigment for each species in each community"""
+            Concentration of each pigment for each species in each community
+            
+    units of the returned variables are:
+        [phi]: fl * (mu mol photons)^-1
+        [l]: h^-1
+        [k_spec]: cm^2 * fl^-1
+        [alphas]: unitless"""
     if run == 2:
         return [None, None], None, None, False
     # internally generate to many species, as some will not survive
@@ -76,32 +82,37 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None, k_BG = None,
                          "{} entries".format(n_diff_spe))
     
     # photosynthetic efficiency for each species
-    phi = 2*1e6*np.random.uniform(1/fac, 1*fac,(r_spec,n_com))
+    # unit: [phi] = fl * (mumol photons)^-1
+    phi = 2.0*1e6*np.random.uniform(1/fac, 1*fac,(r_spec,n_com))
     # loss rate of the community
+    # unit: [l] = h^-1
     l = 0.014*np.random.uniform(1/fac, 1*fac,(n_com))
 
     # concentration of each pigment for each species
+    # unit: [alphas] = unitless
     alphas = np.random.uniform(1,2,(len(pigments),r_spec,n_com)) *\
                 species_pigments[:,present_species, np.newaxis]
 
     # compute absorption spectrum of each species
+    # unit: [k_spec] = cm^2 * fl^-1
     k_spec = np.einsum("pl,psc->lsc",pigments, alphas)
     
     # Total absorption of each species should be equal (similar to Stomp)
-    tot_abs = np.mean(simps(k_spec, dx = lp.dlam, axis = 0), axis = -1)
-    k_spec = k_spec/tot_abs[:,np.newaxis]*2.0e-7
+    int_abs = np.mean(simps(k_spec, dx = lp.dlam, axis = 0), axis = -1)
+    k_spec = k_spec/int_abs[:,np.newaxis]*2.0e-7
 
     # change pigment concentrations accordingly
-    alphas = alphas/tot_abs[:,np.newaxis]*2.0e-7
+    alphas = alphas/int_abs[:,np.newaxis]*2.0e-7
     
     # check survivability in monoculture
     if not(I_ins is None):
-        surv = mono_culture_survive(phi/l,k_spec, I_ins,k_BG)
+        surv = mono_culture_survive(phi/l,k_spec, I_ins,k_BG,zm)
         n_surv = min(n_com_org, *np.sum(surv, axis = -1))
         
         # in some unprobable cases this might generate less than n_com species
         if n_surv == 0:
-            return gen_com(present_species, fac, n_com_org, I_ins, k_BG, run+1)
+            return gen_com(present_species, fac, n_com_org, I_ins, k_BG, zm,
+                           run+1)
             
         spec_id = np.argsort(1-surv,axis = 1)[:,:n_surv]
         dummy_id = np.arange(r_spec).reshape(-1,1)
@@ -118,7 +129,7 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None, k_BG = None,
     
     return np.array([phi,l]), k_spec, alphas, True
 
-def mono_culture_survive(par, k_spec, I_ins, k_BG = None):
+def mono_culture_survive(par, k_spec, I_ins, k_BG = None,zm = 1):
     """check whether each species could survive in monoculture
     
     par: phi/l
@@ -129,10 +140,7 @@ def mono_culture_survive(par, k_spec, I_ins, k_BG = None):
         Surv: boolean array with same shape as par, indicating which species
         survive in all light conditions"""
     # light condition
-    if k_BG is None:
-        light = I_ins.view()
-    else:
-        light = I_ins*(1-np.exp(-k_BG))/k_BG
+    light = np.where(k_BG ==0, I_ins, I_ins*(1-np.exp(-k_BG*zm))/(k_BG*zm))
     light.shape = -1,len(lp.lambs),1,1
     # initial growth rate
     init_growth = par*simps(light*k_spec,dx = lp.dlam,axis = 1)-1
@@ -153,6 +161,6 @@ if __name__ == "__main__":
     
     # plot the absorption spectrum of random species
     plt.figure()
-    par, k_spec, alphas = gen_com(np.random.randint(11,size = 5),4,100,
+    par, k_spec, alphas, a  = gen_com(np.random.randint(11,size = 5),4,100,
                         50*I_inf.sun_spectrum["blue sky"], I_inf.k_BG["ocean"])
     plt.plot(k_spec[...,0])   

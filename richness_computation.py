@@ -25,7 +25,7 @@ def pigment_richness(equi, alpha):
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
 def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
-                      runs = 5000, k_BG = 0):
+                      k_BG = np.array([0]), zm = 1, runs = 5000):
     """Compute the equilibrium density for several species with its pigments
     
     Compute the equilibrium density for the species with the parameters
@@ -51,8 +51,7 @@ def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
     unfixed: array, (shape = n)
         Boolean array indicating in which communitiy an equilibrium was found
     """
-    k_BG = np.asarray(k_BG)
-    k_BG.shape = -1,1
+    k_BG = k_BG.reshape(-1,1)
     # starting densities for iteration, shape = (npi, itera)
     equis = np.full(fitness.shape, 1e7) # start of iteration
     equis_fix = np.zeros(equis.shape)
@@ -63,8 +62,9 @@ def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
     unfixed = np.full(fitness.shape[-1], True, dtype = bool)
     n = 20
     i = 0
+    
     #print(equis.shape, equis_fix.shape, fitness.shape, np.sum(unfixed), abs_points.shape)
-    while np.sum(unfixed)/equis.shape[-1]>0.01 and i<runs:          
+    while np.any(unfixed) and i<runs:          
         # sum_i(N_i*sum_j(a_ij*k_j(lam)), shape = (len(lam),itera)
         tot_abs = np.einsum('ni,lni->li', equis, abs_points) + k_BG
         # N_j*k_j(lam), shape = (npi, len(lam), itera)
