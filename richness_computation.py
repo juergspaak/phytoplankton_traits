@@ -66,7 +66,7 @@ def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
     #print(equis.shape, equis_fix.shape, fitness.shape, np.sum(unfixed), abs_points.shape)
     while np.any(unfixed) and i<runs:          
         # sum_i(N_i*sum_j(a_ij*k_j(lam)), shape = (len(lam),itera)
-        tot_abs = np.einsum('ni,lni->li', equis, abs_points) + k_BG
+        tot_abs = zm*(np.einsum('ni,lni->li', equis, abs_points) + k_BG)
         # N_j*k_j(lam), shape = (npi, len(lam), itera)
         all_abs = equis*abs_points #np.einsum('ni,li->nli', equis, abs_points)
         # N_j*k_j(lam)/sum_j(N_j*k_j)*(1-e^(-sum_j(N_j*k_j))), shape =(npi, len(lam), itera)

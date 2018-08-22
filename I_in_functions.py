@@ -27,6 +27,11 @@ for key in ["usual", "direct full", "blue sky", "clouded"]:
     sun_spectrum[key] = interp1d(x,y)(lambs)
     sun_spectrum[key] = sun_spectrum[key]/simps(sun_spectrum[key],dx = dlam)
 
+prelim = np.exp(-(lambs-550)**2/(2*50**2))
+sun_spectrum["gaussian"] = prelim/simps(prelim,dx = dlam)
+del sun_spectrum["clouded"]
+del sun_spectrum["usual"]
+
 def sun_light(lux = [20,200], period = 10, sky = "blue sky"):
     """returns whithe light that changes total intensity over time
     
@@ -67,46 +72,16 @@ k_BG = {"ocean": k_water/100,
 # units: [zm] = cm
 zm = {"ocean": 60*100, "baltic sea": 10*100, "peat lake": 1*100, "clear": 100}
 
-if False and __name__ == "__main__":# examples
-    # For further examples see plot_ap_I_in_fluct.py
-    
+if __name__ == "__main__":# examples    
     import matplotlib.pyplot as plt
-    period = 10 # period length
-    # creates fucntion I_in(t)
-    I_in_cont = fluc_continuous()
-    time = np.linspace(0,period, period+1)
-    for t in time:
-        plt.plot(lambs,I_in_cont(t))
-    plt.title("Continuous change of spectrum")
-    plt.show()
     
-    # case where we switch between 2 I_in functions, linear
+    # incoming light spectra
     plt.figure()
-    I_in_step = fluc_nconst(fluc_case = "linear")
-    time = np.linspace(0,period, period+1)
-    for t in time:
-        plt.plot(lambs,I_in_step(t))
-    plt.title("linear function fluctuations")
-    plt.show()
+    for key in sun_spectrum.keys():
+        plt.plot(lambs, sun_spectrum[key], label = key)
+    plt.legend(loc = "lower center")
+    plt.title("Sunlight spectrum")
     
-    # example with composite multiple I_ins continuous
-    time = np.linspace(0,period, period +2)
-    fig, ax = plt.subplots(2,2,sharex = True,figsize = (9,9))
-    ax[1,0].set_xlabel("nm")
-    ax[1,1].set_xlabel("nm")
-    I_ins = np.array([I_in_composite(2), I_in_composite(3), 
-                      I_in_composite(10)])
-    I_in_step = fluc_nconst(I_ins)
-    
-    # plot the different lights
-    ax[0,0].plot(lambs, I_ins[0])
-    ax[0,0].set_title("2 peaks")
-    ax[0,1].plot(lambs, I_ins[1])
-    ax[0,1].set_title("3 peaks")
-    ax[1,0].plot(lambs, I_ins[2])
-    ax[1,0].set_title("10 peaks")
-    
-    for t in time:
-        ax[1,1].plot(lambs, I_in_step(t))
-        ax[1,1].set_title("Wheighted average over time")
+    # effects of background absorption
+    plt.figure()
     

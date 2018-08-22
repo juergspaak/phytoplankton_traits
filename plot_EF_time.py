@@ -73,6 +73,8 @@ def medians(x_val, y_val):
     return x_range, np.array([np.nanmedian(y_val[x_val==x]) for x in x_range])
 
 spaak_data = pd.read_csv("data/data_EF_time_all.csv")
+spaak_data = spaak_data[spaak_data.lux == 40]
+spaak_data = spaak_data[spaak_data.envi == "clear"]
 
 datas_biodiv["spaak, t="+str(t//24)] = [*medians("r_pig, start","r_spec, t="
                                     +str(t)),c_sta]
@@ -87,6 +89,9 @@ pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t))
 datas_EF["spaak, equi"] = [pig_range, EF_equi, c_coe]
 datas_EF["spaak, t="+str(t//24)] = [pig_range, EF_t, c_sta]
 
+t = 2400
+pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t))
+datas_EF["spaak, t="+str(t//24)] = [pig_range, EF_t, "orange"]
 
 ###############################################################################
 # plot boxes
@@ -131,8 +136,8 @@ pig_range = range(1,24)
 boxs("r_pig, start", "r_spec, t="+str(t),pig_range,ax[0], c_sta)
 boxs("r_pig, start", "r_spec, equi",pig_range,ax[0], c_coe)
 
-boxs("r_pig, start", "EF, t="+str(t),pig_range,ax[1], c_sta)
-boxs("r_pig, start", "EF, equi",pig_range,ax[1], c_coe)
+#boxs("r_pig, start", "EF, t="+str(t),pig_range,ax[1], c_sta)
+#boxs("r_pig, start", "EF, equi",pig_range,ax[1], c_coe)
 
 plot_results(datas_biodiv, "Species richness",ax[0])
 

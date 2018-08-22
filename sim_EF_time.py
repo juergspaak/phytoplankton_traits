@@ -29,7 +29,7 @@ except IndexError:
 save_string = "data/data_EF_time"+str(save)+".csv"
    
 # time points at which we compute the densities, time is in hours 
-time = 24*np.array([0,2,5,10,15,20,50,100])
+time = 24*np.array([0,2,5,10,15,20,50,100,200])
 
 def pigment_richness(dens, alpha):
     # compute the pigment richness for given densities dens
@@ -66,7 +66,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
                 I_ins = np.array([lux*sun_spectrum[sky]]),k_BG = k_BG, zm = zm)
     
     if not feasible:
-        return np.full((5,len(time)+1),np.nan)
+        return np.full((6,len(time)+1),np.nan)
     # for the rare case where less species have been generated than predicted
     n_com = k_spec.shape[-1]
     r_spec = len(present_species)
@@ -80,7 +80,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
     equi.shape = 1,*equi.shape
     
     # starting density
-    start_dens = np.full(equi.shape, 1e7)/r_spec
+    start_dens = np.full(equi.shape, 1e6)/r_spec
     # compute densities over time
     def multi_growth(N_r,t):
         # compute the growth rate of the species at densities N_r and time t
@@ -101,7 +101,6 @@ def find_EF(present_species, n_com, sky, lux, envi):
     
     # append equilibrium to sol
     dens = np.append(sol_ode, equi, axis = 0)
-
     ###########################################################################
     # prepare return fucntions
     
@@ -110,16 +109,19 @@ def find_EF(present_species, n_com, sky, lux, envi):
     EF_var = np.nanvar(np.sum(dens, axis = 1), axis = -1)
     
     # pigment richness    
-    r_pig = rc.pigment_richness(dens[:,np.newaxis] >= start_dens,alpha)
-    # species richness
-    r_spec = np.nanmean(np.sum(dens >= start_dens, axis = 1), axis = -1)
+    r_pig = rc.pigment_richness(dens[:,np.newaxis] >= 
+                        1e-3*np.nansum(dens, axis = 1, keepdims = True),alpha)
+    
+    # species richness, species below 0.1% are assumed extinct
+    r_spec = np.nanmean(np.sum(dens >= 1e-3*np.nansum(dens, axis = 1, 
+                                    keepdims = True), axis = 1), axis = -1)
     
     # base productivity
     fitness = phi/l
     fitness_t = [np.nanmean(fitness[d>=start_dens[0]]) for d in dens]
-    return EF_mean, EF_var, r_pig, r_spec, fitness_t
+    return EF_mean, EF_var, r_pig, r_spec, fitness_t, dens
  
-iters = 5000
+iters = 2000
 n_com = 100
 r_specs = np.random.randint(1,15,iters) # richness of species
 
@@ -156,12 +158,17 @@ while (timer()-start<1800 - average_over_10) and i < iters:
     present_species = np.random.choice(n_diff_spe, r_specs[i], 
                                        replace = True)
     
-    EF_mean, EF_var,  r_pig, r_spec,fit=find_EF(present_species, n_com, 
+    EF_mean, EF_var,  r_pig, r_spec,fit, dens =find_EF(present_species, n_com, 
                         skys[i], lux[i], environments[i])
     
     data.iloc[i] = [present_species, r_specs[i], skys[i],
               lux[i],environments[i],*EF_mean,*r_pig, *r_spec, *EF_var,*fit]
-              
+    """plt.figure()
+    try:
+        plt.semilogy(np.append(time,24*250), dens[...,0], 'o')
+        plt.ylim([1e5,1e10])
+    except ValueError:
+        pass"""
     i += 1
     if i == 10:
         average_over_10 = timer()-start
