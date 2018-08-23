@@ -58,12 +58,11 @@ def find_EF(present_species, n_com, sky, lux, envi):
     k_BG.shape = -1,1,1
     zm = I_inf.zm[envi]
     # generate species
-    [phi,l], k_spec, alpha, feasible = gen_com(present_species,2, n_com,
+    phi,l, k_spec, alpha, feasible = gen_com(present_species,2, n_com,
                 I_ins = np.array([lux*sun_spectrum[sky]]),k_BG = k_BG, zm = zm)
     
     if not feasible:
         return np.full((6,len(time)+1),np.nan)
-    print(phi.shape, l.shape,k_spec.shape, alpha.shape)    
         
     # for the rare case where less species have been generated than predicted
     n_com = k_spec.shape[-1]
@@ -161,11 +160,12 @@ while (timer()-start<1800 - average_over_10) and i < iters:
     
     data.iloc[i] = [present_species, r_specs[i], skys[i],
               lux[i],environments[i],*EF_mean,*r_pig, *r_spec, *EF_var,*fit]
-    plt.figure()
+    
     try:
+        plt.figure()
         plt.semilogy(np.append(time,24*250), dens[...,0], 'o')
         plt.ylim([1e5,1e10])
-    except ValueError:
+    except (ValueError, NameError):
         pass
     i += 1
     if i == 10:

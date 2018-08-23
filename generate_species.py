@@ -68,7 +68,7 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None,
         [k_spec]: cm^2 * fl^-1
         [alphas]: unitless"""
     if run == 2:
-        return [None, None], None, None, False
+        return None, None, None, None, False
     # internally generate to many species, as some will not survive
     n_com = n_com_org*10
     
@@ -126,7 +126,7 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None,
     k_spec = k_spec[..., spec_id]
     alphas = alphas[..., spec_id]
     
-    return np.array([phi,l]), k_spec, alphas, True
+    return phi,l, k_spec, alphas, True
 
 def mono_culture_survive(par, k_spec, I_ins, k_BG = 0,zm = 1):
     """check whether each species could survive in monoculture
