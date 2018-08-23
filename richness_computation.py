@@ -22,6 +22,7 @@ def find_survivors(equi, species_id):
                     for i in range(n_diff_spe)]
 
 def pigment_richness(equi, alpha):
+
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
 def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
@@ -51,14 +52,14 @@ def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
     unfixed: array, (shape = n)
         Boolean array indicating in which communitiy an equilibrium was found
     """
-    k_BG = k_BG.reshape(-1,1)
+    k_BG = k_BG.reshape(-1,1,1)
     # starting densities for iteration, shape = (npi, itera)
     equis = np.full(fitness.shape, 1e7) # start of iteration
     equis_fix = np.zeros(equis.shape)
 
     # k_spec(lam), shape = (len(lam), richness, ncom)
     abs_points = k_spec.copy()
-    I_in.shape = -1,1
+    I_in.shape = -1,1,1
     unfixed = np.full(fitness.shape[-1], True, dtype = bool)
     n = 20
     i = 0
@@ -66,11 +67,12 @@ def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
     #print(equis.shape, equis_fix.shape, fitness.shape, np.sum(unfixed), abs_points.shape)
     while np.any(unfixed) and i<runs:          
         # sum_i(N_i*sum_j(a_ij*k_j(lam)), shape = (len(lam),itera)
-        tot_abs = zm*(np.einsum('ni,lni->li', equis, abs_points) + k_BG)
+        tot_abs = zm*(np.sum(equis*abs_points, axis = 1,
+                             keepdims = True) + k_BG)
         # N_j*k_j(lam), shape = (npi, len(lam), itera)
-        all_abs = equis*abs_points #np.einsum('ni,li->nli', equis, abs_points)
+        all_abs = equis*abs_points
         # N_j*k_j(lam)/sum_j(N_j*k_j)*(1-e^(-sum_j(N_j*k_j))), shape =(npi, len(lam), itera)
-        y_simps = all_abs*(I_in/tot_abs*(1-np.exp(-tot_abs)))[:,np.newaxis]
+        y_simps = all_abs/tot_abs*(I_in*(1-np.exp(-tot_abs)))
         # fit*int(y_simps)
         equis = fitness*simps(y_simps, dx = dlam, axis = 0)
         # remove rare species

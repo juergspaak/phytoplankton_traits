@@ -83,10 +83,10 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None,
     
     # photosynthetic efficiency for each species
     # unit: [phi] = fl * (mumol photons)^-1
-    phi = 2.0*1e6*np.random.uniform(1/fac, 1*fac,(r_spec,n_com))
+    phi = np.random.uniform(1,3, (r_spec,n_com))*1e6
     # loss rate of the community
     # unit: [l] = h^-1
-    l = 0.014*np.random.uniform(1/fac, 1*fac,(n_com))
+    l = 0.014*np.random.uniform(1/fac, 1*fac,n_com)
 
     # concentration of each pigment for each species
     # unit: [alphas] = unitless
@@ -107,25 +107,24 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None,
     # check survivability in monoculture
     if not(I_ins is None):
         surv = mono_culture_survive(phi/l,k_spec, I_ins,k_BG,zm)
-        n_surv = min(n_com_org, *np.sum(surv, axis = -1))
+        n_surv = min(n_com_org, sum(surv))
         
         # in some unprobable cases this might generate less than n_com species
         if n_surv == 0:
             return gen_com(present_species, fac, n_com_org, I_ins, k_BG, zm,
                            run+1)
-            
-        spec_id = np.argsort(1-surv,axis = 1)[:,:n_surv]
-        dummy_id = np.arange(r_spec).reshape(-1,1)
+        
+        # choose from each species n_surv that survived in all light conditions
+        spec_id = np.arange(n_com)[surv][:n_surv]
     else:
         spec_id = np.arange(n_com_org)
-        dummy_id = np.arange(r_spec).reshape(-1,1)
     
         
         
     # remove species that would not survive
-    phi,l = phi[dummy_id, spec_id], l[spec_id]
-    k_spec = k_spec[:,dummy_id, spec_id]
-    alphas = alphas[:,dummy_id, spec_id]
+    phi,l = phi[..., spec_id], l[spec_id]
+    k_spec = k_spec[..., spec_id]
+    alphas = alphas[..., spec_id]
     
     return np.array([phi,l]), k_spec, alphas, True
 
@@ -145,7 +144,7 @@ def mono_culture_survive(par, k_spec, I_ins, k_BG = 0,zm = 1):
     # initial growth rate
     init_growth = par*simps(light*k_spec,dx = lp.dlam,axis = 1)-1
     # initial growth rate must be larger than 0 for all lights
-    survive = np.all(init_growth>0,axis = 0)
+    survive = np.all(init_growth>0,axis = (0,1))
     return survive
     
 

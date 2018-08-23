@@ -24,16 +24,12 @@ try:
     save = int(sys.argv[1])
     np.random.seed(int(save))
 except IndexError:
-    save = np.random.randint(100000)
+    save = 0
     
-save_string = "data/data_EF_time"+str(save)+".csv"
+save_string = "data/data_EF_time{}.csv".format(save)
    
 # time points at which we compute the densities, time is in hours 
 time = 24*np.array([0,2,5,10,15,20,50,100,200])
-
-def pigment_richness(dens, alpha):
-    # compute the pigment richness for given densities dens
-    return np.mean(np.sum(np.sum(dens*alpha, axis = -2)>0, axis = -2),-1)
 
 def find_EF(present_species, n_com, sky, lux, envi):
     """compute the EF over time for the species
@@ -67,20 +63,22 @@ def find_EF(present_species, n_com, sky, lux, envi):
     
     if not feasible:
         return np.full((6,len(time)+1),np.nan)
+    print(phi.shape, l.shape,k_spec.shape, alpha.shape)    
+        
     # for the rare case where less species have been generated than predicted
     n_com = k_spec.shape[-1]
     r_spec = len(present_species)
     # incoming light regime
-    I_in = lambda t: lux*sun_spectrum[sky]
+    I_in = lux*sun_spectrum[sky]
 
     # compute equilibrium densities
-    equi = rc.multispecies_equi(phi/l, k_spec, I_in(0), k_BG, zm)[0]
+    equi = rc.multispecies_equi(phi/l, k_spec, I_in, k_BG, zm)[0]
     # when species can't survive equi returns nan
     equi[np.isnan(equi)] = 0
     equi.shape = 1,*equi.shape
     
     # starting density
-    start_dens = np.full(equi.shape, 1e6)/r_spec
+    start_dens = np.full(phi.shape, 1e6)/r_spec
     # compute densities over time
     def multi_growth(N_r,t):
         # compute the growth rate of the species at densities N_r and time t
@@ -91,14 +89,14 @@ def find_EF(present_species, n_com, sky, lux, envi):
         # sum(N_j*k_j(lambda))
         tot_abs = zm*(np.nansum(N*k_spec, axis = 1, keepdims = True) + k_BG)
         # growth part
-        growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
-                           *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
+        growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))
+                           *I_in.reshape(-1,1,1),dx = dlam, axis = 0)
     
         return (N*(growth-l)).flatten() # flatten for odeint
         
     sol_ode = odeint(multi_growth, start_dens.reshape(-1), time)
     sol_ode.shape = len(time), r_spec, n_com
-    
+
     # append equilibrium to sol
     dens = np.append(sol_ode, equi, axis = 0)
     ###########################################################################
@@ -109,8 +107,8 @@ def find_EF(present_species, n_com, sky, lux, envi):
     EF_var = np.nanvar(np.sum(dens, axis = 1), axis = -1)
     
     # pigment richness    
-    r_pig = rc.pigment_richness(dens[:,np.newaxis] >= 
-                        1e-3*np.nansum(dens, axis = 1, keepdims = True),alpha)
+    r_pig = rc.pigment_richness(np.expand_dims(dens >= 
+                        1e-3*np.nansum(dens, axis = 1, keepdims = True),1),alpha)
     
     # species richness, species below 0.1% are assumed extinct
     r_spec = np.nanmean(np.sum(dens >= 1e-3*np.nansum(dens, axis = 1, 
@@ -121,8 +119,8 @@ def find_EF(present_species, n_com, sky, lux, envi):
     fitness_t = [np.nanmean(fitness[d>=start_dens[0]]) for d in dens]
     return EF_mean, EF_var, r_pig, r_spec, fitness_t, dens
  
-iters = 2000
-n_com = 100
+iters = 1000
+n_com = 50
 r_specs = np.random.randint(1,15,iters) # richness of species
 
 # prepare the dataframe for saving all the data
@@ -139,7 +137,7 @@ fit_cols[0] = "base_prod, start"
 # light information
 skys = np.array(sorted(sun_spectrum.keys()))
 skys = np.random.choice(skys, iters)
-lux = np.random.choice([40, 50, 100, 200, 400, 1000],iters)
+lux = np.random.choice([40, 100, 500, 1000],iters)
 
 # environment information
 environments = np.array(sorted(I_inf.k_BG.keys()))
@@ -163,12 +161,12 @@ while (timer()-start<1800 - average_over_10) and i < iters:
     
     data.iloc[i] = [present_species, r_specs[i], skys[i],
               lux[i],environments[i],*EF_mean,*r_pig, *r_spec, *EF_var,*fit]
-    """plt.figure()
+    plt.figure()
     try:
         plt.semilogy(np.append(time,24*250), dens[...,0], 'o')
         plt.ylim([1e5,1e10])
     except ValueError:
-        pass"""
+        pass
     i += 1
     if i == 10:
         average_over_10 = timer()-start
