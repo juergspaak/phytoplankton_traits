@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J cont_par
-#SBATCH -t 01:05:00
-#SBATCH --mem 500
+#SBATCH -t 00:35:00
+#SBATCH --mem 5000
 #SBATCH -n 1
 #SBATCH -N 1
 

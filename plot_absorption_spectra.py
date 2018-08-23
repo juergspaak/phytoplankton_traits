@@ -12,15 +12,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from generate_species import gen_com, pigments, pigment_names
 import richness_computation as rc
-import I_in_functions as I_in
+from I_in_functions import sun_spectrum
 from pigments import lambs
 
 # fix randomness
 np.random.seed(20110505)
 
-I_in = I_in.I_in_def(40,550,100)
+I_in = 40*sun_spectrum["direct full"]
 
-[phi,l],k_spec,alpha = gen_com([3,-5], 3, 50,I_ins = I_in)
+[phi,l],k_spec,alpha,found = gen_com([3,-5], 3, 50,I_ins = I_in)
 
 equi,unfixed = rc.multispecies_equi(phi/l,k_spec, I_in)
 
@@ -29,7 +29,7 @@ equi = equi*(1-unfixed)
 
 index = np.argmax(np.sum(equi>0, axis = 0))
 pig_colors = ["green", "darkolivegreen", "lime", "yellowgreen",
-              "cyan", "darkblue", "red", "purple", "orange", "brown", "yellow"]
+              "purple", "brown", "cyan", "red", "orange"]
 
 def plot_pigments(array, ax, ls = '-', lw = 2):
     for i in range(len(pig_colors)):
