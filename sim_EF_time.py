@@ -57,12 +57,13 @@ def find_EF(present_species, n_com, sky, lux, envi):
     k_BG = I_inf.k_BG[envi]
     k_BG.shape = -1,1,1
     zm = I_inf.zm[envi]
+    print(n_com, "n:com")
     # generate species
     phi,l, k_spec, alpha, feasible = gen_com(present_species,2, n_com,
                 I_ins = np.array([lux*sun_spectrum[sky]]),k_BG = k_BG, zm = zm)
     
     if not feasible:
-        return np.full((6,len(time)+1),np.nan)
+        return np.full((7,len(time)+1),np.nan)
         
     # for the rare case where less species have been generated than predicted
     n_com = k_spec.shape[-1]
@@ -77,7 +78,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
     equi.shape = 1,*equi.shape
     
     # starting density
-    start_dens = np.full(phi.shape, 1e6)/r_spec
+    start_dens = np.full(phi.shape, 1e5)/r_spec
     # compute densities over time
     def multi_growth(N_r,t):
         # compute the growth rate of the species at densities N_r and time t
@@ -116,7 +117,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
     # base productivity
     fitness = phi/l
     fitness_t = [np.nanmean(fitness[d>=start_dens[0]]) for d in dens]
-    return EF_mean, EF_var, r_pig, r_spec, fitness_t, dens
+    return EF_mean, EF_var, r_pig, r_spec, fitness_t, n_com, dens
  
 iters = 1000
 n_com = 50
@@ -142,8 +143,8 @@ lux = np.random.choice([40, 100, 500, 1000],iters)
 environments = np.array(sorted(I_inf.k_BG.keys()))
 environments = environments[np.random.randint(len(environments), size = iters)]
 
-columns = ["species","r_spec", "sky", "lux", "envi"] + EF_cols + r_pig_cols + \
-            r_spec_cols + var_cols + fit_cols
+columns = ["species","r_spec", "sky", "lux", "envi", "n_com"] + EF_cols \
+        + r_pig_cols + r_spec_cols + var_cols + fit_cols
                        
 data = pd.DataFrame(None, columns = columns, index = range(iters))
 
@@ -155,11 +156,11 @@ while (timer()-start<1800 - average_over_10) and i < iters:
     present_species = np.random.choice(n_diff_spe, r_specs[i], 
                                        replace = True)
     
-    EF_mean, EF_var,  r_pig, r_spec,fit, dens =find_EF(present_species, n_com, 
-                        skys[i], lux[i], environments[i])
+    EF_mean, EF_var,  r_pig, r_spec,fit,n_com_r, dens =find_EF(present_species,
+            n_com, skys[i], lux[i], environments[i])
     
-    data.iloc[i] = [present_species, r_specs[i], skys[i],
-              lux[i],environments[i],*EF_mean,*r_pig, *r_spec, *EF_var,*fit]
+    data.iloc[i] = [present_species, r_specs[i], skys[i],lux[i],n_com_r,
+              environments[i],*EF_mean,*r_pig, *r_spec, *EF_var,*fit]
     
     try:
         plt.figure()
@@ -170,7 +171,7 @@ while (timer()-start<1800 - average_over_10) and i < iters:
     i += 1
     if i == 10:
         average_over_10 = timer()-start
-    print(i)
+    print(i, "iteration")
     
 data = data[0:i]
 data.to_csv(save_string)

@@ -70,7 +70,7 @@ k_BG = {"ocean": k_water/100,
 
 # mixing depth in meters depending on the environment
 # units: [zm] = cm
-zm = {"ocean": 60*100, "baltic sea": 10*100, "peat lake": 1*100, "clear": 100}
+zm = {"ocean": 100, "baltic sea": 100, "peat lake": 10, "clear": 100}
 
 if __name__ == "__main__":# examples    
     import matplotlib.pyplot as plt

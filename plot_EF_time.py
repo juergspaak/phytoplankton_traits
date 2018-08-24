@@ -73,8 +73,12 @@ def medians(x_val, y_val):
     return x_range, np.array([np.nanmedian(y_val[x_val==x]) for x in x_range])
 
 spaak_data = pd.read_csv("data/data_EF_time_all.csv")
-spaak_data = spaak_data[spaak_data.lux == 40]
-spaak_data = spaak_data[spaak_data.envi == "clear"]
+try:
+    spaak_data = spaak_data[spaak_data.lux == 100]
+    spaak_data = spaak_data[spaak_data.sky == "blue sky"]
+    spaak_data = spaak_data[spaak_data.envi == "ocean"]
+except AttributeError:
+    pass
 
 datas_biodiv["spaak, t="+str(t//24)] = [*medians("r_pig, start","r_spec, t="
                                     +str(t)),c_sta]
@@ -89,9 +93,12 @@ pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t))
 datas_EF["spaak, equi"] = [pig_range, EF_equi, c_coe]
 datas_EF["spaak, t="+str(t//24)] = [pig_range, EF_t, c_sta]
 
-t = 2400
-pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t))
-datas_EF["spaak, t="+str(t//24)] = [pig_range, EF_t, "orange"]
+t2 = 48
+pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t2))
+datas_EF["spaak, t="+str(t2//24)] = [pig_range, EF_t, "orange"]
+         
+pig_range, EF_t = medians("r_pig, start", "EF, start")
+datas_EF["spaak, start"] = [pig_range, EF_t, "black"]
 
 ###############################################################################
 # plot boxes
