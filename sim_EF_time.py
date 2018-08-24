@@ -143,7 +143,7 @@ lux = np.random.choice([40, 100, 500, 1000],iters)
 environments = np.array(sorted(I_inf.k_BG.keys()))
 environments = environments[np.random.randint(len(environments), size = iters)]
 
-columns = ["species","r_spec", "sky", "lux", "envi", "n_com"] + EF_cols \
+columns = ["species","r_spec", "sky", "lux", "n_com", "envi"] + EF_cols \
         + r_pig_cols + r_spec_cols + var_cols + fit_cols
                        
 data = pd.DataFrame(None, columns = columns, index = range(iters))

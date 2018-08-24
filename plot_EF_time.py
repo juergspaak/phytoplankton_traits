@@ -66,38 +66,53 @@ datas_EF["Fietz"] = [r_pig_fietz, np.nansum(fietz.iloc[:,28:].values, axis = 1)
 c_sta = "lime"
 c_coe = "green"
 t = 120
-def medians(x_val, y_val):
+
+def wheighted_median(val, weight, percentile = 50):
+    return np.average(val, weights = weight)
+    val = np.asarray(val)
+    weight = np.asarray(weight)
+    
+    ind = np.argsort(val)
+    v = val[ind]
+    w = weight[ind]
+
+    pecent_50 = np.argmin(np.cumsum(w)/np.sum(w)<=percentile/100)
+    return v[pecent_50]
+
+def medians(x_val, y_val, wheight):
     # compute averages
     x_val, y_val = spaak_data[x_val], spaak_data[y_val]
+    wheight = spaak_data[wheight]
     x_range = np.arange(min(x_val), max(x_val)+1)
-    return x_range, np.array([np.nanmedian(y_val[x_val==x]) for x in x_range])
+    return x_range, np.array([wheighted_median(y_val[x_val==x], 
+                        wheight[x_val ==x]) for x in x_range])
 
 spaak_data = pd.read_csv("data/data_EF_time_all.csv")
 try:
-    spaak_data = spaak_data[spaak_data.lux == 100]
+    spaak_data = spaak_data[spaak_data.lux == 40]
     spaak_data = spaak_data[spaak_data.sky == "blue sky"]
-    spaak_data = spaak_data[spaak_data.envi == "ocean"]
+    spaak_data = spaak_data[spaak_data.n_com == "ocean"]
 except AttributeError:
     pass
 
 datas_biodiv["spaak, t="+str(t//24)] = [*medians("r_pig, start","r_spec, t="
-                                    +str(t)),c_sta]
-datas_biodiv["spaak, equi"] = [*medians("r_pig, start","r_spec, equi"),c_coe]
+                                    +str(t), "envi"),c_sta]
+datas_biodiv["spaak, equi"] = [*medians("r_pig, start","r_spec, equi", "envi"),c_coe]
 
 for col in spaak_data.columns:
     if col[:2] == "EF":
         spaak_data[col] *=1e-9
                         
-pig_range, EF_equi = medians("r_pig, start", "EF, equi")
-pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t))
+pig_range, EF_equi = medians("r_pig, start", "EF, equi", "envi")
+pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t), "envi")
 datas_EF["spaak, equi"] = [pig_range, EF_equi, c_coe]
 datas_EF["spaak, t="+str(t//24)] = [pig_range, EF_t, c_sta]
 
 t2 = 48
-pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t2))
+pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t2), "envi")
 datas_EF["spaak, t="+str(t2//24)] = [pig_range, EF_t, "orange"]
          
-pig_range, EF_t = medians("r_pig, start", "EF, start")
+pig_range, EF_t = medians("r_pig, start", "EF, start", "envi")
 datas_EF["spaak, start"] = [pig_range, EF_t, "black"]
 
 ###############################################################################
@@ -143,8 +158,9 @@ pig_range = range(1,24)
 boxs("r_pig, start", "r_spec, t="+str(t),pig_range,ax[0], c_sta)
 boxs("r_pig, start", "r_spec, equi",pig_range,ax[0], c_coe)
 
-#boxs("r_pig, start", "EF, t="+str(t),pig_range,ax[1], c_sta)
-#boxs("r_pig, start", "EF, equi",pig_range,ax[1], c_coe)
+boxs("r_pig, start", "EF, t="+str(t),pig_range,ax[1], c_sta)
+boxs("r_pig, start", "EF, t="+str(t2),pig_range,ax[1], "orange")
+boxs("r_pig, start", "EF, equi",pig_range,ax[1], c_coe)
 
 plot_results(datas_biodiv, "Species richness",ax[0])
 

@@ -33,7 +33,7 @@ species_pigments = species_all.iloc[:,2:].values
 species_pigments[np.isnan(species_pigments)] = 0
                  
 # minus 2, because of pigment labeling and whether pigments are found
-n_diff_spe = len(pigments)
+n_diff_spe = species_all.shape[-1] -2
                          
 def gen_com(present_species, fac, n_com_org = 100, I_ins = None, 
             k_BG = 0, zm = 1, run = 0):
@@ -160,6 +160,6 @@ if __name__ == "__main__":
     
     # plot the absorption spectrum of random species
     plt.figure()
-    par, k_spec, alphas, a  = gen_com(np.random.randint(11,size = 5),4,100,
+    phi,l, k_spec, alphas, a  = gen_com(np.random.randint(11,size = 5),4,100,
                         50*I_inf.sun_spectrum["blue sky"], I_inf.k_BG["ocean"])
     plt.plot(k_spec[...,0])   
