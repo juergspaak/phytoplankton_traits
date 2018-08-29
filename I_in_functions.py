@@ -27,11 +27,6 @@ for key in ["usual", "direct full", "blue sky", "clouded"]:
     sun_spectrum[key] = interp1d(x,y)(lambs)
     sun_spectrum[key] = sun_spectrum[key]/simps(sun_spectrum[key],dx = dlam)
 
-prelim = np.exp(-(lambs-550)**2/(2*50**2))
-sun_spectrum["gaussian"] = prelim/simps(prelim,dx = dlam)
-del sun_spectrum["clouded"]
-del sun_spectrum["usual"]
-
 def sun_light(lux = [20,200], period = 10, sky = "blue sky"):
     """returns whithe light that changes total intensity over time
     
@@ -70,7 +65,7 @@ k_BG = {"ocean": k_water/100,
 
 # mixing depth in meters depending on the environment
 # units: [zm] = cm
-zm = {"ocean": 100, "baltic sea": 100, "peat lake": 10, "clear": 100}
+zm = 100
 
 if __name__ == "__main__":# examples    
     import matplotlib.pyplot as plt

@@ -56,8 +56,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
     """
     k_BG = I_inf.k_BG[envi]
     k_BG.shape = -1,1,1
-    zm = I_inf.zm[envi]
-    print(n_com, "n:com")
+    zm = I_inf.zm
     # generate species
     phi,l, k_spec, alpha, feasible = gen_com(present_species,2, n_com,
                 I_ins = np.array([lux*sun_spectrum[sky]]),k_BG = k_BG, zm = zm)
@@ -108,10 +107,10 @@ def find_EF(present_species, n_com, sky, lux, envi):
     
     # pigment richness    
     r_pig = rc.pigment_richness(np.expand_dims(dens >= 
-                        1e-3*np.nansum(dens, axis = 1, keepdims = True),1),alpha)
+                        1e-4*np.nansum(dens, axis = 1, keepdims = True),1),alpha)
     
     # species richness, species below 0.1% are assumed extinct
-    r_spec = np.nanmean(np.sum(dens >= 1e-3*np.nansum(dens, axis = 1, 
+    r_spec = np.nanmean(np.sum(dens >= 1e-4*np.nansum(dens, axis = 1, 
                                     keepdims = True), axis = 1), axis = -1)
     
     # base productivity
@@ -120,7 +119,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
     return EF_mean, EF_var, r_pig, r_spec, fitness_t, n_com, dens
  
 iters = 1000
-n_com = 50
+n_com = 100
 r_specs = np.random.randint(1,15,iters) # richness of species
 
 # prepare the dataframe for saving all the data
@@ -135,13 +134,11 @@ fit_cols = ["base_prod, t={}".format(t) for t in time] + ["base_prod, equi"]
 fit_cols[0] = "base_prod, start"
 
 # light information
-skys = np.array(sorted(sun_spectrum.keys()))
-skys = np.random.choice(skys, iters)
-lux = np.random.choice([40, 100, 500, 1000],iters)
+skys = iters*["direct full"]
+lux = np.full(iters, 40, dtype = "float")
 
 # environment information
-environments = np.array(sorted(I_inf.k_BG.keys()))
-environments = environments[np.random.randint(len(environments), size = iters)]
+environments = iters*["clear"]
 
 columns = ["species","r_spec", "sky", "lux", "n_com", "envi"] + EF_cols \
         + r_pig_cols + r_spec_cols + var_cols + fit_cols

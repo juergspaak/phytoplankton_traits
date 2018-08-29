@@ -1,10 +1,10 @@
-Pigment,Reference paper,Cyanophyta 1,Cyanophyta 2,Cyanophyta 3,Cyanophyta 1,Cyanophyta 2,Cyanophyta 3,Prochlorophyta,Glaucophyta,Rhodophyta,H/Chrysophycceae,H/Xantophyceae,H/Eustigmatophyceae,H/Bacillariophyceae,"H/Raphodophyceae,freshwater","H/Raphodophyceae,marine",H/Dictyochophyceae,H/Phaeophyceae,Haptopyta,Cryptophyta,Dinophyta I,Dinophyta II,Euglenophyta,Chlorarachniophyta,Chlorophyta
-Chl a,Kuepper 2007,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-Chl b,Kuepper 2007,,,,,,,1,,,,,,,,,,,,,,,1,1,1
-Chl c1,Bricaud 2004,,,,,,,,,,1,,,1,1,1,1,1,1,,,1,,,
-Chl c2,Bricaud 2004,,,,,,,,,,1,,,1,1,1,,1,1,1,1,1,,,
-Peridinin,Bricaud 2004,,,,,,,,,,,,,,,,,,,,1,,,,
-Fucoxanthin,Kuepper 2007,,,,,,,,,,1,,,1,,1,1,1,1,,,1,,,
-Phycocyanobilin,Patel 2005,1,0.5,0.2,1,1,1,,1,1,,,,,,,,,,1,,,,,
-Phycoerythrobilin,Six 2007,,1,1,,1,1,,,1,,,,,,,,,,1,,,,,
-Phycourobilin,Six 2007,,,1,,,1,,,,,,,,,,,,,,,,,,
+Pigment,Reference paper,Heterokontaphyta 1,Heterokontaphyta 2,Heterokontaphyta 3,Heterokontaphyta 4,Prochlorophyta,Euglenophyta,Chlorarachniophyta,Chlorophyta,Dinophyta I,Glaucophyta,Rhodophyta,Cryptophyta,Cyanophyta 1,Cyanophyta 2,Cyanophyta 3
+Chl a,Kuepper 2007,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Chl b,Kuepper 2007,,,,,1,1,1,1,,,,,,,
+Chl c1,Bricaud 2004,,1,1,1,,,,,,,,,,,
+Chl c2,Bricaud 2004,,1,,1,,,,,1,,,1,,,
+Peridinin,Bricaud 2004,,,,,,,,,1,,,,,,
+Fucoxanthin,Kuepper 2007,,,1,1,,,,,,,,,,,
+Phycocyanobilin,Patel 2005,,,,,,,,,,1,1,1,1,1,1
+Phycoerythrobilin,Six 2007,,,,,,,,,,,1,1,,1,1
+Phycourobilin,Six 2007,,,,,,,,,,,,,,,1

@@ -20,7 +20,7 @@ np.random.seed(20110505)
 
 I_in = 40*sun_spectrum["direct full"]
 
-[phi,l],k_spec,alpha,found = gen_com([3,-5], 3, 50,I_ins = I_in)
+phi,l,k_spec,alpha,found = gen_com([6,-5], 3, 50,I_ins = I_in)
 
 equi,unfixed = rc.multispecies_equi(phi/l,k_spec, I_in)
 
@@ -76,4 +76,4 @@ ax[1].set_title("B", loc = "left")
 ax[2].set_title("C", loc = "left")
 
 
-fig.savefig("Figure,absorption_spectra.pdf")
+fig.savefig("Figure, absorption_spectra.pdf")
