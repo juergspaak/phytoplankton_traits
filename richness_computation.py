@@ -26,7 +26,7 @@ def pigment_richness(equi, alpha):
     return np.mean(np.sum(np.sum(equi*alpha, axis = -2)>0, axis = -2),-1)
 
 def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
-                      k_BG = np.array([0]), zm = 1, runs = 5000):
+                      k_BG = np.array([0]), zm = 100, runs = 5000):
     """Compute the equilibrium density for several species with its pigments
     
     Compute the equilibrium density for the species with the parameters
@@ -98,7 +98,7 @@ def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
     
 def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     l_period = 10, I_in = I_in.sun_light(), t_const = [0,0.5], 
-    randomized_spectra = 0, k_BG = 0, _iteration = 0):
+    randomized_spectra = 0, k_BG = np.array([0]),zm = 100, _iteration = 0):
     """Computes the number of coexisting species in fluctuating incoming light
     
     Returns the richness, biovolume, pigment richness and some other parameters
@@ -150,8 +150,12 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     # find potentially interesting communities
              
     # generate species and communities
-    [phi,l],k_spec,alpha = gen_com(present_species, fac, n_com,
+    phi,l,k_spec,alpha, feasible = gen_com(present_species, fac, n_com,
                     I_ins = np.array([I_in(t*l_period) for t in t_const]))
+
+    if not feasible:
+        return None
+        
     # compute pigment richness at the beginning (the same in all communities)
     r_pig_start = pigment_richness(1, alpha)
     if randomized_spectra>0:
@@ -166,12 +170,12 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     
     for i,t in list(enumerate(t_const)):
         equi[i], unfixed[i] = multispecies_equi(phi/l, k_spec, 
-            I_in(t*l_period), runs = 5000*(1+_iteration),k_BG=k_BG)
+            I_in(t*l_period), runs = 5000*(1+_iteration),k_BG=k_BG, zm = zm)
     # consider only communities, where algorithm found equilibria (all regimes)
     fixed = np.logical_not(np.sum(unfixed, axis = 0))
     equi = equi[..., fixed]
     phi = phi[:, fixed]
-    l = l[:, fixed]
+    l = l[fixed]
     k_spec = k_spec[..., fixed]
     alpha = alpha[...,fixed]
     n_fix = np.sum(fixed)
@@ -217,7 +221,6 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     # set 0 all species that did not survive in any of the cases
     dead = np.sum((equi>0), axis = 0)==0
     phi[dead] = 0
-    l[dead] = 1 # to avoid division by 0
     k_spec[:,dead] = 0
 
     # maximal richness over all environments in one community
@@ -226,7 +229,6 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     com_ax = np.arange(equi.shape[-1])
     spec_sort = np.argsort(np.amax(equi,axis = 0), axis = 0)[-max_spec:]
     phi = phi[spec_sort, com_ax]         
-    l = l[spec_sort, com_ax]
     equi = equi[np.arange(len(t_const)).reshape(-1,1,1),spec_sort, com_ax]
     k_spec = k_spec[np.arange(len(lambs)).reshape(-1,1,1),spec_sort, com_ax]
     alpha = alpha[:,spec_sort, com_ax]
@@ -234,11 +236,11 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     ###########################################################################
     # take average densitiy over all lights for the starting density
     start_dens = np.mean(equi, axis = 0)
-
+    k_BG = k_BG.reshape(-1,1,1)
     def multi_growth(N,t,I_in, k_spec, phi,l):
         # growth rate of the species
         # sum(N_j*k_j(lambda))
-        tot_abs = np.einsum("sc,lsc->lc", N, k_spec)[:,np.newaxis]+k_BG
+        tot_abs = zm*(np.nansum(N*k_spec, axis = 1, keepdims = True) + k_BG)
         # growth part
         growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
                            *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
@@ -274,7 +276,7 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
         
         # select next communities
         undone = undone[unfixed]
-        phit,lt,k_spect = phi[:, undone], l[:, undone], k_spec[...,undone]
+        phit,lt,k_spect = phi[:, undone], l[undone], k_spec[...,undone]
         start_dens = sol[-1,:,unfixed].T
         # remove very rare species
         start_dens[start_dens<start_dens.sum(axis = 0)/10000] = 0

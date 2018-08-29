@@ -65,14 +65,16 @@ while timer()-start <3600-(time_for_10):
     # compute the richnesses
     (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
             prob_pig, n_fix) = rc.fluctuating_richness(present_species, 
-            n_com , facs[i], periods[i],
-            I_in,np.linspace(0,0.5,4))
-    print(i)
-    # save to dataframe
-    for k,case in enumerate(cases):
-        data.iloc[len(cases)*i+k] = [cases[k],str(present_species), facs[i], 
-            periods[i], *luxs[i], r_pig_start, r_pig_equi[k],richness_equi[k],
-            *EF_biovolume[k], *prob_spec[k], *prob_pig[k], n_fix]
+            n_com , facs[i], periods[i],I_in,np.linspace(0,0.5,4))
+    print(i, "iteration")
+    try:
+        # save to dataframe
+        for k,case in enumerate(cases):
+            data.iloc[len(cases)*i+k] = [cases[k],str(present_species), facs[i], 
+                periods[i], *luxs[i], r_pig_start, r_pig_equi[k],richness_equi[k],
+                *EF_biovolume[k], *prob_spec[k], *prob_pig[k], n_fix]
+    except TypeError:
+        pass # system was no feasible
     i+=1
     if i==10:
         time_for_10 = timer()-test_time_start

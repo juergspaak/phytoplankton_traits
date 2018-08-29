@@ -36,7 +36,7 @@ species_pigments[np.isnan(species_pigments)] = 0
 n_diff_spe = species_all.shape[-1] -2
                          
 def gen_com(present_species, fac, n_com_org = 100, I_ins = None, 
-            k_BG = 0, zm = 1, run = 0):
+            k_BG = 0, zm = 100, run = 0):
     """Generate random species
     
     Generate species with random absorption spectrum according to the table
@@ -128,7 +128,7 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None,
     
     return phi,l, k_spec, alphas, True
 
-def mono_culture_survive(par, k_spec, I_ins, k_BG = 0,zm = 1):
+def mono_culture_survive(par, k_spec, I_ins, k_BG = 0,zm = 100):
     """check whether each species could survive in monoculture
     
     par: phi/l
