@@ -98,11 +98,11 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None,
     k_spec = np.einsum("pl,psc->lsc",pigments, alphas)
     
     # Total absorption of each species should be equal (similar to Stomp)
-    int_abs = np.mean(simps(k_spec, dx = lp.dlam, axis = 0), axis = -1)
-    k_spec = k_spec/int_abs[:,np.newaxis]*2.0e-7
+    int_abs = simps(k_spec, dx = lp.dlam, axis = 0)
+    k_spec = k_spec/int_abs*2.0e-7
 
     # change pigment concentrations accordingly
-    alphas = alphas/int_abs[:,np.newaxis]*2.0e-7
+    alphas = alphas/int_abs*2.0e-7
     
     # check survivability in monoculture
     if not(I_ins is None):

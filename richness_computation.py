@@ -95,6 +95,20 @@ def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
             fitness = fitness[:,cond]
         i+=1
     return equis_fix, unfixed
+
+def multi_growth(N,t,I_in, k_spec, phi,l,zm = 1,k_BG = 0, linear = False):
+    if linear:
+        N = N.reshape(-1,len(l))
+    # growth rate of the species
+    # sum(N_j*k_j(lambda))
+    tot_abs = zm*(np.nansum(N*k_spec, axis = 1, keepdims = True) + k_BG)
+    # growth part
+    growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
+                       *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
+    if linear:
+        return (N*(growth-l)).reshape(-1)
+    else:
+        return N*(growth -l)
     
 def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     l_period = 10, I_in = I_in.sun_light(), t_const = [0,0.5], 
@@ -237,14 +251,7 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     # take average densitiy over all lights for the starting density
     start_dens = np.mean(equi, axis = 0)
     k_BG = k_BG.reshape(-1,1,1)
-    def multi_growth(N,t,I_in, k_spec, phi,l):
-        # growth rate of the species
-        # sum(N_j*k_j(lambda))
-        tot_abs = zm*(np.nansum(N*k_spec, axis = 1, keepdims = True) + k_BG)
-        # growth part
-        growth = phi*simps(k_spec/tot_abs*(1-np.exp(-tot_abs))\
-                           *I_in(t).reshape(-1,1,1),dx = dlam, axis = 0)
-        return N*(growth-l)
+
     
     n_period = 100 # number of periods to simulate in one run
     
@@ -260,7 +267,7 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
 
     while len(undone)>0 and counter <1000:
         sol = own_ode(multi_growth,start_dens, time[[0,-1]], 
-                      I_in, k_spect, phit,lt,steps = len(time))
+                      I_in, k_spect, phit,lt,zm,k_BG,steps = len(time))
         
         # determine change in densities, av at end and after finding equilibria
         av_end = np.average(sol[-10:], axis = 0) 
