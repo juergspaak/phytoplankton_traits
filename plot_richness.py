@@ -66,7 +66,7 @@ im = plot_imshow(fluct_data, "r_pig_start", ax[1,0],ax0_Xlim)
 ax[0,0].set_ylim([0.5,5.5])
 
 ax[0,0].set_xlim(ax0_Xlim)
-ax[0,0].set_xticks([1,5,10])
+ax[0,0].set_xticks([1,5,9])
 
 ax[1,1].set_xlim(ax_0Xlim)
 ax[1,1].set_xticks([1,5,10,15])
@@ -87,4 +87,7 @@ fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 fig.colorbar(im, cax=cbar_ax)
 
-fig.savefig("Figure, trait species diversity_no_super.pdf")
+fig.savefig("Figure, trait species diversity.pdf")
+plt.show()
+print("fluctuating communities", np.sum(fluct_data["n_fix"]))
+print("constant communities", np.sum(const_data["n_fix"]))

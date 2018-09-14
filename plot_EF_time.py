@@ -65,16 +65,15 @@ datas_EF["Fietz"] = [r_pig_fietz, np.nansum(fietz.iloc[:,28:].values, axis = 1)
 # datas of Spaak
 c_sta = "lime"
 c_coe = "green"
-t = 120
+t = 240
 
-def wheighted_median(val, weight, percentile = 50):
-    return np.average(val, weights = weight)
+def wheighted_median(val, weights, percentile = 50):
     val = np.asarray(val)
-    weight = np.asarray(weight)
+    weights = np.asarray(weights)
     
     ind = np.argsort(val)
     v = val[ind]
-    w = weight[ind]
+    w = weights[ind]
 
     pecent_50 = np.argmin(np.cumsum(w)/np.sum(w)<=percentile/100)
     return v[pecent_50]
@@ -88,32 +87,20 @@ def medians(x_val, y_val, wheight):
                         wheight[x_val ==x]) for x in x_range])
 
 spaak_data = pd.read_csv("data/data_EF_time_all.csv")
-try:
-    spaak_data = spaak_data[spaak_data.lux == 40]
-    spaak_data = spaak_data[spaak_data.sky == "blue sky"]
-    spaak_data = spaak_data[spaak_data.n_com == "ocean"]
-except AttributeError:
-    pass
 
 datas_biodiv["spaak, t="+str(t//24)] = [*medians("r_pig, start","r_spec, t="
-                                    +str(t), "envi"),c_sta]
-datas_biodiv["spaak, equi"] = [*medians("r_pig, start","r_spec, equi", "envi"),c_coe]
+                                    +str(t), "n_com"),c_sta]
+datas_biodiv["spaak, equi"] = [*medians("r_pig, start","r_spec, equi",
+                                         "n_com"),c_coe]
 
 for col in spaak_data.columns:
     if col[:2] == "EF":
-        spaak_data[col] *=1e-9
+        spaak_data[col] *=1e-8
                         
-pig_range, EF_equi = medians("r_pig, start", "EF, equi", "envi")
-pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t), "envi")
+pig_range, EF_equi = medians("r_pig, start", "EF, equi", "n_com")
+pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t), "n_com")
 datas_EF["spaak, equi"] = [pig_range, EF_equi, c_coe]
 datas_EF["spaak, t="+str(t//24)] = [pig_range, EF_t, c_sta]
-
-t2 = 48
-pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t2), "envi")
-datas_EF["spaak, t="+str(t2//24)] = [pig_range, EF_t, "orange"]
-         
-pig_range, EF_t = medians("r_pig, start", "EF, start", "envi")
-datas_EF["spaak, start"] = [pig_range, EF_t, "black"]
 
 ###############################################################################
 # plot boxes
@@ -141,6 +128,7 @@ def plot_results(dictionary, ylabel, ax, legend = True):
             
         
         slope, intercept,r,p,stderr = linregress(x,y)
+        print(key,slope, intercept, r,p)
         ran = np.array([min(x), max(x)])
         y_linregres = intercept + ran*slope
 
@@ -159,12 +147,13 @@ boxs("r_pig, start", "r_spec, t="+str(t),pig_range,ax[0], c_sta)
 boxs("r_pig, start", "r_spec, equi",pig_range,ax[0], c_coe)
 
 boxs("r_pig, start", "EF, t="+str(t),pig_range,ax[1], c_sta)
-boxs("r_pig, start", "EF, t="+str(t2),pig_range,ax[1], "orange")
 boxs("r_pig, start", "EF, equi",pig_range,ax[1], c_coe)
 
 plot_results(datas_biodiv, "Species richness",ax[0])
-
+print("\n\n", "EF", "\n\n")
 plot_results(datas_EF,r"Biovolume $[fl\,ml^{-1}]$",ax[1], False)
 ax[0].set_xlim(0.5,23.5)
 plt.xticks(range(2,24,2),range(2,24,2))
 fig.savefig("Figure, biodiv-EF.pdf")
+plt.show()
+print(np.sum(spaak_data["n_com"]))

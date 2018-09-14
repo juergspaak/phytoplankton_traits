@@ -68,7 +68,7 @@ im = plot_imshow(fluct_data, "r_pig_start", ax[1,0],ax0_Xlim)
 ax[0,0].set_ylim([0.5,5.5])
 
 ax[0,0].set_xlim(ax0_Xlim)
-ax[0,0].set_xticks([1,5,10])
+ax[0,0].set_xticks([1,5,9])
 
 ax[1,1].set_xlim(ax_0Xlim)
 ax[1,1].set_xticks([1,5,10,15])
