@@ -26,7 +26,7 @@ try:
 except IndexError:
     save = 0
     
-save_string = "data/data_EF_time{}.csv".format(save)
+save_string = "data/data_ap_EF_time{}.csv".format(save)
    
 # time points at which we compute the densities, time is in hours 
 time = 24*np.array([0,2,5,10,15,20,50,100,500])
