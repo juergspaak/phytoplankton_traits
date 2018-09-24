@@ -62,7 +62,8 @@ def find_EF(present_species, n_com, sky, envi, luxs, period):
     I_in = sun_light(luxs, period)
     # generate species
     phi,l, k_spec, alpha, feasible = gen_com(present_species,2, n_com,
-                I_ins = np.array(I_in(0.5*period)),k_BG = k_BG, zm = zm)
+                I_ins = np.array([I_in(t*period) for t in [0,0.25,0.5]])
+                ,k_BG = k_BG, zm = zm)
     
     if not feasible:
         return np.full((7,len(time)+1),np.nan)
