@@ -170,7 +170,6 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
                         I_ins = np.array([I_in(t*l_period) for t in t_const]))
 
     else:
-        print("here")
         phi,l,k_spec,alpha, feasible = species
     
     if not feasible:
@@ -187,7 +186,6 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     # compute the equilibria densities for the different light regimes
     equi = np.empty((len(t_const),) + phi.shape)
     unfixed = np.empty((len(t_const),phi.shape[-1]))
-    print(phi.shape, l.shape, l_period, t_const)
     for i,t in list(enumerate(t_const)):
         equi[i], unfixed[i] = multispecies_equi(phi/l, k_spec, 
             I_in(t*l_period), runs = 5000*(1+_iteration),k_BG=k_BG, zm = zm)

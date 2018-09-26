@@ -165,13 +165,16 @@ while (timer()-start<1800 - average_over_10) and i < iters:
     EF_mean, EF_var,  r_pig, r_spec,fit,n_com_r, dens =find_EF(present_species,
             n_com, skys[i], environments[i], luxs[i], periods[i],
             species = species)
-    data.iloc[i] = [present_species, r_specs[i], skys[i],n_com_r,
-              environments[i],periods[i],*luxs[i],
-                *EF_mean,*r_pig, *r_spec, *EF_var,*fit]
+    
     (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
             prob_pig, n_fix) = rc.fluctuating_richness(
             n_com = n_com ,  l_period = periods[i],I_in = I_in,
             t_const = t_const, species = species)
+    EF_mean[-1] = EF_biovolume[2,2]
+    r_pig[-1] = r_pig_equi[-1]
+    data.iloc[i] = [present_species, r_specs[i], skys[i],n_com_r,
+              environments[i],periods[i],*luxs[i],
+                *EF_mean,*r_pig, *r_spec, *EF_var,*fit]
     try:
         plt.figure()
         plt.semilogy(np.append(time,24*250), dens[...,0], 'o')
