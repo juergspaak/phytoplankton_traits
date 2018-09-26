@@ -112,7 +112,8 @@ def multi_growth(N,t,I_in, k_spec, phi,l,zm = 1,k_BG = 0, linear = False):
     
 def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     l_period = 10, I_in = I_in.sun_light(), t_const = [0,0.5], 
-    randomized_spectra = 0, k_BG = np.array([0]),zm = 100, _iteration = 0):
+    randomized_spectra = 0, k_BG = np.array([0]),zm = 100, _iteration = 0,
+    species = None):
     """Computes the number of coexisting species in fluctuating incoming light
     
     Returns the richness, biovolume, pigment richness and some other parameters
@@ -163,10 +164,15 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     ###########################################################################
     # find potentially interesting communities
              
-    # generate species and communities
-    phi,l,k_spec,alpha, feasible = gen_com(present_species, fac, n_com,
-                    I_ins = np.array([I_in(t*l_period) for t in t_const]))
+    if species is None:
+        # generate species and communities
+        phi,l,k_spec,alpha, feasible = gen_com(present_species, fac, n_com,
+                        I_ins = np.array([I_in(t*l_period) for t in t_const]))
 
+    else:
+        print("here")
+        phi,l,k_spec,alpha, feasible = species
+    
     if not feasible:
         return None
         
@@ -181,7 +187,7 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
     # compute the equilibria densities for the different light regimes
     equi = np.empty((len(t_const),) + phi.shape)
     unfixed = np.empty((len(t_const),phi.shape[-1]))
-    
+    print(phi.shape, l.shape, l_period, t_const)
     for i,t in list(enumerate(t_const)):
         equi[i], unfixed[i] = multispecies_equi(phi/l, k_spec, 
             I_in(t*l_period), runs = 5000*(1+_iteration),k_BG=k_BG, zm = zm)

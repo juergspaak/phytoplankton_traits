@@ -29,9 +29,9 @@ except IndexError:
 save_string = "data/data_ap_EF_time{}.csv".format(save)
    
 # time points at which we compute the densities, time is in hours 
-time = 24*np.array([0,2,5,10,15,20,50,100,500])
+time = 24*np.array([0,2,5,10,15,20])
 
-def find_EF(present_species, n_com, sky, envi, luxs, period):
+def find_EF(present_species, n_com, sky, envi, luxs, period,species = None):
     """compute the EF over time for the species
     
     Generates random species and simulates them for `time` and solves
@@ -61,9 +61,7 @@ def find_EF(present_species, n_com, sky, envi, luxs, period):
     # incoming light regime
     I_in = sun_light(luxs, period)
     # generate species
-    phi,l, k_spec, alpha, feasible = gen_com(present_species,2, n_com,
-                I_ins = np.array([I_in(t*period) for t in [0,0.25,0.5]])
-                ,k_BG = k_BG, zm = zm)
+    phi,l, k_spec, alpha, feasible = species
     
     if not feasible:
         return np.full((7,len(time)+1),np.nan)
@@ -122,7 +120,7 @@ def find_EF(present_species, n_com, sky, envi, luxs, period):
     return EF_mean, EF_var, r_pig, r_spec, fitness_t, n_com, dens
  
 iters = 1000
-n_com = 100
+n_com = 50
 r_specs = np.random.randint(1,15,iters) # richness of species
 
 # prepare the dataframe for saving all the data
@@ -157,18 +155,23 @@ data = pd.DataFrame(None, columns = columns, index = range(iters))
 i = 0
 average_over_10 = 0
 start = timer()
-
+t_const = np.linspace(0,0.5,4)
 while (timer()-start<1800 - average_over_10) and i < iters:
     present_species = np.random.choice(n_diff_spe, r_specs[i], 
                                        replace = True)
-    
+    I_in = sun_light(luxs[i], periods[i])
+    species = gen_com(present_species, 2, n_com,
+                        I_ins = np.array([I_in(t*periods[i]) for t in t_const]))
     EF_mean, EF_var,  r_pig, r_spec,fit,n_com_r, dens =find_EF(present_species,
-            n_com, skys[i], environments[i], luxs[i], periods[i])
-    
+            n_com, skys[i], environments[i], luxs[i], periods[i],
+            species = species)
     data.iloc[i] = [present_species, r_specs[i], skys[i],n_com_r,
               environments[i],periods[i],*luxs[i],
                 *EF_mean,*r_pig, *r_spec, *EF_var,*fit]
-    
+    (richness_equi, EF_biovolume, r_pig_equi, r_pig_start, prob_spec, 
+            prob_pig, n_fix) = rc.fluctuating_richness(
+            n_com = n_com ,  l_period = periods[i],I_in = I_in,
+            t_const = t_const, species = species)
     try:
         plt.figure()
         plt.semilogy(np.append(time,24*250), dens[...,0], 'o')
