@@ -135,7 +135,7 @@ fit_cols[0] = "base_prod, start"
 
 # light information
 skys = iters*["direct full"]
-lux = np.full(iters, 100, dtype = "float")
+lux = np.full(iters, 40, dtype = "float")
 
 # environment information
 environments = iters*["clear"]

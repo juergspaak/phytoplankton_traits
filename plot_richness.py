@@ -19,9 +19,6 @@ spaak_data["species_diversity"] = [len(spec[1:-1].split())
 # convert to integer
 spaak_data.r_pig_start = spaak_data.r_pig_start.astype(int)                                      
 
-# actual plotting                                      
-fig,ax = plt.subplots(2,2, figsize = (9,9), sharey = True, sharex = "col")
-
 def plot_imshow(data, x_val, ax,x_lim):
     
     # maximum value of x
@@ -47,47 +44,45 @@ def plot_imshow(data, x_val, ax,x_lim):
     ax.plot(np.arange(len(av_spe)),av_spe,'o')
     return im
 
-# divide into fluctuating and constant case
-fluct_data = spaak_data[spaak_data.case == "Fluctuating"]
-const_data = spaak_data[spaak_data.case == "Const1"]
-
-diff = np.array([-0.5,0.5])
-ax0_Xlim = list(diff + np.percentile(spaak_data["r_pig_start"],[0,100]))
-ax_0Xlim = list(diff + np.percentile(spaak_data["species_diversity"],[0,100]))
-
-# plot probability distributions
-plot_imshow(const_data, "species_diversity", ax[0,1],ax_0Xlim)
-plot_imshow(const_data, "r_pig_start", ax[0,0],ax0_Xlim)
-plot_imshow(fluct_data, "species_diversity", ax[1,1],ax_0Xlim)
-im = plot_imshow(fluct_data, "r_pig_start", ax[1,0],ax0_Xlim)
-
-# change axis
-# number of species typically within 1 and 5
-ax[0,0].set_ylim([0.5,5.5])
-
-ax[0,0].set_xlim(ax0_Xlim)
-ax[0,0].set_xticks([1,5,9])
-
-ax[1,1].set_xlim(ax_0Xlim)
-ax[1,1].set_xticks([1,5,10,15])
-
-# set axis labels
-ax[0,0].set_ylabel("Final species richness")
-ax[1,0].set_ylabel("Final species richness")
-
-ax[1,0].set_xlabel("Initial pigment richness")
-ax[1,1].set_xlabel("Initial species richness")
-
-ax[0,0].set_title("A")
-ax[0,1].set_title("B")
-ax[1,0].set_title("C")
-ax[1,1].set_title("D")
-
-fig.subplots_adjust(right=0.8)
-cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-fig.colorbar(im, cax=cbar_ax)
-
-fig.savefig("Figure, trait species diversity.pdf")
-plt.show()
-print("fluctuating communities", np.sum(fluct_data["n_fix"]))
-print("constant communities", np.sum(const_data["n_fix"]))
+for case in ["Const1", "Fluctuating"]:
+    # actual plotting                                      
+    fig,ax = plt.subplots(2,1, figsize = (9,9), sharey = True)
+    # divide into fluctuating and constant case
+    data = spaak_data[spaak_data.case == case]
+    
+    diff = np.array([-0.5,0.5])
+    ax0_Xlim = list(diff + np.percentile(spaak_data["r_pig_start"],[0,100]))
+    ax_0Xlim = list(diff + np.percentile(spaak_data["species_diversity"],[0,100]))
+    
+    # plot probability distributions
+    plot_imshow(data, "species_diversity", ax[1],ax_0Xlim)
+    im = plot_imshow(data, "r_pig_start", ax[0],ax0_Xlim)
+    
+    
+    # change axis
+    # number of species typically within 1 and 5
+    ax[0].set_ylim([0.5,5.5])
+    
+    ax[0].set_xlim(ax0_Xlim)
+    ax[0].set_xticks([1,5,9])
+    
+    ax[1].set_xlim(ax_0Xlim)
+    ax[1].set_xticks([1,5,10,15])
+    
+    # set axis labels
+    ax[0].set_ylabel("Final species richness")
+    ax[1].set_ylabel("Final species richness")
+    
+    ax[0].set_xlabel("Initial pigment richness")
+    ax[1].set_xlabel("Initial species richness")
+    
+    ax[0].set_title("A")
+    ax[1].set_title("B")
+    
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    fig.colorbar(im, cax=cbar_ax)
+    
+    fig.savefig("Figure, trait species diversity {}.pdf".format(case))
+    plt.show()
+    print(case + " communities", np.sum(data["n_fix"]))

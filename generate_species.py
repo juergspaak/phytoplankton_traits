@@ -86,7 +86,7 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None,
     phi = np.random.uniform(1,3, (r_spec,n_com))*1e6
     # loss rate of the community
     # unit: [l] = h^-1
-    l = 0.002*(0.15/0.003)**np.random.uniform(0,1,n_com)
+    l = 0.003*(0.015/0.003)**np.random.uniform(0,1,n_com)
 
     # concentration of each pigment for each species
     # unit: [alphas] = unitless

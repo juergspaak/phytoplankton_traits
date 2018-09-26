@@ -20,7 +20,7 @@ np.random.seed(20110505)
 
 I_in = 40*sun_spectrum["direct full"]
 
-phi,l,k_spec,alpha,found = gen_com([4,8], 3, 50,I_ins = I_in)
+phi,l,k_spec,alpha,found = gen_com([5,9], 3, 50,I_ins = I_in)
 
 equi,unfixed = rc.multispecies_equi(phi/l,k_spec, I_in)
 
@@ -37,43 +37,48 @@ def plot_pigments(array, ax, ls = '-', lw = 2):
             ax.plot(lambs, array[i], ls,color = pig_colors[i], 
                 label = i, linewidth = lw)
 
-fig, ax = plt.subplots(3,1,figsize = (8,9),sharex = True)
-ax[2].get_shared_y_axes().join(ax[2],ax[1])
-plot_pigments(pigments, ax[0])
-ax[0].legend(pigment_names, ncol = 3, fontsize = 10)
+fig = plt.figure(figsize = (8,6))
+ax_pig = fig.add_subplot(211)
+plot_pigments(pigments, ax_pig)
+ax_pig.legend(pigment_names, ncol = 3, fontsize = 10)
+
+ax_ex1 = fig.add_subplot(223)
+ax_ex2 = fig.add_subplot(224)
+ax_ex2.get_shared_y_axes().join(ax_ex1,ax_ex2)
+
+
 
 # plot the absorption spectrum of the species
-ax[1].plot(lambs,10**9*(k_spec)[:,0, index], linewidth = 2, color = "black",
-        label = "Prochlorophyta example")
-ax[1].legend()
+ax_ex1.plot(lambs,10**9*(k_spec)[:,0, index], linewidth = 2, color = "black",
+        label = "Prochlorophyta")
 # add the decomposition of the absorption spectra
-plot_pigments(10**9*alpha[:,0,index, np.newaxis]*pigments,ax[1], ls = '-'
+plot_pigments(10**9*alpha[:,0,index, np.newaxis]*pigments,ax_ex1, ls = '-'
               , lw = 1)
 
 # plot the absorption spectrum of the species
-ax[2].plot(lambs,10**9*(k_spec)[:,1, index], linewidth = 2, color = "black",
-        label = "Dinophyta example")
-ax[2].legend()
+ax_ex2.plot(lambs,10**9*(k_spec)[:,1, index], linewidth = 2, color = "black",
+        label = "Dinophyta")
 # add the decomposition of the absorption spectra
-plot_pigments(10**9*alpha[:,1,index, np.newaxis]*pigments,ax[2], ls = '-'
+plot_pigments(10**9*alpha[:,1,index, np.newaxis]*pigments,ax_ex2, ls = '-'
               , lw = 1)
 
 
 
 fs = 12
-# labels and legend
-ax[2].set_xlabel("Wavelength [nm]", fontsize = fs)
 
-ax[0].set_ylabel(r"Absorptiom [$cm^{-1}mM^{-1}$]", fontsize = fs)
-ax[1].set_ylabel(r"Absorption [$10^{-9}cm^2fl^{-1}$]", 
-                    fontsize = fs)
-ax[2].set_ylabel(r"Absorption [$10^{-9}cm^2fl^{-1}$]", 
+# labels and legend
+ax_pig.set_xlabel("Wavelength [nm]", fontsize = fs)
+ax_ex1.set_xlabel("Wavelength [nm]", fontsize = fs)
+ax_ex2.set_xlabel("Wavelength [nm]", fontsize = fs)
+
+ax_pig.set_ylabel(r"Absorptiom [$cm^{-1}mM^{-1}$]", fontsize = fs)
+ax_ex1.set_ylabel(r"Absorption [$10^{-9}cm^2fl^{-1}$]", 
                     fontsize = fs)
 
 # add titles
-ax[0].set_title("A", loc = "left")
-ax[1].set_title("B", loc = "left")
-ax[2].set_title("C", loc = "left")
-
+ax_pig.set_title("A", loc = "left")
+ax_ex1.set_title("B", loc = "left")
+ax_ex2.set_title("C", loc = "left")
+fig.tight_layout()
 
 fig.savefig("Figure, absorption_spectra.pdf")

@@ -143,8 +143,8 @@ periods = 10**np.random.uniform(0,2, iters) # ranges from 1 to 100
 
 # Determining the light regime for each setting
 # random incoming light fluctuations
-luxs = np.random.uniform(0,80,(iters))
-luxs = np.array([100-luxs, 100+luxs]).T
+luxs = np.random.uniform(0,20,(iters))
+luxs = np.array([40-luxs, 40+luxs]).T
 
 # environment information
 environments = iters*["clear"]
