@@ -32,7 +32,7 @@ def plot_imshow(data, x_val, ax,x_lim):
             x_spe[se,ss] = np.mean(x["spec_rich,{}".format(se)])
     
     # for better contrast
-    x_spe[x_spe<1e-3] = np.nan
+    x_spe[x_spe<1e-4] = np.nan
     # minimal value is 1 and not 0 as usually in plt.imshow
     extent = x_lim+[0.5,5.5]
     # dont plot the cases with ss = 0 or se = 0
@@ -46,7 +46,7 @@ def plot_imshow(data, x_val, ax,x_lim):
 
 for case in ["Const1", "Fluctuating"]:
     # actual plotting                                      
-    fig,ax = plt.subplots(2,1, figsize = (9,9), sharey = True)
+    fig = plt.figure(figsize = (9,4))
     # divide into fluctuating and constant case
     data = spaak_data[spaak_data.case == case]
     
@@ -55,29 +55,20 @@ for case in ["Const1", "Fluctuating"]:
     ax_0Xlim = list(diff + np.percentile(spaak_data["species_diversity"],[0,100]))
     
     # plot probability distributions
-    plot_imshow(data, "species_diversity", ax[1],ax_0Xlim)
-    im = plot_imshow(data, "r_pig_start", ax[0],ax0_Xlim)
+    im = plot_imshow(data, "r_pig_start", plt.gca(),ax0_Xlim)
     
     
     # change axis
     # number of species typically within 1 and 5
-    ax[0].set_ylim([0.5,5.5])
+    plt.ylim([0.5,5.5])
     
-    ax[0].set_xlim(ax0_Xlim)
-    ax[0].set_xticks([1,5,9])
-    
-    ax[1].set_xlim(ax_0Xlim)
-    ax[1].set_xticks([1,5,10,15])
+    plt.xlim(ax0_Xlim)
+    plt.xticks([1,5,9])
     
     # set axis labels
-    ax[0].set_ylabel("Final species richness")
-    ax[1].set_ylabel("Final species richness")
+    plt.ylabel("Final species richness")
     
-    ax[0].set_xlabel("Initial pigment richness")
-    ax[1].set_xlabel("Initial species richness")
-    
-    ax[0].set_title("A")
-    ax[1].set_title("B")
+    plt.xlabel("Initial pigment richness")
     
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])

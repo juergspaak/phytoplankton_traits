@@ -27,16 +27,16 @@ estrada = pd.read_csv("EF,estrada.csv", delimiter = ",",
                       engine = "python")
 estrada = estrada[estrada.Salinity<16]
 
-datas_biodiv["estrada"] = [estrada['SP Pigments detected by HPLC'],
+datas_biodiv["Estrada"] = [estrada['SP Pigments detected by HPLC'],
              estrada['SM Phyto-plankton taxa'], c_est]
 
 ###############################################################################
 c_lab = "blue"
 # Datas of Striebel
 striebel = pd.read_csv("EF,striebel,lab.csv",delimiter = ",")
-datas_biodiv["striebel, exp"] = [striebel["Pigment richness"].values, 
+datas_biodiv["Striebel, exp"] = [striebel["Pigment richness"].values, 
              np.exp(striebel["ln taxon richness"].values), c_lab]
-datas_EF["striebel, exp"] = [striebel["Pigment richness"].values, 
+datas_EF["Striebel, exp"] = [striebel["Pigment richness"].values, 
              np.exp(striebel["ln wet mass"].values), c_lab]
 
 # datas of striebel field
@@ -46,9 +46,9 @@ striebel_field_pigs = pd.read_csv("EF,striebel,field,pigments.csv",
 striebel_field_spec = pd.read_csv("EF,striebel,field,species.csv",
                                   delimiter= ",")                    
 r_pig = np.nansum(striebel_field_pigs.iloc[:,1:-2]>0,axis = 1)
-datas_biodiv["striebel, field"] = [r_pig                
+datas_biodiv["Striebel, field"] = [r_pig                
                 ,np.nansum(striebel_field_spec.iloc[:,1:-1]>0,axis = 1), c_fie]
-datas_EF["striebel, field"] = [r_pig, 
+datas_EF["Striebel, field"] = [r_pig, 
            1e-9*np.nansum(striebel_field_spec.iloc[:,1:-1],axis = 1), c_fie]
          
 ###############################################################################
@@ -88,9 +88,9 @@ def medians(x_val, y_val, wheight):
 
 spaak_data = pd.read_csv("data/data_EF_time_all.csv")
 
-datas_biodiv["spaak, t="+str(t//24)] = [*medians("r_pig, start","r_spec, t="
+datas_biodiv["Spaak, t="+str(t//24)] = [*medians("r_pig, start","r_spec, t="
                                     +str(t), "n_com"),c_sta]
-datas_biodiv["spaak, equi"] = [*medians("r_pig, start","r_spec, equi",
+datas_biodiv["Spaak, equi"] = [*medians("r_pig, start","r_spec, equi",
                                          "n_com"),c_coe]
 
 for col in spaak_data.columns:
@@ -99,8 +99,8 @@ for col in spaak_data.columns:
                         
 pig_range, EF_equi = medians("r_pig, start", "EF, equi", "n_com")
 pig_range, EF_t = medians("r_pig, start", "EF, t="+str(t), "n_com")
-datas_EF["spaak, equi"] = [pig_range, EF_equi, c_coe]
-datas_EF["spaak, t="+str(t//24)] = [pig_range, EF_t, c_sta]
+datas_EF["Spaak, equi"] = [pig_range, EF_equi, c_coe]
+datas_EF["Spaak, t="+str(t//24)] = [pig_range, EF_t, c_sta]
 
 ###############################################################################
 # plot boxes
