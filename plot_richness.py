@@ -32,7 +32,7 @@ def plot_imshow(data, x_val, ax,x_lim):
             x_spe[se,ss] = np.mean(x["spec_rich,{}".format(se)])
     
     # for better contrast
-    x_spe[x_spe<1e-4] = np.nan
+    x_spe[x_spe<1e-3] = np.nan
     # minimal value is 1 and not 0 as usually in plt.imshow
     extent = x_lim+[0.5,5.5]
     # dont plot the cases with ss = 0 or se = 0

@@ -11,18 +11,23 @@ import matplotlib.pyplot as plt
 
 # load the dataset
 spaak_data = pd.read_csv("data/data_richness_all.csv")
-# add phylum diversity and species diversity at the beginning
-spaak_data["phylum_diversity"] = [len(set(spec[1:-1].split())) 
-                                        for spec in spaak_data.species]
-                                        
+
+# -*- coding: utf-8 -*-
+"""
+@author: J.W.Spaak
+Plot the main Figure of the paper
+"""
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# load the dataset
+spaak_data = pd.read_csv("data/data_ap_richness_all.csv")
+
 spaak_data["species_diversity"] = [len(spec[1:-1].split()) 
                                         for spec in spaak_data.species]
-
 # convert to integer
 spaak_data.r_pig_start = spaak_data.r_pig_start.astype(int)                                      
-
-# actual plotting                                      
-fig,ax = plt.subplots(2,2, figsize = (9,9), sharey = True, sharex = "col")
 
 def plot_imshow(data, x_val, ax,x_lim):
     
@@ -49,44 +54,38 @@ def plot_imshow(data, x_val, ax,x_lim):
     ax.plot(np.arange(len(av_spe)),av_spe,'o')
     return im
 
-# divide into fluctuating and constant case
-fluct_data = spaak_data[spaak_data.case == "Fluctuating"]
-const_data = spaak_data[spaak_data.case == "Const1"]
+# actual plotting                                      
+fig, ax = plt.subplots(2,1,sharex = True, sharey = True, figsize = (9,4))    
+    
+for i,case in enumerate(["Const1", "Fluctuating"]):
 
-diff = np.array([-0.5,0.5])
-ax0_Xlim = list(diff + np.percentile(spaak_data["r_pig_start"],[0,100]))
-ax_0Xlim = list(diff + np.percentile(spaak_data["species_diversity"],[0,100]))
+    # divide into fluctuating and constant case
+    data = spaak_data[spaak_data.case == case]
+    
+    diff = np.array([-0.5,0.5])
+    ax0_Xlim = list(diff + np.percentile(spaak_data["r_pig_start"],[0,100]))
+    ax_0Xlim = list(diff + np.percentile(spaak_data["species_diversity"],[0,100]))
+    
+    # plot probability distributions
+    im = plot_imshow(data, "r_pig_start", ax[i],ax0_Xlim)
+    ax[i].set_title(["A","B"][i])
+    
+    # change axis
+    # number of species typically within 1 and 5
+    plt.ylim([0.5,5.5])
+    
+    plt.xlim(ax0_Xlim)
+    plt.xticks([1,5,9])
+    
 
-# plot probability distributions
-plot_imshow(const_data, "species_diversity", ax[0,1],ax_0Xlim)
-plot_imshow(const_data, "r_pig_start", ax[0,0],ax0_Xlim)
-plot_imshow(fluct_data, "species_diversity", ax[1,1],ax_0Xlim)
-im = plot_imshow(fluct_data, "r_pig_start", ax[1,0],ax0_Xlim)
-
-# change axis
-# number of species typically within 1 and 5
-ax[0,0].set_ylim([0.5,5.5])
-
-ax[0,0].set_xlim(ax0_Xlim)
-ax[0,0].set_xticks([1,5,9])
-
-ax[1,1].set_xlim(ax_0Xlim)
-ax[1,1].set_xticks([1,5,10,15])
-
+    
+    plt.xlabel("Initial pigment richness")
+    print(case + " communities", np.sum(data["n_fix"]))
+    
 # set axis labels
-ax[0,0].set_ylabel("Final species richness")
-ax[1,0].set_ylabel("Final species richness")
-
-ax[1,0].set_xlabel("Initial pigment richness")
-ax[1,1].set_xlabel("Initial species richness")
-
-ax[0,0].set_title("A")
-ax[0,1].set_title("B")
-ax[1,0].set_title("C")
-ax[1,1].set_title("D")
-
+ax[0].set_ylabel("Constant light")
+ax[1].set_ylabel("Fluctuating light")
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 fig.colorbar(im, cax=cbar_ax)
-
 fig.savefig("Figure,ap_diversity.pdf")
