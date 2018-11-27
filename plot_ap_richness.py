@@ -12,15 +12,6 @@ import matplotlib.pyplot as plt
 # load the dataset
 spaak_data = pd.read_csv("data/data_richness_all.csv")
 
-# -*- coding: utf-8 -*-
-"""
-@author: J.W.Spaak
-Plot the main Figure of the paper
-"""
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-
 # load the dataset
 spaak_data = pd.read_csv("data/data_ap_richness_all.csv")
 
@@ -42,7 +33,7 @@ def plot_imshow(data, x_val, ax,x_lim):
             x_spe[se,ss] = np.mean(x["spec_rich,{}".format(se)])
     
     # for better contrast
-    x_spe[x_spe<1e-3] = np.nan
+    x_spe[x_spe<1e-3] = np.nan # raised warning concerns prexisting nan
     # minimal value is 1 and not 0 as usually in plt.imshow
     extent = x_lim+[0.5,5.5]
     # dont plot the cases with ss = 0 or se = 0
@@ -51,7 +42,7 @@ def plot_imshow(data, x_val, ax,x_lim):
     
     # add averages to the figures
     av_spe = np.nansum(x_spe*np.arange(6)[:,np.newaxis],axis = 0)
-    ax.plot(np.arange(len(av_spe)),av_spe,'o')
+    ax.plot(np.arange(len(av_spe)),av_spe,'o', color = "blue")
     return im
 
 # actual plotting                                      

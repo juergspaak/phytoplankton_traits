@@ -7,34 +7,22 @@ Create randomized species according to methods
 import pandas as pd
 import numpy as np
 from scipy.integrate import simps
-import I_in_functions as I_inf
+import warnings
 
-import pigments as lp
+# load pigment absorption spectra
+df = pd.read_csv("pigments.csv")
+lambs = df["lambda"].values
+dlam = lambs[1]-lambs[0]                     
+pigments = df.values[:,1:].T
+pigment_names = df.columns[1:]
 
-# which pyhlum contains which pigment
+# which pigmentation type contains which pigment
 pig_spe_id = pd.read_csv("Pigment_algae_table.csv")
-
-pigment_id = [] # order of pigments in names_pigments
-pigment_id_species = [] # order in Pigment_algae_table.csv
-pigment_names = [] # names of all pigments used in the paper
-
-for i,pigment in enumerate(pig_spe_id["Pigment"]):
-    if pigment in lp.names_pigments:
-        pigment_id.append(lp.names_pigments.index(pigment))
-        pigment_id_species.append(i)
-        pigment_names.append(pigment)
-
-
-pigments = lp.pigments[np.array(pigment_id)]
-species_all = pig_spe_id.iloc[np.array(pigment_id_species)]
-                              
-# first two columns are pigment names and where to find which pigment
-species_pigments = species_all.iloc[:,2:].values
+species_pigments = pig_spe_id.iloc[:,2:].values
 species_pigments[np.isnan(species_pigments)] = 0
                  
-# minus 2, because of pigment labeling and whether pigments are found
-n_diff_spe = species_all.shape[-1] -2
-                         
+n_diff_spe = species_pigments.shape[-1] # number of different species
+ 
 def gen_com(present_species, fac, n_com_org = 100, I_ins = None, 
             k_BG = 0, zm = 100, run = 0):
     """Generate random species
@@ -98,7 +86,7 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None,
     k_spec = np.einsum("pl,psc->lsc",pigments, alphas)
     
     # Total absorption of each species should be equal (similar to Stomp)
-    int_abs = simps(k_spec, dx = lp.dlam, axis = 0)
+    int_abs = simps(k_spec, dx = dlam, axis = 0)
     k_spec = k_spec/int_abs*2.0e-7
 
     # change pigment concentrations accordingly
@@ -128,7 +116,7 @@ def gen_com(present_species, fac, n_com_org = 100, I_ins = None,
     
     return phi,l, k_spec, alphas, True
 
-def mono_culture_survive(par, k_spec, I_ins, k_BG = 0,zm = 100):
+def mono_culture_survive(par, k_spec, I_ins, k_BG = 0 ,zm = 100):
     """check whether each species could survive in monoculture
     
     par: phi/l
@@ -139,10 +127,13 @@ def mono_culture_survive(par, k_spec, I_ins, k_BG = 0,zm = 100):
         Surv: boolean array with same shape as par, indicating which species
         survive in all light conditions"""
     # light condition
-    light = np.where(k_BG ==0, I_ins, I_ins*(1-np.exp(-k_BG*zm))/(k_BG*zm))
-    light.shape = -1,len(lp.lambs),1,1
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore") # division by 0 is triggered
+        light = np.where(zm*k_BG == 0, I_ins, 
+                         I_ins*(1-np.exp(-k_BG*zm))/(k_BG*zm))
+    light.shape = -1,len(lambs),1,1
     # initial growth rate
-    init_growth = par*simps(light*k_spec,dx = lp.dlam,axis = 1)-1
+    init_growth = par*simps(light*k_spec,dx = dlam,axis = 1)-1
     # initial growth rate must be larger than 0 for all lights
     survive = np.all(init_growth>0,axis = (0,1))
     return survive
@@ -151,10 +142,11 @@ def mono_culture_survive(par, k_spec, I_ins, k_BG = 0,zm = 100):
 if __name__ == "__main__":
     # For illustration plot the absorption spectrum of some random species
     import matplotlib.pyplot as plt
+    import I_in_functions as I_inf
     
     # Absorption spectrum of all pigments
     fig = plt.figure(figsize=(9,9))
-    plt.plot(lp.lambs,pigments.T, label = "1")
+    plt.plot(lambs,pigments.T, label = "1")
     plt.xlabel("nm")
     plt.legend(labels = pigment_names)
     

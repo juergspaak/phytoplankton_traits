@@ -13,11 +13,8 @@ from scipy.integrate import simps, odeint
 from timeit import default_timer as timer
 
 import richness_computation as rc
-from generate_species import gen_com, n_diff_spe
+from generate_species import gen_com, n_diff_spe, dlam
 import I_in_functions as I_inf
-from pigments import dlam
-from I_in_functions import sun_light
-
 
 # getting data from jobscript 
 try:                    
@@ -59,7 +56,7 @@ def find_EF(present_species, n_com, sky, envi, luxs, period,species = None):
     zm = I_inf.zm
     
     # incoming light regime
-    I_in = sun_light(luxs, period)
+    I_in = I_inf.sun_light(luxs, period)
     # generate species
     phi,l, k_spec, alpha, feasible = species
     
@@ -159,7 +156,7 @@ t_const = np.linspace(0,0.5,4)
 while (timer()-start<1800 - average_over_10) and i < iters:
     present_species = np.random.choice(n_diff_spe, r_specs[i], 
                                        replace = True)
-    I_in = sun_light(luxs[i], periods[i])
+    I_in = I_inf.sun_light(luxs[i], periods[i])
     species = gen_com(present_species, 2, n_com,
                         I_ins = np.array([I_in(t*periods[i]) for t in t_const]))
     EF_mean, EF_var,  r_pig, r_spec,fit,n_com_r, dens =find_EF(present_species,

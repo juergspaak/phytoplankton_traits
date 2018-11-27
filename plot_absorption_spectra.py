@@ -10,17 +10,16 @@ Plot the example absorption spectrum of two coexisting species
 
 import numpy as np
 import matplotlib.pyplot as plt
-from generate_species import gen_com, pigments, pigment_names
+from generate_species import gen_com, pigments, pigment_names, lambs
 import richness_computation as rc
 from I_in_functions import sun_spectrum
-from pigments import lambs
 
 # fix randomness
-np.random.seed(20110505)
+np.random.seed(hash(5))
 
 I_in = 40*sun_spectrum["direct full"]
 
-phi,l,k_spec,alpha,found = gen_com([5,9], 3, 50,I_ins = I_in)
+phi,l,k_spec,alpha,found = gen_com([13,15], 3, 50,I_ins = I_in)
 
 equi,unfixed = rc.multispecies_equi(phi/l,k_spec, I_in)
 
@@ -61,8 +60,6 @@ ax_ex2.plot(lambs,10**9*(k_spec)[:,1, index], linewidth = 2, color = "black",
 # add the decomposition of the absorption spectra
 plot_pigments(10**9*alpha[:,1,index, np.newaxis]*pigments,ax_ex2, ls = '-'
               , lw = 1)
-
-
 
 fs = 12
 

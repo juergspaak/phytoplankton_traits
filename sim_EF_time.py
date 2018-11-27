@@ -13,11 +13,9 @@ from scipy.integrate import simps, odeint
 from timeit import default_timer as timer
 
 import richness_computation as rc
-from generate_species import gen_com, n_diff_spe
+from generate_species import gen_com, n_diff_spe, dlam
 from I_in_functions import sun_spectrum
 import I_in_functions as I_inf
-from pigments import dlam
-
 
 # getting data from jobscript 
 try:                    

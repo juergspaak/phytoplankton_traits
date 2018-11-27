@@ -56,8 +56,8 @@ c_fietz = "orange"
 # Datas of Striebel
 fietz = pd.read_csv("EF,fietz.csv",delimiter = ",", engine = "python")
 r_pig_fietz = np.sum(fietz.iloc[:,3:28]>0, axis = 1).values
-datas_biodiv["Fietz"] = [r_pig_fietz, np.sum(fietz.iloc[:,28:].values>0, axis = 1),
-                            c_fietz]
+datas_biodiv["Fietz"] = [r_pig_fietz, np.nansum(fietz.iloc[:,28:].values
+                 , axis = 1),c_fietz]
 datas_EF["Fietz"] = [r_pig_fietz, np.nansum(fietz.iloc[:,28:].values, axis = 1)
              ,c_fietz]
 

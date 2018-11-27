@@ -10,7 +10,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
 
-from pigments import lambs, dlam
+from generate_species import lambs, dlam
 
 
 ###############################################################################

@@ -9,11 +9,10 @@ For examples see the sim* files and at the end of the file
 
 import numpy as np
 from scipy.integrate import simps
+import warnings
 
-from pigments import lambs, dlam
-from generate_species import gen_com, n_diff_spe
+from generate_species import gen_com, n_diff_spe, lambs, dlam
 import I_in_functions as I_in
-
 from differential_functions import own_ode
     
 def find_survivors(equi, species_id):
@@ -84,7 +83,9 @@ def multispecies_equi(fitness, k_spec, I_in = 50*I_in.sun_spectrum["blue sky"],
             # to check stability of equilibrium in next run
             equis_old = equis.copy()
         if i % n==n-1:
-            stable = np.logical_or(equis == 0, #no change or already 0
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore") # division by 0 is triggered
+                stable = np.logical_or(equis == 0, #no change or already 0
                                    np.abs((equis-equis_old)/equis)<1e-3)
             cond = np.logical_not(np.prod(stable, 0)) #at least one is unstable
             equis_fix[:,unfixed] = equis #copy the values
@@ -278,7 +279,10 @@ def fluctuating_richness(present_species = np.arange(5), n_com = 100, fac = 3,
         av_start = np.average(sol[-110:-100], axis = 0) 
         
         # relative difference in start and end
-        rel_diff = np.nanmax(np.abs((av_end-av_start)/av_start),axis = 0)
+        with warnings.catch_warnings():
+                warnings.simplefilter("ignore") # division by 0 is triggered
+                rel_diff = np.nanmax(np.abs((av_end-av_start)/av_start),
+                                     axis = 0)
         # communities that still change "a lot"
         unfixed = rel_diff>0.005
         

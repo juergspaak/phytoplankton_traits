@@ -32,7 +32,7 @@ def plot_imshow(data, x_val, ax,x_lim):
             x_spe[se,ss] = np.mean(x["spec_rich,{}".format(se)])
     
     # for better contrast
-    x_spe[x_spe<1e-3] = np.nan
+    x_spe[x_spe<1e-3] = np.nan # raised warning concerns prexisting nan
     # minimal value is 1 and not 0 as usually in plt.imshow
     extent = x_lim+[0.5,5.5]
     # dont plot the cases with ss = 0 or se = 0
@@ -41,7 +41,7 @@ def plot_imshow(data, x_val, ax,x_lim):
     
     # add averages to the figures
     av_spe = np.nansum(x_spe*np.arange(6)[:,np.newaxis],axis = 0)
-    ax.plot(np.arange(len(av_spe)),av_spe,'o')
+    ax.plot(np.arange(len(av_spe)),av_spe,'o', color = "blue")
     return im
 
 for case in ["Const1", "Fluctuating"]:
