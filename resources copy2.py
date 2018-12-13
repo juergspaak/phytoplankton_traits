@@ -9,10 +9,9 @@ Reference papers can be found in the Pigment_algae_table.csv
 
 import numpy as np
 from scipy.integrate import simps, odeint
-from generate_species import gen_com, pigments
-from I_in_functions import sun_spectrum, k_BG, zm, dlam
+from phytoplankton_communities.generate_species import pigments, lambs, dlam
+from phytoplankton_communities.I_in_functions import zm
 import matplotlib.pyplot as plt
-import pigments as lp
 
 pig_id = [0,6]
 
@@ -30,7 +29,7 @@ alphas[pig_id,1] = 1- alphas[pig_id,0]
 k_spec = np.einsum("pl,psc->lsc",pigments, alphas)
     
 # Total absorption of each species should be equal (similar to Stomp)
-int_abs = simps(k_spec, dx = lp.dlam, axis = 0)
+int_abs = simps(k_spec, dx = dlam, axis = 0)
 k_spec = k_spec/int_abs*2.0e-7
 
 # change pigment concentrations accordingly
@@ -58,14 +57,14 @@ def multi_growth(N,t,I_in):
 
 n_I_in = 1000
 time = (24*100)**np.linspace(0,1,10)
-I_ins = np.empty((n_I_in,len(lp.lambs)))
+I_ins = np.empty((n_I_in,len(lambs)))
 N_all = np.empty((n_I_in,len(time),2,n_pig_conc, n_phi))
 
 for i in range(n_I_in):
     print(i)
-    I_in = np.exp(-(np.random.uniform(450,550)-lp.lambs)**2
+    I_in = np.exp(-(np.random.uniform(450,550)-lambs)**2
                   /np.random.uniform(50,500)**2)
-    I_in = I_in/simps(I_in, dx = lp.dlam)*np.random.uniform(20,100)
+    I_in = I_in/simps(I_in, dx = dlam)*np.random.uniform(20,100)
     I_in_t = lambda t: I_in
     I_ins[i] = I_in
     N0 = np.full(2*n_pig_conc* n_phi, 1e8)

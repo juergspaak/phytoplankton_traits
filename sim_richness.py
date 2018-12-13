@@ -11,10 +11,10 @@ import pandas as pd
 import numpy as np
 from timeit import default_timer as timer
 
-from I_in_functions import sun_light
-from generate_species import n_diff_spe,pigments
+from phytoplankton_communities.I_in_functions import sun_light
+from phytoplankton_communities.generate_species import n_diff_spe,pigments
 import sys
-import richness_computation as rc
+import phytoplankton_communities.richness_computation as rc
 
 # getting data from jobscript 
 try:                    

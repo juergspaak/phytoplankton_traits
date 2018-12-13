@@ -9,11 +9,10 @@ Reference papers can be found in the Pigment_algae_table.csv
 
 import numpy as np
 from scipy.integrate import simps, odeint
-from generate_species import gen_com, pigments
-from I_in_functions import sun_spectrum, k_BG, zm, dlam
-from richness_computation import multi_growth
+from phytoplankton_communities.generate_species import gen_com, pigments
+from phytoplankton_communities.I_in_functions import sun_spectrum, k_BG, zm, dlam
+from phytoplankton_communities.richness_computation import multi_growth
 import matplotlib.pyplot as plt
-import pigments as pig
 from matplotlib.colors import LogNorm
 
 #np.random.seed(hash("hello")%4294967295)

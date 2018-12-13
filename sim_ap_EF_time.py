@@ -12,9 +12,9 @@ import sys
 from scipy.integrate import simps, odeint
 from timeit import default_timer as timer
 
-import richness_computation as rc
-from generate_species import gen_com, n_diff_spe, dlam
-import I_in_functions as I_inf
+import phytoplankton_communities.richness_computation as rc
+from phytoplankton_communities.generate_species import gen_com, n_diff_spe,dlam
+import phytoplankton_communities.I_in_functions as I_inf
 
 # getting data from jobscript 
 try:                    

@@ -9,12 +9,10 @@ Reference papers can be found in the Pigment_algae_table.csv
 
 import numpy as np
 from scipy.integrate import simps, odeint
-from generate_species import gen_com, pigments
-from I_in_functions import sun_spectrum, k_BG, zm, dlam
-from richness_computation import multi_growth
+from phytoplankton_communities.generate_species import gen_com, pigments, dlam
+from phytoplankton_communities.I_in_functions import sun_spectrum, k_BG, zm
+from phytoplankton_communities.richness_computation import multi_growth
 import matplotlib.pyplot as plt
-import pigments as pig
-from matplotlib.colors import LogNorm
 
 i_lux,i_kBG = 20,20
 luxs = np.linspace(20,60,i_lux)

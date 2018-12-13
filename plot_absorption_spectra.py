@@ -10,12 +10,13 @@ Plot the example absorption spectrum of two coexisting species
 
 import numpy as np
 import matplotlib.pyplot as plt
-from generate_species import gen_com, pigments, pigment_names, lambs
-import richness_computation as rc
-from I_in_functions import sun_spectrum
+from phytoplankton_communities.generate_species import gen_com, pigments
+from phytoplankton_communities.generate_species import pigment_names, lambs
+import phytoplankton_communities.richness_computation as rc
+from phytoplankton_communities.I_in_functions import sun_spectrum
 
 # fix randomness
-np.random.seed(hash(5))
+np.random.seed(hash(0))
 
 I_in = 40*sun_spectrum["direct full"]
 
@@ -67,6 +68,10 @@ fs = 12
 ax_pig.set_xlabel("Wavelength [nm]", fontsize = fs)
 ax_ex1.set_xlabel("Wavelength [nm]", fontsize = fs)
 ax_ex2.set_xlabel("Wavelength [nm]", fontsize = fs)
+
+ax_pig.set_xlim([400,700])
+ax_ex1.set_xlim([400,700])
+ax_ex2.set_xlim([400,700])
 
 ax_pig.set_ylabel(r"Absorptiom [$cm^{-1}mM^{-1}$]", fontsize = fs)
 ax_ex1.set_ylabel(r"Absorption [$10^{-9}cm^2fl^{-1}$]", 
