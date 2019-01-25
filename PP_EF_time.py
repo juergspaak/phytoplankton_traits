@@ -89,9 +89,9 @@ def medians(x_val, y_val, wheight):
 spaak_data = pd.read_csv("data/data_EF_time_all.csv")
 
 datas_biodiv["Spaak, t="+str(t//24)] = [*medians("r_pig, start","r_spec, t="
-                                    +str(t), "n_com"),c_sta]
+                                   +str(t), "n_com"),c_sta]
 datas_biodiv["Spaak, equi"] = [*medians("r_pig, start","r_spec, equi",
-                                         "n_com"),c_coe]
+                                        "n_com"),c_coe]
 
 for col in spaak_data.columns:
     if col[:2] == "EF":
@@ -104,56 +104,67 @@ datas_EF["Spaak, t="+str(t//24)] = [pig_range, EF_t, c_sta]
 
 ###############################################################################
 # plot boxes
-def boxs(x_val, y_val, x_range,ax,color):
-    # compute averages
-    x_val, y_val = spaak_data[x_val], spaak_data[y_val]
-    def_col = dict(color= color)
-    ax.boxplot([y_val[x_val==x] for x in x_range], boxprops = def_col,
-               whiskerprops = def_col, capprops = def_col,
-               medianprops = def_col, showfliers = False)
+fs_label = 20
 
-def plot_results(dictionary, ylabel, ax, legend = True):
-    ax.set_ylabel(ylabel)
-    handles = []
-    
-    for i,key in enumerate(sorted(dictionary.keys())):
+def plot_results(dictionary, ylabel, ax, keys):
+    ax.set_ylabel(ylabel, fontsize = fs_label)
+    leg = []
+    for i,key in enumerate(keys):
         x,y,col = dictionary[key][:3]
-        handles.append(mpatches.Patch(color = col, label = key))
+        #handles.append(mpatches.Patch(color = col, label = key))
         
         x,y = x[np.isfinite(x*np.log(y))], y[np.isfinite(x*np.log(y))]
         
-        ax.plot(x,y,'.', label = key, color = col)
+        leg += ax.plot(x,y,'.', label = key, color = col)
         ax.semilogy()
         y = np.log(y)
             
         
         slope, intercept,r,p,stderr = linregress(x,y)
-        print(key,slope, intercept, r,p)
         ran = np.array([min(x), max(x)])
         y_linregres = intercept + ran*slope
 
         y_linregres = np.exp(y_linregres)
         ax.plot(ran, y_linregres, color = col)
-    if legend:
-        ax.legend(loc = "best", numpoints = 1)
-    ax.set_xlabel("Pigment richness")
-        
-fig, ax = plt.subplots(1,2,figsize = (12,9), sharex = True)
-ax[0].set_title("A")
-ax[1].set_title("B")
+    return leg
 
-pig_range = range(1,24)
-boxs("r_pig, start", "r_spec, t="+str(t),pig_range,ax[0], c_sta)
-boxs("r_pig, start", "r_spec, equi",pig_range,ax[0], c_coe)
+# plot biodiversity
+fig = plt.figure(figsize = (7,7))
 
-boxs("r_pig, start", "EF, t="+str(t),pig_range,ax[1], c_sta)
-boxs("r_pig, start", "EF, equi",pig_range,ax[1], c_coe)
+plt.xlim([0,24])
 
-plot_results(datas_biodiv, "Species richness",ax[0])
-print("\n\n", "EF", "\n\n")
-plot_results(datas_EF,r"Biovolume $[fl\,ml^{-1}]$",ax[1], False)
-ax[0].set_xlim(0.5,23.5)
-plt.xticks(range(2,24,2),range(2,24,2))
-fig.savefig("Figure, biodiv-EF.pdf")
-plt.show()
-print(np.sum(spaak_data["n_com"]))
+plt.legend(loc = "lower right", fontsize = 14)
+plt.ylabel("Species richness", fontsize = fs_label)
+plt.xlabel("Pigment richness", fontsize = fs_label)
+plt.xticks([1,10,20], [1,10,20], fontsize = 14)
+
+keys = ["Spaak, t="+str(t//24),"Spaak, equi",
+              "Estrada", "Fietz", "Striebel, exp", "Striebel, field"]
+for i in [2,1,0]:
+    leg = plot_results(datas_biodiv, "Species richness", plt.gca(),
+             keys[i:])
+    plt.legend(leg, keys[i:], fontsize = 14)
+    plt.yticks([1,10],["1","10"], fontsize = 14)
+    plt.ylim([0.7,None])
+    fig.savefig("PP_slides/PP, biodiv_{}.png".format(2-i))
+
+###############################################################################
+# plot EF
+# plot biodiversity
+fig = plt.figure(figsize = (7,7))
+
+plt.xlim([0,24])
+
+plt.legend(loc = "lower right", fontsize = 14)
+plt.xlabel("Pigment richness", fontsize = fs_label)
+plt.xticks([1,10,20], [1,10,20], fontsize = 14)
+
+keys = ["Fietz", "Striebel, exp", "Striebel, field",
+        "Spaak, t="+str(t//24),"Spaak, equi"]
+for j,i in enumerate([3,5]):
+    leg = plot_results(datas_EF, "Biomass [mg/ml]", plt.gca(),
+             keys[:i])
+    plt.legend(leg, keys[:i], fontsize = 14, loc = "upper left")
+    plt.yticks([1,10],["1","10"], fontsize = 14)
+    #plt.ylim([0.7,None])
+    fig.savefig("PP_slides/PP, EF_{}.png".format(j+1))

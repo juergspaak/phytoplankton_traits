@@ -20,7 +20,7 @@ np.random.seed(hash(0))
 
 I_in = 40*sun_spectrum["direct full"]
 
-phi,l,k_spec,alpha,found = gen_com([13,15], 3, 50,I_ins = I_in)
+phi,l,k_spec,alpha,found = gen_com([12,14], 3, 50,I_ins = I_in)
 
 equi,unfixed = rc.multispecies_equi(phi/l,k_spec, I_in)
 
@@ -73,7 +73,7 @@ ax_pig.set_xlim([400,700])
 ax_ex1.set_xlim([400,700])
 ax_ex2.set_xlim([400,700])
 
-ax_pig.set_ylabel(r"Absorptiom [$cm^{-1}mM^{-1}$]", fontsize = fs)
+ax_pig.set_ylabel(r"Absorptiom [$m^2mg^{-1}$]", fontsize = fs)
 ax_ex1.set_ylabel(r"Absorption [$10^{-9}cm^2fl^{-1}$]", 
                     fontsize = fs)
 
