@@ -36,7 +36,9 @@ def plot_pigments(array, ax, ls = '-', lw = 2):
         if max(array[i])>0:
             ax.plot(lambs, array[i]/np.amax(array), ls,color = pig_colors[i], 
                 label = i, linewidth = lw)
+            
 
+plt.style.use('dark_background')
 fig = plt.figure(figsize = (8,6))
 plt.gcf().subplots_adjust(bottom=0.1) #☻ make space for xlabel
 ax_pig = fig.add_subplot(211)

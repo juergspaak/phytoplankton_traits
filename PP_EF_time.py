@@ -128,6 +128,7 @@ def plot_results(dictionary, ylabel, ax, keys):
         ax.plot(ran, y_linregres, color = col)
     return leg
 
+plt.style.use('dark_background')
 # plot biodiversity
 fig = plt.figure(figsize = (7,7))
 

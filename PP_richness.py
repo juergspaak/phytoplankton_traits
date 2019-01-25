@@ -41,6 +41,8 @@ def plot_imshow(data, x_val, ax,x_lim):
     av_spe = np.nansum(x_spe*np.arange(6)[:,np.newaxis],axis = 0)
     return im, [np.arange(len(av_spe)), av_spe]
 
+
+plt.style.use('dark_background')
 # actual plotting                                      
 fig = plt.figure(figsize = (9,4))
 # divide into fluctuating and constant case
@@ -79,14 +81,10 @@ fig.savefig("PP, trait species diversity.pdf")
 
 ax_main = fig.axes[0]
 
-
-one_spec = Rectangle((1.5,1.5),9.5,5.5, color = "white", fill = True)
-two_spec = Rectangle((2.5,1.5),9.5,5.5, color = "white", fill = True)
-four_spec = Rectangle((4.5,1.5),9.5,5.5, color = "white", fill = True)
 plt.gcf().subplots_adjust(bottom=0.2) #☻ make space for xlabel
 
 for i,xlim in enumerate([4.5,3.5,2.5,1.5,0.5]):
-    rect = Rectangle((xlim,0.5),9.5,5.5, color = "white", fill = True)
+    rect = Rectangle((xlim,0.5),9.5,5.5, color = "black", fill = True)
     ax_main.add_patch(rect)
     if xlim != 0.5:
         ax_main.set_xticks([1,5,9,xlim-0.5])
