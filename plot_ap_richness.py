@@ -10,13 +10,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # load the dataset
-spaak_data = pd.read_csv("data/data_richness_all.csv")
-
-# load the dataset
 spaak_data = pd.read_csv("data/data_ap_richness_all.csv")
 
-spaak_data["species_diversity"] = [len(spec[1:-1].split()) 
-                                        for spec in spaak_data.species]
 # convert to integer
 spaak_data.r_pig_start = spaak_data.r_pig_start.astype(int)                                      
 
@@ -54,9 +49,8 @@ for i,case in enumerate(["Const1", "Fluctuating"]):
     data = spaak_data[spaak_data.case == case]
     
     diff = np.array([-0.5,0.5])
-    ax0_Xlim = list(diff + np.percentile(spaak_data["r_pig_start"],[0,100]))
-    ax_0Xlim = list(diff + np.percentile(spaak_data["species_diversity"],[0,100]))
-    
+    ax0_Xlim = [0.5,9.5]
+
     # plot probability distributions
     im = plot_imshow(data, "r_pig_start", ax[i],ax0_Xlim)
     ax[i].set_title(["A","B"][i])

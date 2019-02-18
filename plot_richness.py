@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-@author: J.W.Spaak
+@author: J. W. Spaak, jurg.spaak@unamur.be
+
 Plot the main Figure of the paper
+See description in manuscript for more information
 """
 import pandas as pd
 import numpy as np
@@ -9,12 +11,6 @@ import matplotlib.pyplot as plt
 
 # load the dataset
 spaak_data = pd.read_csv("data/data_richness_all.csv")
-# add phylum diversity and species diversity at the beginning
-spaak_data["phylum_diversity"] = [len(set(spec[1:-1].split())) 
-                                        for spec in spaak_data.species]
-                                        
-spaak_data["species_diversity"] = [len(spec[1:-1].split()) 
-                                        for spec in spaak_data.species]
 
 # convert to integer
 spaak_data.r_pig_start = spaak_data.r_pig_start.astype(int)                                      
@@ -52,7 +48,6 @@ for case in ["Const1", "Fluctuating"]:
     
     diff = np.array([-0.5,0.5])
     ax0_Xlim = list(diff + np.percentile(spaak_data["r_pig_start"],[0,100]))
-    ax_0Xlim = list(diff + np.percentile(spaak_data["species_diversity"],[0,100]))
     
     # plot probability distributions
     im = plot_imshow(data, "r_pig_start", plt.gca(),ax0_Xlim)

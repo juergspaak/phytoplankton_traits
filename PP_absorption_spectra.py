@@ -68,10 +68,10 @@ ax_pig.set_xlabel("Light colour", fontsize = fs_labels)
 fig.savefig("PP_slides/PP, absorption_spectra_1.png")
 
 ax_ex1 = fig.add_subplot(212)
-ax_pig.set_xticklabels([400,"" ,"" ,"" ,"" , 700], fontsize = fs_axis)
+ax_pig.set_xticklabels(["","" ,"" ,"" ,"" , ""], fontsize = fs_axis)
 # plot the absorption spectrum of the species
 ax_ex1.plot(lambs,k_spec[:,1, index]/np.amax(k_spec[:,1,index]),
-            linewidth = 2, color = "black")
+            linewidth = 2, color = "white")
 # add the decomposition of the absorption spectra
 plot_pigments(alpha[:,1,index, np.newaxis]*pigments,ax_ex1, ls = '-'
               , lw = 1)
