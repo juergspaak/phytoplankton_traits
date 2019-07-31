@@ -70,14 +70,13 @@ plt.yticks(range(1,6), fontsize = fs_axis)
 plt.ylabel("Species richness", fontsize = fs_label)
 
 plt.xlabel("Pigment richness", fontsize = fs_label)
-
+fig.tight_layout()
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 colorbar = fig.colorbar(im, cax=cbar_ax)
 colorbar.set_ticks([0,0.5,1])
 colorbar.ax.tick_params(labelsize = fs_axis)
-#fig.tight_layout()
-fig.savefig("PP, trait species diversity.pdf")
+colorbar.set_label("Probability", fontsize = fs_label-2)
 
 ax_main = fig.axes[0]
 

@@ -69,6 +69,6 @@ for case in ["Const1", "Fluctuating"]:
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
     fig.colorbar(im, cax=cbar_ax)
     
-    fig.savefig("Figure, trait species diversity {}.pdf".format(case))
+    fig.savefig("Figure-trait-species-diversity-{}.eps".format(case))
     plt.show()
     print(case + " communities", np.sum(data["n_fix"]))

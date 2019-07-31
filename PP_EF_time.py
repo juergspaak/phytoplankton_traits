@@ -131,7 +131,7 @@ def plot_results(dictionary, ylabel, ax, keys):
 plt.style.use('dark_background')
 # plot biodiversity
 fig = plt.figure(figsize = (7,7))
-
+plt.gca().tick_params(axis = "both", which = "both", length = 6, width=2)
 plt.xlim([0,24])
 
 plt.legend(loc = "lower right", fontsize = 14)
@@ -155,6 +155,7 @@ for i in [2,1,0]:
 fig = plt.figure(figsize = (7,7))
 
 plt.xlim([0,24])
+plt.gca().tick_params(axis = "both", which = "both", length = 6, width=2)
 
 plt.legend(loc = "lower right", fontsize = 14)
 plt.xlabel("Pigment richness", fontsize = fs_label)
