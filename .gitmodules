@@ -1,3 +1,6 @@
 [submodule "phytoplankton_communities"]
 	path = phytoplankton_communities
 	url = https://gitlab.unamur.be/bio/URBE/EEEcology/common_code/phytoplankton_communities.git
+[submodule "nfd_definitions"]
+	path = nfd_definitions
+	url = https://gitlab.unamur.be/bio/URBE/EEEcology/common_code/nfd_definitions.git
