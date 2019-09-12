@@ -55,7 +55,7 @@ test_time_start = timer()
 
 time_for_10 = 0
 counter = 0
-while timer()-start <3600-(time_for_10):
+while timer()-start <1800-(time_for_10):
     if i==iters:
         break
     I_in = luxs[i] * sun_spectrum["blue sky"]
