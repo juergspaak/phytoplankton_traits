@@ -15,43 +15,35 @@ from sklearn.linear_model import LinearRegression
 from itertools import permutations
 
 # load the dataset
-spaak_data = pd.read_csv("data/data_richness_all.csv")
-spaak_data = spaak_data[spaak_data.case != "Fluctuating"]
-#spaak_data = spaak_data[spaak_data.r_pig_start == 3]
-
-pig_range = np.arange(min(spaak_data.r_pig_start),
-                      max(spaak_data.r_pig_start) +1)
-
-# convert to integer
-spaak_data.r_pig_start = spaak_data.r_pig_start.astype(int)
-spec_range = np.arange(2,6) # don't include species richness 1 for NFD 
-weights = spaak_data[["spec_rich,{}".format(i) for i in spec_range]].values
-spaak_data["ND_av"] = np.nanmean(spaak_data[["ND,{}".format(n)
-    for n in spec_range]] * weights, axis = 1)/np.nansum(weights, axis = 1)
-spaak_data["FD_av"] = np.nanmean(spaak_data[["FD,{}".format(n)
-    for n in spec_range]] * weights, axis = 1)/np.nansum(weights, axis = 1)
-spaak_data = spaak_data[np.isfinite(spaak_data.ND_av)]
+spaak_data_pre = pd.read_csv("data/data_ND_all.csv")
+#spaak_data_pre = spaak_data_pre[spaak_data_pre.r_spec_equi == 2]
+ND = spaak_data_pre[["ND_{}".format(i) for i in range(1,6)]].values.flatten()
+FD = spaak_data_pre[["FD_{}".format(i) for i in range(1,6)]].values.flatten()
+EF = np.tile(spaak_data_pre.EF,5)
+#EF = spaak_data_pre[["equi_{}".format(i) for i in range(1,6)]].values.flatten()
+index = np.logical_and(np.isfinite(ND*FD),ND!=1)
+ND = ND[index]
+FD = FD[index]
+EF = EF[index]
 
 fig = plt.figure()
 ax = plt.gca()
-EF = spaak_data["biovolume,50"]
-cmap = ax.scatter(spaak_data.ND_av, spaak_data.FD_av, c = EF,
+cmap = ax.scatter(ND, FD, c = EF,
             s = 4,norm=matplotlib.colors.LogNorm(), vmin = np.percentile(EF, 5)
             , vmax = np.percentile(EF, 95))
 cbar = fig.colorbar(cmap)
-percent = 5
+percent = 1
 
-ax.set_xlim([0,np.nanpercentile(spaak_data.ND_av,95)])
-ax.set_ylim(np.nanpercentile(spaak_data.FD_av, [5,95]))
-ax.set_xticks([0,0.02, 0.04])
-ax.set_yticks([0, 0.005, 0.01, 0.015])
+ax.set_xlim(np.nanpercentile(ND,[percent,100-percent]))
+ax.set_ylim(np.nanpercentile(FD, [percent,100-percent]))
 ax.set_xlabel("Niche differences", fontsize = 14)
 ax.set_ylabel("Fitness differences", fontsize = 14)
+ax.invert_yaxis()
 cbar.set_label(r"Biovolume $[fl\,ml^{-1}]$", fontsize = 14)
 
-spaak_data["ND*FD"] = spaak_data.ND_av*spaak_data.FD_av
-spaak_data["r_i"] = spaak_data.ND_av + spaak_data.FD_av -spaak_data["ND*FD"]
-spaak_data.rename(columns = {"ND_av":"ND", "FD_av":"FD"}, inplace = True)
+spaak_data = pd.DataFrame({"ND":ND, "FD":FD, "EF":EF})
+spaak_data["ND*FD"] = spaak_data.ND*spaak_data.FD
+spaak_data["r_i"] = spaak_data.ND + spaak_data.FD -spaak_data["ND*FD"]
 spaak_data["ND2"] = np.abs(spaak_data.ND)**0.5
 spaak_data["FD2"] = np.abs(spaak_data.FD)**0.5
 
@@ -72,4 +64,5 @@ for i,case in enumerate(cases):
     df.loc[i, "intercept"] = reg.intercept_
     
 print(df.iloc[np.argsort(df.R2)])
-fig.savefig("Figure, NFD_EF.pdf")
+fig.tight_layout()
+fig.savefig("Figure, NFD_EF.png")

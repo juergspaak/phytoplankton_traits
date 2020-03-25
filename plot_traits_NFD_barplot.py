@@ -42,7 +42,9 @@ ND_box = [N[np.isfinite(N)] for N in ND_box]
 FD_box = [-FD[spaak_data.r_pig_start == i].flatten() for i in range(2,10)]
 FD_box = [F[np.isfinite(F)] for F in FD_box]
 
-fig, ax = plt.subplots(2,1, sharex = True)
+
+fig = plt.figure(figsize = (7,7))
+ax = [fig.add_subplot(2,2,1), fig.add_subplot(2,2,3)]
 ax[0].boxplot(ND_box, sym = "", positions = range(2,10))
 ax[1].boxplot(FD_box, sym = "", positions = range(2,10))
 
@@ -50,7 +52,28 @@ ax[0].set_ylabel("$\mathcal{N}$")
 ax[1].set_ylabel("$\mathcal{-F}$")
 ax[1].set_xlabel("initial pigment richness")
 
+hist_range = np.round([np.nanpercentile(ND,[5,95]),
+                       np.nanpercentile(-FD, [5,95])],2)
+ax_coex = fig.add_subplot(1,2,2)
+
+# want to only show percent of the data in the histogram plot
+nbins = 50 # number of bins in histogram
+percent = 0.95 # percentage of data to show
+counts, xedges, yedges = np.histogram2d(ND[np.isfinite(ND)],
+                                           -FD[np.isfinite(FD)], nbins)
+counts = np.sort(counts.flatten())[::-1]
+ind = np.argmin(np.cumsum(counts)/np.sum(counts)<percent)
+cmin = counts[ind]-1
+res = ax_coex.hist2d(ND[np.isfinite(ND)], -FD[np.isfinite(FD)], nbins,
+                        cmin = cmin)
+ax_coex.set_xlim(0,0.2)
+ax_coex.set_ylim(-0.25,0.15)
+
+ax[0].set_yticks([-0.05, 0, 0.05, 0.1, 0.15])
+ax[1].set_yticks([-0.1, -0.05, 0,  0.05, 0.1])
 ax[0].set_title("A")
 ax[1].set_title("B")
+ax_coex.set_title("C")
+fig.tight_layout()
 
 fig.savefig("figure_traits_NFD_barplot.pdf")

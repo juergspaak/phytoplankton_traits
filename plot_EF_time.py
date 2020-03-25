@@ -128,7 +128,8 @@ def plot_results(dictionary, ylabel, ax, legend = True):
             
         
         slope, intercept,r,p,stderr = linregress(x,y)
-        print(key,slope, intercept, r,p)
+        print(key, (20-len(key))*" ", 
+              np.round([slope, intercept, r,p, stderr],3))
         ran = np.array([min(x), max(x)])
         y_linregres = intercept + ran*slope
 
