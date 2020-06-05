@@ -15,6 +15,12 @@ from phytoplankton_communities.generate_species import pigment_names, lambs
 import phytoplankton_communities.richness_computation as rc
 from phytoplankton_communities.I_in_functions import sun_spectrum
 
+plt.rc('axes', labelsize=16)
+plt.rc('xtick', labelsize=12)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=12)
+plt.rc('ytick', labelsize=12)
+plt.rc('axes', titlesize=16) 
+
 # fix randomness
 np.random.seed(hash(0))
 
@@ -83,4 +89,4 @@ ax_ex1.set_title("B", loc = "left")
 ax_ex2.set_title("C", loc = "left")
 fig.tight_layout()
 
-fig.savefig("Figure, absorption_spectra.pdf")
+fig.savefig("Figure_absorption_spectra.pdf")

@@ -10,6 +10,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.cm import rainbow
 
+plt.rc('axes', labelsize=16)
+plt.rc('xtick', labelsize=12)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=12)
+plt.rc('ytick', labelsize=12)
+plt.rc('axes', titlesize=16) 
+
 my_cmap = plt.cm.viridis
 my_cmap.set_under('w',1)
 
