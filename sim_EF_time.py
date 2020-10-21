@@ -119,7 +119,9 @@ def find_EF(present_species, n_com, sky, lux, envi):
     dens = np.append(sol_ode, equi, axis = 0)
     ###########################################################################
     # prepare return fucntions
-    
+    tot_abs = zm*np.sum(k_spec*dens[:,np.newaxis], axis = -2)
+    I_out = simps(I_in.reshape((-1,1))*(1-np.exp(-tot_abs)),dx = dlam,
+                  axis = 1)
     # EF biovolume
     EF_mean = np.nanmean(np.sum(dens, axis = 1),axis = -1)
     EF_var = np.nanvar(np.sum(dens, axis = 1), axis = -1)
@@ -140,7 +142,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
     
     RYE = 1/len(phi) # relative yield expected
     RYO = dens/N_star_mono # relative yield observed
-    print(RYO.shape)
+    
     delta_RY = RYO-RYE # deviation from expected relative yield
     
     complemenratiry = np.sum(delta_RY, axis = 1)*np.sum(N_star_mono, axis = 0)
@@ -149,7 +151,8 @@ def find_EF(present_species, n_com, sky, lux, envi):
     RYT = np.sum(RYO, axis = 1)
     
     return [EF_mean, EF_var, r_pig, r_spec, fitness_t, n_com, dens,
-            np.median([RYT[-1], complemenratiry[-1], selection[-1]], axis = 1)]
+            np.median([RYT[-1], complemenratiry[-1], selection[-1]], axis = 1),
+            I_out]
  
 iters = 1000
 
@@ -159,6 +162,7 @@ r_specs = np.random.randint(1,15,iters) # richness of species
 # prepare the dataframe for saving all the data
 EF_cols = ["EF, t={}".format(t) for t in time]+["EF, equi"]
 EF_cols[0] = "EF, start"
+I_out_cols = ["I_out, t={}".format(t) for t in time] + ["I_out, equi"]
 var_cols = [col+", var" for col in EF_cols]
 r_pig_cols = ["r_pig, t={}".format(t) for t in time]+["r_pig, equi"]
 r_pig_cols[0] = "r_pig, start"
@@ -176,7 +180,7 @@ lux = np.full(iters, 40, dtype = "float")
 environments = iters*["clear"]
 
 columns = ["species","r_spec", "sky", "lux", "n_com", "envi"] + EF_cols \
-        + r_pig_cols + r_spec_cols + var_cols + fit_cols + ryt_cols
+        + r_pig_cols + r_spec_cols + var_cols + fit_cols + ryt_cols + I_out_cols
                        
 data = pd.DataFrame(None, columns = columns, index = range(iters))
 
@@ -188,11 +192,12 @@ while (timer()-start<1800 - average_over_10) and i < iters:
     present_species = np.random.choice(n_diff_spe, r_specs[i], 
                                        replace = True)
     
-    EF_mean, EF_var,  r_pig, r_spec,fit,n_com_r, dens, ryt =find_EF(present_species,
+    EF_mean, EF_var,  r_pig, r_spec,fit,n_com_r, dens, ryt, I_out =find_EF(present_species,
             n_com, skys[i], lux[i], environments[i])
     
     data.iloc[i] = [present_species, r_specs[i], skys[i],lux[i],n_com_r,
-              environments[i],*EF_mean,*r_pig, *r_spec, *EF_var,*fit, *ryt]
+              environments[i],*EF_mean,*r_pig, *r_spec, *EF_var,*fit, *ryt,
+              *I_out]
     
     try:
         if i>9:
@@ -205,7 +210,7 @@ while (timer()-start<1800 - average_over_10) and i < iters:
     i += 1
     if i == 10:
         average_over_10 = timer()-start
-    print(i, "iteration")
+    print(i, "iteration", timer()-start)
     
 data = data[0:i]
 data.to_csv(save_string)
