@@ -9,6 +9,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+plt.rc('axes', labelsize=16)
+plt.rc('xtick', labelsize=12)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=12)
+plt.rc('ytick', labelsize=12)
+plt.rc('axes', titlesize=16) 
+
 # load the dataset
 spaak_data = pd.read_csv("data/data_richness_all.csv")
 
@@ -26,7 +32,7 @@ def plot_imshow(data, x_val, ax,x_lim):
         x = spaak_data[spaak_data[x_val]==ss]
         for se in range(6):
             x_spe[se,ss] = np.mean(x["spec_rich,{}".format(se)])
-    
+    print(np.round(x_spe, 3))
     # for better contrast
     x_spe[x_spe<1e-3] = np.nan # raised warning concerns prexisting nan
     # minimal value is 1 and not 0 as usually in plt.imshow
@@ -69,6 +75,6 @@ for case in ["Const1", "Fluctuating"]:
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
     fig.colorbar(im, cax=cbar_ax)
     
-    fig.savefig("Figure-trait-species-diversity-{}.eps".format(case))
+    fig.savefig("Figure_trait_species_diversity_{}.pdf".format(case))
     plt.show()
     print(case + " communities", np.sum(data["n_fix"]))

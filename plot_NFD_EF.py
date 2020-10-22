@@ -65,4 +65,4 @@ for i,case in enumerate(cases):
     
 print(df.iloc[np.argsort(df.R2)])
 fig.tight_layout()
-fig.savefig("Figure, NFD_EF.png")
+fig.savefig("Figure_NFD_EF.pdf")

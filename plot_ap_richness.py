@@ -9,6 +9,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+plt.rc('axes', labelsize=16)
+plt.rc('xtick', labelsize=12)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=12)
+plt.rc('ytick', labelsize=12)
+plt.rc('axes', titlesize=16) 
+
 # load the dataset
 spaak_data = pd.read_csv("data/data_ap_richness_all.csv")
 
@@ -53,7 +59,6 @@ for i,case in enumerate(["Const1", "Fluctuating"]):
 
     # plot probability distributions
     im = plot_imshow(data, "r_pig_start", ax[i],ax0_Xlim)
-    ax[i].set_title(["A","B"][i])
     
     # change axis
     # number of species typically within 1 and 5
@@ -68,9 +73,12 @@ for i,case in enumerate(["Const1", "Fluctuating"]):
     print(case + " communities", np.sum(data["n_fix"]))
     
 # set axis labels
-ax[0].set_ylabel("Constant light")
-ax[1].set_ylabel("Fluctuating light")
+ax[0].set_ylabel("Species\nrichness")
+ax[1].set_ylabel("Species\nrichness")
+ax[0].set_title("A: Constant light")
+ax[1].set_title("B: Flutuating light")
+
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 fig.colorbar(im, cax=cbar_ax)
-fig.savefig("Figure,ap_diversity.pdf")
+fig.savefig("Figure_ap_diversity.pdf")

@@ -26,7 +26,7 @@ def medians(x_val, y_val):
     return x_range, np.array([np.nanmedian(y_val[x_val==x]) for x in x_range])
 
 # range of pigments                       
-pig_range = np.arange(min(spaak["r_pig, start"]), max(spaak["r_pig, start"]))
+pig_range = np.arange(min(spaak["r_pig_start"]), max(spaak["r_pig_start"]))
 
 
 
@@ -41,8 +41,8 @@ def boxs(x_val, y_val, x_range,ax,color, position = None):
 time = "equi"
 fig, ax = plt.subplots(figsize = (7,7))
 axt = ax.twinx() 
-boxs("r_pig, start", "EF, "+time,pig_range,ax, 'lime',position = pig_range-0.2)
-boxs("r_pig, start", "base_prod, "+time, pig_range, axt, "red")
+boxs("r_pig_start", "EF_"+time,pig_range,ax, 'lime',position = pig_range-0.2)
+boxs("r_pig_start", "base_prod, "+time, pig_range, axt, "red")
 
 ax.set_xlabel("Pigment richness")
 ax.set_ylabel(r"Biovolume $[fl\,ml^{-1}]$")
