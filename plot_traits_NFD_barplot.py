@@ -15,37 +15,44 @@ my_cmap.set_under('w',1)
 
 # load the dataset
 try:
-    spaak_data
+    data_photo
 except NameError:
-    spaak_data = pd.read_csv("data/data_ND_all.csv")
+    data_photo_org = pd.read_csv("data/data_no_photoprotectionnew.csv")
+index = np.arange(len(data_photo_org))
+data_photo = data_photo_org[index%2==1]
+#data_photo = pd.read_csv("data/data_no_photoprotection_old_pigments.csv")
+data_photo.r_pig_start = data_photo.r_pig_start.astype(int)
+    
+print(data_photo.shape)
+plt.figure()
+r_pig = np.arange(min(data_photo.r_pig_start), max(data_photo.r_pig_start)+1)
+plt.hist(data_photo.r_pig_start, bins = r_pig)
 
-pig_range = np.arange(min(spaak_data.r_pig_start),
-                      max(spaak_data.r_pig_start) +1)
+pig_range = np.arange(min(data_photo.r_pig_start),
+                      max(data_photo.r_pig_start) +1)
 
 
-ND_cols = ["ND_{}".format(i) for i in range(1,6)]
-ND = spaak_data[ND_cols].values
+ND_cols = ["ND_{}".format(i) for i in range(5)]
+ND = data_photo[ND_cols].values
 
-FD_cols = ["FD_{}".format(i) for i in range(1,6)]
-FD = spaak_data[FD_cols].values
+FD_cols = ["FD_{}".format(i) for i in range(5)]
+FD = data_photo[FD_cols].values
 FD[ND == 1] = np.nan
 ND[ND == 1] = np.nan
-equi_cols = ["equi_{}".format(i) for i in range(1,6)]
-equi = spaak_data[equi_cols].values
 
-sort_by = spaak_data.r_pig_start
+sort_by = data_photo.r_pig_start
 cases = list(set(sort_by))
 
-ND_box = [ND[spaak_data.r_pig_start == i].flatten() for i in range(2,10)]
+ND_box = [ND[data_photo.r_pig_start == i].flatten() for i in r_pig]
 ND_box = [N[np.isfinite(N)] for N in ND_box]
-FD_box = [-FD[spaak_data.r_pig_start == i].flatten() for i in range(2,10)]
+FD_box = [-FD[data_photo.r_pig_start == i].flatten() for i in r_pig]
 FD_box = [F[np.isfinite(F)] for F in FD_box]
 
 
 fig = plt.figure(figsize = (7,7))
 ax = [fig.add_subplot(2,2,1), fig.add_subplot(2,2,3)]
-ax[0].boxplot(ND_box, sym = "", positions = range(2,10))
-ax[1].boxplot(FD_box, sym = "", positions = range(2,10))
+ax[0].boxplot(ND_box, sym = "", positions = r_pig)
+ax[1].boxplot(FD_box, sym = "", positions = r_pig)
 
 ax[0].set_ylabel("$\mathcal{N}_i$")
 ax[1].set_ylabel("$\mathcal{-F}_i$")
@@ -57,9 +64,8 @@ ax_coex = fig.add_subplot(1,2,2)
 
 # want to only show percent of the data in the histogram plot
 nbins = 201 # number of bins in histogram
-percents = [0.99, 0.95, 0.75, 0.50, 0.25, 0.05]
 percents = [0.01, 0.05, 0.25, 0.50, 0.75]
-#percents = [0.95, 0.5, 0.01]
+
 counts, xedges, yedges = np.histogram2d(ND[np.isfinite(ND)],
                                            FD[np.isfinite(FD)], nbins,
                                            range = [[-0.4,0.4],[-0.4,0.4]])
@@ -71,7 +77,6 @@ bounds = np.sort(counts.flatten())[ind]-1
 cmap = plt.get_cmap("viridis", len(ind))
 counts_colored = np.full(counts.shape, np.nan)
 for i,value in enumerate(np.linspace(0,1,len(ind)*2+1)[1::2]):
-    print(value)
     counts_colored[counts>bounds[i]] = value
     
 im = ax_coex.imshow(counts_colored.T, aspect = "auto", cmap = cmap,
