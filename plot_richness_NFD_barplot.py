@@ -29,15 +29,14 @@ pig_range = np.arange(min(spaak_data.r_pig_start),
                       max(spaak_data.r_pig_start) +1)
 
 
-ND_cols = ["ND_{}".format(i) for i in range(1,6)]
+ND_cols = ["ND,{}".format(i) for i in range(1,6)]
 ND = spaak_data[ND_cols].values
 
-FD_cols = ["FD_{}".format(i) for i in range(1,6)]
+FD_cols = ["FD,{}".format(i) for i in range(1,6)]
 FD = spaak_data[FD_cols].values
 FD[ND == 1] = np.nan
 ND[ND == 1] = np.nan
-equi_cols = ["equi_{}".format(i) for i in range(1,6)]
-equi = spaak_data[equi_cols].values
+
 
 sort_by = spaak_data.r_pig_start
 cases = list(set(sort_by))

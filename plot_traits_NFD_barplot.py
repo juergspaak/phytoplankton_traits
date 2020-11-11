@@ -15,94 +15,101 @@ my_cmap.set_under('w',1)
 
 # load the dataset
 try:
-    data_photo
+    data_ND
 except NameError:
-    data_photo_org = pd.read_csv("data/data_no_photoprotectionnew.csv")
-index = np.arange(len(data_photo_org))
-data_photo = data_photo_org[index%2==1]
-#data_photo = pd.read_csv("data/data_no_photoprotection_old_pigments.csv")
-data_photo.r_pig_start = data_photo.r_pig_start.astype(int)
+    data_photo = pd.read_csv("data/data_no_photoprotection_old_pigments")
+    data_photo.r_pig_start = data_photo.r_pig_start.astype(int)
+    # only use data of communities with more than one species
+    data_ND = data_photo[data_photo.r_spec_equi != 1]
+    data_ND = data_photo[data_photo.r_spec_equi == 2]
     
-print(data_photo.shape)
+###############################################################################
+# data analysis of the dataframe
+print(data_ND.shape)
 plt.figure()
-r_pig = np.arange(min(data_photo.r_pig_start), max(data_photo.r_pig_start)+1)
-plt.hist(data_photo.r_pig_start, bins = r_pig)
+r_pig = np.arange(min(data_ND.r_pig_start), max(data_ND.r_pig_start)+1)
+hist = plt.hist(data_ND.r_pig_start, bins = r_pig-0.5)
+plt.xlabel("pigments richness")
+plt.ylabel("number of communities")
+###############################################################################
 
-pig_range = np.arange(min(data_photo.r_pig_start),
-                      max(data_photo.r_pig_start) +1)
+r_pig = np.arange(min(data_ND.r_pig_start), max(data_ND.r_pig_start)+1)
+pig_range = np.arange(min(data_ND.r_pig_start),
+                      max(data_ND.r_pig_start) +1)
 
 
 ND_cols = ["ND_{}".format(i) for i in range(5)]
-ND = data_photo[ND_cols].values
+ND = data_ND[ND_cols].values
 
 FD_cols = ["FD_{}".format(i) for i in range(5)]
-FD = data_photo[FD_cols].values
-FD[ND == 1] = np.nan
-ND[ND == 1] = np.nan
+FD = data_ND[FD_cols].values
 
-sort_by = data_photo.r_pig_start
+ND = ND+FD-ND*FD
+
+
+sort_by = data_ND.r_pig_start
 cases = list(set(sort_by))
 
-ND_box = [ND[data_photo.r_pig_start == i].flatten() for i in r_pig]
+ND_box = [ND[data_ND.r_pig_start == i].flatten() for i in r_pig]
 ND_box = [N[np.isfinite(N)] for N in ND_box]
-FD_box = [-FD[data_photo.r_pig_start == i].flatten() for i in r_pig]
+FD_box = [-FD[data_ND.r_pig_start == i].flatten() for i in r_pig]
 FD_box = [F[np.isfinite(F)] for F in FD_box]
 
+###############################################################################
+# plotting results
+fig, ax = plt.subplots(2,2,figsize = (7,7), sharey = "row", sharex = "col")
+ax[0,0].boxplot(ND_box, sym = "", positions = r_pig)
+ax[1,0].boxplot(FD_box, sym = "", positions = r_pig)
 
-fig = plt.figure(figsize = (7,7))
-ax = [fig.add_subplot(2,2,1), fig.add_subplot(2,2,3)]
-ax[0].boxplot(ND_box, sym = "", positions = r_pig)
-ax[1].boxplot(FD_box, sym = "", positions = r_pig)
+ax[0,0].set_ylabel("$\mathcal{N}_i$")
+ax[1,0].set_ylabel("$\mathcal{-F}_i$")
+ax[1,0].set_xlabel("initial\npigment richness")
 
-ax[0].set_ylabel("$\mathcal{N}_i$")
-ax[1].set_ylabel("$\mathcal{-F}_i$")
-ax[1].set_xlabel("initial pigment richness")
+###############################################################################
+# plot of sive variation
+x = "size_cv"
 
-hist_range = np.round([np.nanpercentile(ND,[1,99]),
-                       np.nanpercentile(-FD, [1,99])],2)
-ax_coex = fig.add_subplot(1,2,2)
 
-# want to only show percent of the data in the histogram plot
-nbins = 201 # number of bins in histogram
-percents = [0.01, 0.05, 0.25, 0.50, 0.75]
+x_dat = data_ND[x].values
+ranges,dr = np.linspace(*np.percentile(x_dat, [1,99]), 15,
+                        retstep = True)
 
-counts, xedges, yedges = np.histogram2d(ND[np.isfinite(ND)],
-                                           FD[np.isfinite(FD)], nbins,
-                                           range = [[-0.4,0.4],[-0.4,0.4]])
-
-ind = [np.argmin(np.cumsum(np.sort(counts.flatten()))/np.sum(counts)<percent)
-                 for percent in percents]
-bounds = np.sort(counts.flatten())[ind]-1
-
-cmap = plt.get_cmap("viridis", len(ind))
-counts_colored = np.full(counts.shape, np.nan)
-for i,value in enumerate(np.linspace(0,1,len(ind)*2+1)[1::2]):
-    counts_colored[counts>bounds[i]] = value
+ND_cols = ["ND_{}".format(i) for i in range(5)]
+FD_cols = ["FD_{}".format(i) for i in range(5)]
+ND_box = []
+FD_box = []
+EF_equi = []
+EF_mid = []
+for i in range(len(ranges)-1):
+    ind = (x_dat>ranges[i]) & (x_dat<ranges[i+1])
+    ND_box.append(data_ND[ND_cols][ind].values)
+    ND_box[-1] = ND_box[-1][np.isfinite(ND_box[-1])]
+    FD_box.append(data_ND[FD_cols][ind].values)
+    FD_box[-1] = FD_box[-1][np.isfinite(FD_box[-1])]
     
-im = ax_coex.imshow(counts_colored.T, aspect = "auto", cmap = cmap,
-                   extent = np.append(yedges[[0,-1]], xedges[[0,-1]]),
-                   vmin = 0, vmax = 1)
-cbar = fig.colorbar(im, ax = ax_coex, alpha = 1)
-cbar.ax.get_yaxis().set_ticks(np.linspace(0,1,len(ind)*2+1)[1::2])
-cbar.ax.get_yaxis().set_ticklabels(["{}%".format(int(100*(1-percent)))
-            for percent in percents])
+    EF_equi.append(data_ND["EF_equi"][ind].values)
+    EF_mid.append(data_ND["EF_t=240"][ind].values)
     
-# add coex line
-ND_line = np.linspace(*ax_coex.get_xlim(), 101)
-ax_coex.plot(ND_line, ND_line/(1-ND_line), "red")
+ax[0,1].boxplot(ND_box, positions = ranges[1:] - dr/2, sym = "",
+  widths = 0.8*dr)
 
-ax_coex.set_xlim(-0.05,0.2)
-ax_coex.set_ylim(-0.2,0.1)
-ax_coex.set_yticks([-0.2,-0.1,0,0.1])
-ax_coex.axhline(0, color = "k")
-ax_coex.axvline(0, color = "k")
-ax_coex.set_xlabel(r"$\mathcal{N}_i$")
-ax_coex.set_ylabel(r"$\mathcal{-F}_i$")
-ax[0].set_yticks([-0.05, 0, 0.05, 0.1, 0.15])
-ax[1].set_yticks([-0.1, -0.05, 0,  0.05, 0.1])
-ax[0].set_title("A")
-ax[1].set_title("B")
-ax_coex.set_title("C")
-fig.tight_layout()
+ax[1,1].boxplot(FD_box, positions = ranges[1:] - dr/2, sym = "",
+  widths = 0.8*dr)
+ax[1,1].set_xlabel("Initial\nCV(size)")
+
+ax[0,0].set_title("A")
+ax[0,1].set_title("B")
+ax[1,0].set_title("C")
+ax[1,1].set_title("D")
+
+ax[1,0].set_yticks([-0.2,0,0.2])
+ax[0,0].set_yticks([0,0.2,0.4])
+ax[1,0].set_xticks([4,5,10,r_pig[-1]])
+ax[1,0].set_xticklabels([4,5,10,r_pig[-1]])
+
+ticks = [1,2,3,4,5]
+ax[1,1].set_xticks(ticks)
+ax[1,1].set_xticklabels(ticks)
+ax[1,1].set_xlim(ranges[[0,-1]])
 
 fig.savefig("figure_traits_NFD_barplot.pdf")

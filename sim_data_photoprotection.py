@@ -22,7 +22,7 @@ try:
     save = int(sys.argv[1])
     np.random.seed(int(save))
 except IndexError:
-    save = 0
+    save = "_cv_save"
     
 save_string = "data/data_photoprotection{}.csv".format(save)
 ret_length = 5
@@ -74,13 +74,9 @@ def find_EF(present_species, n_com, sky, lux, envi):
     k_BG.shape = -1,1,1
     zm = I_inf.zm
     # generate species
-    phi,l, k_photo, k_abs, alpha, feasible = gen_com(present_species,2, n_com,
-                I_ins = np.array([lux*sun_spectrum[sky]]),k_BG = k_BG, zm = zm)
-    
-    if not feasible:
-        return np.full((7,len(time)+1),np.nan)
-    
-    
+    phi,l, k_photo, k_abs, alpha, size, abs_sp = gen_com(present_species,2, n_com,
+                I_ins = np.array([lux*sun_spectrum[sky]]),k_BG = k_BG, zm = zm,
+                photoprotection = True)    
     
     # for the rare case where less species have been generated than predicted
     n_com = k_abs.shape[-1]
@@ -93,7 +89,6 @@ def find_EF(present_species, n_com, sky, lux, envi):
     equi = rc.multispecies_equi(phi/l, k_photo, k_abs, I_in, k_BG, zm)[0]
     # when species can't survive equi returns nan
     equi[np.isnan(equi)] = 0
-    equi.shape = 1,*equi.shape
     
     # starting density
     start_dens = np.full(phi.shape, 1e5)/r_spec
@@ -115,10 +110,10 @@ def find_EF(present_species, n_com, sky, lux, envi):
     sol_ode = odeint(multi_growth, start_dens.reshape(-1), time)
     sol_ode.shape = len(time), r_spec, n_com
     # append equilibrium to sol
-    dens = np.append(sol_ode, equi, axis = 0)
+    dens = np.append(sol_ode, equi[np.newaxis], axis = 0)
     
     # compute niche and fitness differences
-    ND, FD = rc.NFD_phytoplankton(phi, l, k_photo, k_abs,  equi = equi[0], 
+    ND, FD = rc.NFD_phytoplankton(phi, l, k_photo, k_abs,  equi = equi, 
                       I_in = I_in, k_BG = k_BG, zm = zm)
     ###########################################################################
     # prepare return fucntions
@@ -143,7 +138,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
     # compute relative yield total, complementarity and selection effect
     RYE = 1/len(phi) # relative yield expected
     
-    RYO = equi[0]/N_star_mono # relative yield observed
+    RYO = equi/N_star_mono # relative yield observed
     delta_RY = RYO-RYE # deviation from expected relative yield
     
     return_dict["complementarity"] = (len(phi)*np.mean(delta_RY, axis = 0)
@@ -154,10 +149,12 @@ def find_EF(present_species, n_com, sky, lux, envi):
     return_dict["RYT"] = np.sum(RYO, axis = 0)
     
     # return ND, FD, ry and monoculture density from surviving species
-    sort = np.argsort(equi[0], axis = 0)
+    sort = np.argsort(1-equi, axis = 0)
     n_max = min(ret_length, len(phi))
     ND_sort, FD_sort, N_star_sort, RYO_sort = np.full((4, ret_length,n_com),
                                                           np.nan)
+    phi_sort, size_sort, abs_sort, n_pig_sort = np.full((4,ret_length, n_com),
+                                                        np.nan)
     ND_sort[:n_max] = ND[sort, np.arange(n_com)][:n_max]
     return_dict.update({ND_cols[i]: ND_sort[i] for i in range(len(ND_sort))})
     FD_sort[:n_max] = FD[sort, np.arange(n_com)][:n_max]
@@ -169,6 +166,25 @@ def find_EF(present_species, n_com, sky, lux, envi):
     return_dict.update({N_mono_cols[i]: N_star_sort[i]
                         for i in range(len(N_star_sort))})
     return_dict.update({I_out_cols[i]: I_out[i] for i in range(len(I_out))})
+    size = np.log(size) # report size in log scale
+    size_sort[:n_max] = size[sort, np.arange(n_com)][:n_max]
+    return_dict.update({size_cols[i]: size_sort[i] for i in
+                        range(len(size_sort))})
+    return_dict[size_cols[-1]] = np.std(size, axis = 0)/np.mean(size, axis = 0)
+        
+    phi_sort[:n_max] = phi[sort, np.arange(n_com)][:n_max]
+    return_dict.update({phi_cols[i]: phi_sort[i]
+            for i in range(len(phi_sort))})
+    return_dict[phi_cols[-1]] = np.std(phi, axis = 0)/np.mean(phi, axis = 0)
+    
+    abs_sort[:n_max] = abs_sp[sort, np.arange(n_com)][:n_max]
+    return_dict.update({abs_cols[i]: abs_sort[i]
+            for i in range(len(abs_sort))})
+    return_dict[abs_cols[-1]] = np.std(abs_sp, axis = 0)/np.mean(abs_sp, axis = 0)
+    
+    n_pig_sort[:n_max] = np.sum(alpha>0, axis = 0)[sort, np.arange(n_com)][:n_max]
+    return_dict.update({pig_cols[i]: n_pig_sort[i]
+            for i in range(len(n_pig_sort))})
     return dens, return_dict
  
 iters = 10000
@@ -189,6 +205,14 @@ RYO_cols = ["RY_{}".format(i) for i in range(ret_length)]
 N_mono_cols = ["N_mono_{}".format(i) for i in range(ret_length)]
 ND_cols = ["ND_{}".format(i) for i in range(ret_length)]
 FD_cols = ["FD_{}".format(i) for i in range(ret_length)]
+size_cols = ["size_{}".format(i) for i in range(ret_length)]
+size_cols.append("size_cv")
+phi_cols = ["phi_{}".format(i) for i in range(ret_length)]
+phi_cols.append("phi_cv")
+abs_cols = ["abs_{}".format(i) for i in range(ret_length)]
+abs_cols.append("abs_cv")
+pig_cols = ["n_pig_{}".format(i) for i in range(ret_length)]
+
 
 # light information
 skys = iters*["direct full"]
@@ -229,5 +253,7 @@ while (timer()-start<7200 - average_over_10) and i < iters:
     if i == 10:
         average_over_10 = timer()-start
     print(i, "iteration", timer()-start)
+    if i%100 == 0:
+        data.to_csv(save_string)
     
 data.to_csv(save_string)
