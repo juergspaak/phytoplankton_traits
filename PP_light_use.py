@@ -16,25 +16,29 @@ import phytoplankton_communities.richness_computation as rc
 from phytoplankton_communities.I_in_functions import sun_spectrum
 
 # fix randomness
-np.random.seed(hash(1))
+np.random.seed(hash(2))
 
 I_in = 40*sun_spectrum["direct full"]
 zm = 100
-phi,l,k_spec,alpha,found = gen_com([0,1,14,12], 3, 100,I_ins = I_in)
-
-equi,unfixed = rc.multispecies_equi(phi/l,k_spec, I_in)
+phi,l,k_spec,k_abs,alpha,size, t_abs = gen_com([0,1,14,5], 3, 100,
+                                               I_ins = I_in)
+phi = phi/2.5
+phi[-1]*=1.5
+k_abs = k_spec
+equi,unfixed = rc.multispecies_equi(phi/l,k_spec,k_abs, I_in)
 
 # remove all species where we have not found equilibrium
 equi = equi*(1-unfixed)
 
 index = np.argmax(np.sum(equi>0, axis = 0))
 phi,l,k_spec = phi[:,index:index+1], l[index:index+1], k_spec[...,index:index+1]
+k_abs = k_spec
 equi = equi[:,index:index+1]
 
 equis = []
 I_out = []
 for i in range(1,5):
-    equis.append(rc.multispecies_equi((phi/l)[:i], k_spec[:,:i], I_in)[0])
+    equis.append(rc.multispecies_equi((phi/l)[:i], k_spec[:,:i],k_abs[:,:i], I_in)[0])
     I_out.append(I_in[:,0]*np.exp(-zm*np.sum(equis[i-1]*k_spec[:,:i], axis = 1)))
 I_out = np.array(I_out)
 EF = [sum(equi*1e-7) for equi in equis]
@@ -61,6 +65,7 @@ gs = mpl.gridspec.GridSpec(2, 2, width_ratios=[2, 1])
 
 
 ax = np.ones((2,2), dtype = "object")
+
 
 # initiate first axis and plot solar spectrum
 ax[0,0] = plt.subplot(gs[0])
@@ -92,33 +97,20 @@ save_fig([ax[0,0]])
 ax[0,0].plot(lambs, I_out[0,:,0], linewidth = 4)
 save_fig()
 
-# add species richness plot
-ax[0,1] = plt.subplot(gs[1])
-ax[0,1].set_xticks(np.arange(1,5))
-ax[0,1].set_xlabel("Trait richness")
-ax[0,1].set_xlim([0.5,4.5])
-ax[0,1].set_ylim([0.5,4.5])
-ax[0,1].set_yticks(np.arange(1,5))
-ax[0,1].set_ylabel("Species richness")
-ax[0,1].plot(1,1,'o', color = "white")
-save_fig()
+ax_r = fig.add_subplot(1,3,3)
+ax_r.set_xticks(np.arange(1,5))
+ax_r.set_yticks(np.arange(1,5))
+ax_r.set_xlabel("species richness")
+ax_r.set_ylabel("Trait richness")
+ax_r.set_xlim([0.9,4.1])
+ax_r.set_ylim([0.9,4.1])
+ax_all = [ax[0,0],ax[1,0],ax_r]
 
-# add EF axis
-ax[1,1] = plt.subplot(gs[3])
-ax[0,1].set_xticklabels(4*[""])
-ax[0,1].set_xlabel("")
-ax[1,1].set_xticks(np.arange(1,5))
-ax[1,1].set_xlim([0.5,4.5])
-ax[1,1].set_ylim([3,5])
-ax[1,1].set_yticks([3,4,5])
-ax[1,1].set_xlabel("Trait richness")
-ax[1,1].set_ylabel("Ecosystem function")
-ax[1,1].plot(1,EF[0], 'o', color = "white")
-save_fig(ax.flatten())
 
 for i in range(1,4):
     ax[1,0].plot(lambs, k_spec[:,i], linewidth = 4)
     ax[0,0].plot(lambs, I_out[i,:,0], linewidth = 4)
-    ax[0,1].plot(np.arange(i+1)+1, np.arange(i+1) +1, 'o', color = "white")
-    ax[1,1].plot(np.arange(i+1)+1, EF[:i+1], 'o', color = "white")
-    save_fig(ax.flatten())
+    ax_r.plot(np.arange(i+1)+1, np.arange(i+1) +1, 'o', color = "white")
+    save_fig(ax_all)
+    
+print(equis[-1])

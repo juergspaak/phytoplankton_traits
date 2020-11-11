@@ -80,21 +80,25 @@ colorbar.set_label("Probability", fontsize = fs_label-2)
 
 ax_main = fig.axes[0]
 
-plt.gcf().subplots_adjust(bottom=0.2) #☻ make space for xlabel
+plt.gcf().subplots_adjust(bottom=0.2) # make space for xlabel
+pp_col = np.array([63,63,63])/256 # background color of powerpoint
 
 for i,xlim in enumerate([4.5,3.5,2.5,1.5,0.5]):
-    rect = Rectangle((xlim,0.5),9.5,5.5, color = "black", fill = True)
+    rect = Rectangle((xlim,0.5),9.5,5.5, color = pp_col, fill = True)
     ax_main.add_patch(rect)
     if xlim != 0.5:
         ax_main.set_xticks([1,5,9,xlim-0.5])
-    fig.savefig("PP_slides/PP, trait species diversity_{}.png".format(5-i))
+    fig.savefig("PP_slides/PP, trait species diversity_{}.png".format(5-i),
+                transparent = "True")
     rect.remove()
     
     
-fig.savefig("PP_slides/PP, trait species diversity_6.png")
+fig.savefig("PP_slides/PP, trait species diversity_6.png",
+                transparent = "True")
 ax_main.plot(averages[0], averages[1], 'bo')
 
-fig.savefig("PP_slides/PP, trait species diversity_7.png")
+fig.savefig("PP_slides/PP, trait species diversity_7.png",
+                transparent = "True")
 
 
 
