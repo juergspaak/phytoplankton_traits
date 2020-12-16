@@ -60,6 +60,7 @@ plt.style.use('dark_background')
 mpl.rcParams.update({'font.size': 20, "xtick.labelsize": 14, 
                      "ytick.labelsize": 14})   
 fig = plt.figure(figsize = (11,7))
+
 plt.tight_layout()
 gs = mpl.gridspec.GridSpec(2, 2, width_ratios=[2, 1])
 
@@ -100,8 +101,8 @@ save_fig()
 ax_r = fig.add_subplot(1,3,3)
 ax_r.set_xticks(np.arange(1,5))
 ax_r.set_yticks(np.arange(1,5))
-ax_r.set_xlabel("species richness")
-ax_r.set_ylabel("Trait richness")
+ax_r.set_xlabel("Pigment richness")
+ax_r.set_ylabel("Species richness")
 ax_r.set_xlim([0.9,4.1])
 ax_r.set_ylim([0.9,4.1])
 ax_all = [ax[0,0],ax[1,0],ax_r]

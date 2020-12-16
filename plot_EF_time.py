@@ -105,11 +105,10 @@ t = 240
 try:
     spaak_data
 except NameError:
-    spaak_data = pd.read_csv("data/data_photoprotectionstrong_cor.csv")
-    for col in spaak_data.columns:
-        if col[:2] == "EF":
-            spaak_data[col] *=1e-8
+    from load_data import data_org, max_spec
 
+spaak_data = data_org[data_org.r_spec_start >= max_spec]
+#spaak_data = data_org[data_org.r_spec_equi >= 2]
 def metric(X, fun = np.nanmean):
     return np.array([fun(x) for x in X])
 
@@ -173,7 +172,9 @@ def plot_results(dictionary, ylabel, ax, legend = True):
         
 fig, ax = plt.subplots(2,2,figsize = (12,9), sharex = "col", sharey = "row")
 ax[0,0].set_title("A")
+ax[0,1].set_title("C")
 ax[1,0].set_title("B")
+ax[1,1].set_title("D")
 
 pig_range = range(1,24)
 
@@ -186,11 +187,11 @@ ax[1,0].set_xlabel("initial\npigment richness")
 
 ###############################################################################
 # plot size dependency
-
+print("\n\n", "size", "\n\n")
 x = "size_cv"
 
 x_dat = spaak_data[x].values
-ranges,dr = np.linspace(*np.percentile(x_dat, [1,99]), 15,
+ranges,dr = np.linspace(*np.nanpercentile(x_dat, [1,99]), 27,
                         retstep = True)
 
 
@@ -199,7 +200,7 @@ EF_mid = []
 rich_equi = []
 rich_mid = []
 for i in range(len(ranges)-1):
-    ind = (x_dat>ranges[i]) & (x_dat<ranges[i+1])
+    ind = (x_dat>=ranges[i]) & (x_dat<ranges[i+1])
     
     rich_equi.append(spaak_data["r_spec_equi"][ind].values)
     rich_mid.append(spaak_data["r_spec_t=240"][ind].values)
@@ -214,13 +215,19 @@ rich_equi = np.array([np.nanmean(i) for i in rich_equi])
 
 datas_rich_EF = {}
 datas_rich_EF["Spaak, equi"] = [ranges[1:], rich_equi, c_coe]
-datas_rich_EF["Spaak, t=10"] = [ranges[1:], rich_mid, c_sta]
-plot_results(datas_rich_EF, "",ax[0,1])
-
+#datas_rich_EF["Spaak, t=10"] = [ranges[1:], rich_mid, c_sta]
+plot_results(datas_rich_EF, "",ax[0,1], legend = False)
+ax[0,1].plot(ranges[1:], rich_mid, ".", color = c_sta)
+print("\n\n", "EF_size", "\n\n")
 datas_size_EF = {}
 datas_size_EF["Spaak, equi"] = [ranges[1:], EF_equi, c_coe]
 datas_size_EF["Spaak, t=10"] = [ranges[1:], EF_mid, c_sta]
-plot_results(datas_size_EF, "",ax[1,1])
+plot_results(datas_size_EF, "",ax[1,1], legend = False)
+
+ax[1,1].axhline(1, color = "k", zorder = 0)
+ax[1,0].axhline(1, color = "k", zorder = 0)
+ax[0,1].axhline(1, color = "k", zorder = 0)
+ax[0,0].axhline(1, color = "k", zorder = 0)
 
 ax[1,1].set_xlabel("Initial\nCV(size)")
 fig.tight_layout()

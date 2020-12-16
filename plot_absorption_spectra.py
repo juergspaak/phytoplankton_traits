@@ -118,4 +118,4 @@ ax_ex1.set_xticks([400,500,600,700])
 ax_ex2.set_xticks([400,500,600,700])
 fig.tight_layout()
 
-fig.savefig("Figure_absorption_spectra1.png")
+fig.savefig("Figure_absorption_spectra.pdf")
