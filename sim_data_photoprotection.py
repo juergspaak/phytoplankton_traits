@@ -13,7 +13,7 @@ from scipy.integrate import simps, odeint
 from timeit import default_timer as timer
 
 import phytoplankton_communities.richness_computation as rc
-from phytoplankton_communities.generate_species import gen_com, n_diff_spe,dlam
+from phytoplankton_communities.generate_species import gen_com, n_diff_spe,dlam, mean_size
 from phytoplankton_communities.I_in_functions import sun_spectrum
 import phytoplankton_communities.I_in_functions as I_inf
 
@@ -22,7 +22,7 @@ try:
     save = int(sys.argv[1])
     np.random.seed(int(save))
 except IndexError:
-    save = "_cv_save"
+    save = "_EF"
     
 save_string = "data/data_photoprotection{}.csv".format(save)
 ret_length = 5
@@ -68,8 +68,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
     fitness_t: similar to EF_mean, but average base productivity of the species
         still present at this point
     """
-    return_dict = {"species": n_com*[present_species], "sky":n_com*[sky],
-                   "envi": n_com*[envi], "lux": n_com*[lux]}
+    
     k_BG = I_inf.k_BG[envi]
     k_BG.shape = -1,1,1
     zm = I_inf.zm
@@ -116,6 +115,9 @@ def find_EF(present_species, n_com, sky, lux, envi):
     ND, FD = rc.NFD_phytoplankton(phi, l, k_photo, k_abs,  equi = equi, 
                       I_in = I_in, k_BG = k_BG, zm = zm)
     ###########################################################################
+    return_dict = {"species": n_com*[present_species], "sky":n_com*[sky],
+                   "envi": n_com*[envi], "lux": n_com*[lux]}
+    
     # prepare return fucntions
     tot_abs = zm*np.sum(k_abs*dens[:,np.newaxis], axis = -2)
     tot_photo = zm*np.sum(k_photo*dens[:,np.newaxis], axis = -2)
@@ -153,7 +155,7 @@ def find_EF(present_species, n_com, sky, lux, envi):
     n_max = min(ret_length, len(phi))
     ND_sort, FD_sort, N_star_sort, RYO_sort = np.full((4, ret_length,n_com),
                                                           np.nan)
-    phi_sort, size_sort, abs_sort, n_pig_sort = np.full((4,ret_length, n_com),
+    phi_sort, size_sort, abs_sort, n_pig_sort = np.full((4,max_spec, n_com),
                                                         np.nan)
     ND_sort[:n_max] = ND[sort, np.arange(n_com)][:n_max]
     return_dict.update({ND_cols[i]: ND_sort[i] for i in range(len(ND_sort))})
@@ -166,32 +168,33 @@ def find_EF(present_species, n_com, sky, lux, envi):
     return_dict.update({N_mono_cols[i]: N_star_sort[i]
                         for i in range(len(N_star_sort))})
     return_dict.update({I_out_cols[i]: I_out[i] for i in range(len(I_out))})
+    
+    # individual species traits
     size = np.log(size) # report size in log scale
-    size_sort[:n_max] = size[sort, np.arange(n_com)][:n_max]
+    size_sort[:len(phi)] = size[sort, np.arange(n_com)]
     return_dict.update({size_cols[i]: size_sort[i] for i in
-                        range(len(size_sort))})
-    return_dict[size_cols[-1]] = np.std(size, axis = 0)/np.mean(size, axis = 0)
+                        range(max_spec)})
         
-    phi_sort[:n_max] = phi[sort, np.arange(n_com)][:n_max]
-    return_dict.update({phi_cols[i]: phi_sort[i]
-            for i in range(len(phi_sort))})
-    return_dict[phi_cols[-1]] = np.std(phi, axis = 0)/np.mean(phi, axis = 0)
+    # photosynthetic efficiency
+    phi_sort[:len(phi)] = phi[sort, np.arange(n_com)]
+    return_dict.update({phi_cols[i]: phi_sort[i] for i in
+                        range(max_spec)})
     
-    abs_sort[:n_max] = abs_sp[sort, np.arange(n_com)][:n_max]
-    return_dict.update({abs_cols[i]: abs_sort[i]
-            for i in range(len(abs_sort))})
-    return_dict[abs_cols[-1]] = np.std(abs_sp, axis = 0)/np.mean(abs_sp, axis = 0)
+    abs_sort[:len(phi)] = abs_sp[sort, np.arange(n_com)]
+    return_dict.update({abs_cols[i]: abs_sort[i] for i in
+                        range(max_spec)})
     
-    n_pig_sort[:n_max] = np.sum(alpha>0, axis = 0)[sort, np.arange(n_com)][:n_max]
-    return_dict.update({pig_cols[i]: n_pig_sort[i]
-            for i in range(len(n_pig_sort))})
+    n_pig_sort[:len(phi)] = np.sum(alpha>0, axis = 0)[sort, np.arange(n_com)]
+    return_dict.update({pig_cols[i]: n_pig_sort[i] for i in
+                        range(max_spec)})
+        
     return dens, return_dict
  
 iters = 10000
 
 n_com = 20
 r_specs = np.random.randint(1,15,iters) # richness of species
-
+max_spec = max(r_specs)
 # prepare the dataframe for saving all the data
 EF_cols = ["EF_t={}".format(t) for t in time]+["EF_equi"]
 EF_cols[0] = "EF_start"
@@ -205,13 +208,12 @@ RYO_cols = ["RY_{}".format(i) for i in range(ret_length)]
 N_mono_cols = ["N_mono_{}".format(i) for i in range(ret_length)]
 ND_cols = ["ND_{}".format(i) for i in range(ret_length)]
 FD_cols = ["FD_{}".format(i) for i in range(ret_length)]
-size_cols = ["size_{}".format(i) for i in range(ret_length)]
-size_cols.append("size_cv")
-phi_cols = ["phi_{}".format(i) for i in range(ret_length)]
-phi_cols.append("phi_cv")
-abs_cols = ["abs_{}".format(i) for i in range(ret_length)]
-abs_cols.append("abs_cv")
-pig_cols = ["n_pig_{}".format(i) for i in range(ret_length)]
+
+# individual species traits
+size_cols = ["size_{}".format(i) for i in range(max_spec)]
+phi_cols = ["phi_{}".format(i) for i in range(max_spec)]
+abs_cols = ["abs_{}".format(i) for i in range(max_spec)]
+pig_cols = ["n_pig_{}".format(i) for i in range(max_spec)]
 
 
 # light information
@@ -231,7 +233,7 @@ i = 0
 average_over_10 = 0
 start = timer()
 
-while (timer()-start<7200 - average_over_10) and i < iters:
+while (timer()-start<1800 - average_over_10) and i < iters:
     present_species = np.random.choice(n_diff_spe, r_specs[i], 
                                        replace = True)
     
@@ -255,5 +257,13 @@ while (timer()-start<7200 - average_over_10) and i < iters:
     print(i, "iteration", timer()-start)
     if i%100 == 0:
         data.to_csv(save_string)
+        fun = lambda a,b: (-(a+b)/a)**(1/b)
+        plt.figure()
+        plt.hist(np.log(np.exp(data.size_0)/mean_size),
+                 normed = True, bins = 100)
+        plt.hist(np.log(np.exp(data.size_10)/mean_size),
+                 normed = True, alpha = 0.5, bins = 100)
+        
+        plt.show()
     
 data.to_csv(save_string)
