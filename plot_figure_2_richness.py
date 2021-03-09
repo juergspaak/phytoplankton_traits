@@ -17,12 +17,19 @@ except NameError:
     from load_data import data_org, max_spec
 
 
-
+# plot figures identical to Figure 2, but with slightly different
+# focus on community
 datas = {key: data_org.copy() for key in ["main", "low_r_start", "r_equi_2",
          "r_spec_start_5"]}
+
+# as in figure 2, intial richness at least max_spec
 datas["main"] = datas["main"][datas["main"].r_spec_start >= max_spec]
+
+# initial species richness must be 5 or higher
 datas["r_spec_start_5"] = datas["r_spec_start_5"][
         datas["r_spec_start_5"].r_spec_start == 5]
+
+# equilibrium richness must be 2 or higher
 datas["r_equi_2"] = datas["main"][datas["main"].r_spec_equi >= 2]
 ###############################################################################
 # plot relevant figure
@@ -102,4 +109,4 @@ for name in datas.keys():
     fig.colorbar(cmap, cax=cbar_ax)
 
     
-    fig.savefig("Figure_richness_{}.pdf".format(name))
+    fig.savefig("Figure_2_{}.pdf".format(name))

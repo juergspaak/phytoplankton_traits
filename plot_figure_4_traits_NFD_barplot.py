@@ -5,14 +5,9 @@
 Plot the main Figure of the paper
 See description in manuscript for more information
 """
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 from scipy.stats import linregress
-
-my_cmap = plt.cm.viridis
-my_cmap.set_under('w',1)
 
 # load the dataset
 try:
@@ -29,7 +24,7 @@ datas["Equilibrium"].size_cv = datas["Equilibrium"].size_sur_cv
 datas["Equilibrium"].r_pig_start = datas["Equilibrium"].r_pig_equi
 
 
-ran = {"Equilibrium": 0.5, "Initial": 3.5}
+ran = {"Equilibrium": 0.6, "Initial": 3.5}
 xticks = {"Equilibrium": [0,0.25,0.5],
           "Initial": [0,1,2,3]}
 ###############################################################################
@@ -95,8 +90,6 @@ for name in datas.keys():
     FD_cols = ["FD_{}".format(i) for i in range(5)]
     ND_box = []
     FD_box = []
-    EF_equi = []
-    EF_mid = []
     for i in range(len(ranges)-1):
         ind = (x_dat>ranges[i]) & (x_dat<ranges[i+1])
         ND_box.append(data_ND[ND_cols][ind].values)
@@ -128,9 +121,9 @@ for name in datas.keys():
     ax[0,0].set_yticks([0,0.1,0.2])
     ax[1,0].set_yticks([0, 0.1])
     
-    ticks = np.array([0,1,2,3])
+    ticks = xticks[name]
     ax[1,1].set_xticks(ticks+dr/2)
     ax[1,1].set_xticklabels(ticks)
     ax[1,1].set_xlim(ticks[0]-dr/2, ranges[-1] +dr/2)
     
-    fig.savefig("figure_traits_NFD_barplot_{}.pdf".format(name))
+    fig.savefig("Figure_4_traits_NFD_barplot_{}.pdf".format(name))

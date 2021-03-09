@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
-from itertools import permutations
 
 # load the dataset
 spaak_data_pre = pd.read_csv("data/data_ND_all.csv")

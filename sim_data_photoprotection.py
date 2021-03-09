@@ -7,23 +7,16 @@ generates the data data_EF*.csv that is used in plot_EF.py"""
 
 import numpy as np
 import pandas as pd
-import sys
 
 from scipy.integrate import simps, odeint
 from timeit import default_timer as timer
 
 import phytoplankton_communities.richness_computation as rc
-from phytoplankton_communities.generate_species import gen_com, n_diff_spe,dlam, mean_size
+from phytoplankton_communities.generate_species import gen_com, n_diff_spe,dlam
 from phytoplankton_communities.I_in_functions import sun_spectrum
 import phytoplankton_communities.I_in_functions as I_inf
 
-# getting data from jobscript 
-try:                    
-    save = int(sys.argv[1])
-    np.random.seed(int(save))
-except IndexError:
-    save = "_EF"
-    
+save = "_size_all"    
 save_string = "data/data_photoprotection{}.csv".format(save)
 ret_length = 5
    
@@ -81,7 +74,8 @@ def find_EF(present_species, n_com, sky, lux, envi):
     n_com = k_abs.shape[-1]
     r_spec = len(present_species)
     # incoming light regime
-    I_in = lux*sun_spectrum[sky]
+    I_in = lux
+    sun_spectrum[sky]
     N_star_mono = equi_mono(phi,l, k_photo, k_abs, I_in)
     
     # compute equilibrium densities
@@ -233,7 +227,8 @@ i = 0
 average_over_10 = 0
 start = timer()
 
-while (timer()-start<1800 - average_over_10) and i < iters:
+run_time_in_seconds = 1800
+while (timer()-start<run_time_in_seconds - average_over_10) and i < iters:
     present_species = np.random.choice(n_diff_spe, r_specs[i], 
                                        replace = True)
     
@@ -258,12 +253,6 @@ while (timer()-start<1800 - average_over_10) and i < iters:
     if i%100 == 0:
         data.to_csv(save_string)
         fun = lambda a,b: (-(a+b)/a)**(1/b)
-        plt.figure()
-        plt.hist(np.log(np.exp(data.size_0)/mean_size),
-                 normed = True, bins = 100)
-        plt.hist(np.log(np.exp(data.size_10)/mean_size),
-                 normed = True, alpha = 0.5, bins = 100)
-        
-        plt.show()
+
     
 data.to_csv(save_string)

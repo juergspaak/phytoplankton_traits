@@ -108,7 +108,7 @@ except NameError:
     from load_data import data_org, max_spec
 
 spaak_data = data_org[data_org.r_spec_start >= max_spec]
-#spaak_data = data_org[data_org.r_spec_equi >= 2]
+
 def metric(X, fun = np.nanmean):
     return np.array([fun(x) for x in X])
 
@@ -232,6 +232,6 @@ ax[0,0].axhline(1, color = "k", zorder = 0)
 ax[1,1].set_xlabel("Initial\nCV(size)")
 fig.tight_layout()
 
-fig.savefig("Figure_biodiv_EF.pdf")
+fig.savefig("Figure_3_biodiv_EF.pdf")
 
 
