@@ -9,6 +9,15 @@ J.W. Spaak and Frederik De Laender
 Python code:
 ##########################################################################
 
+An up to date version of the python code can best be fetched on
+https://github.com/juergspaak/phytoplankton_traits
+along with the submodules
+https://github.com/juergspaak/phytoplankton_communities
+and
+https://github.com/juergspaak/NFD_definitions
+The code is optimally aranged with a subfolder "phytoplankton_communities", this folder should contain
+all files documented in Readme_communities.csv
+
 master_program.py
 	Runs the simulation and then plots all the figure
 	Figures may differ slightly from figures shown in the paper due to smaller
@@ -29,6 +38,8 @@ load_data.py
 
 plot_*.py
 	plots the corresponding plot from the manuscript
+	Partial data from figure 3 is not public (data owned by third person).
+	If figure 3 is recreated with plot_figure_3_EF.py the corresponding data will be missing
 
 plots.py
 	Calls all plot_*.py and creates all figure in the main text
@@ -40,9 +51,6 @@ linearregressions.py
 ##########################################################################
 Data
 ##########################################################################
-
-EF*.csv
-	Contains informations about species richness, pigment richness an EF from the corresponding authors
 
 Table_linregressions.csv
 	Results of the linear regressions discussed in the main text

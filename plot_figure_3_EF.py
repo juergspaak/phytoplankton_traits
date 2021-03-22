@@ -18,84 +18,74 @@ plt.rc('axes', labelsize=16)
 plt.rc('xtick', labelsize=12)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=12)
 plt.rc('ytick', labelsize=12)
-plt.rc('axes', titlesize=16) 
+plt.rc('axes', titlesize=18) 
 
 # contains information about biodiversity and pigment richness
 datas_biodiv = {}
 # contains information about EF and pigment richness
 datas_EF = {}
 
+
 # Datas of Estrada
 ###############################################################################
-c_est = "red" # color for all estrada data
-estrada = pd.read_csv("EF,estrada.csv", delimiter = ",",
-                      engine = "python")
-estrada = estrada[estrada.Salinity<23]
+try:
+    c_est = "red" # color for all estrada data
+    estrada = pd.read_csv("EF,estrada.csv", delimiter = ",",
+                          engine = "python")
+    estrada = estrada[estrada.Salinity<23]
+    
+    pigments_est = estrada.keys()[8:-3] # all pigments
+    # only photosynthetic pigments
+    pigments_est = ["Chl c", "Per", "Fuc", "Chl b", "Chl c", "beta-Carotene"]
+    est_pig_richness = np.sum(estrada[pigments_est]>0, axis = 1)
+    
+    datas_biodiv["Estrada"] = [estrada['SP Pigments detected by HPLC'].values,
+                 estrada['SM Phyto-plankton taxa'].values, c_est]
+except FileNotFoundError:
+    print("Estrada dataset not found, will not be ploted")
 
-pigments_est = estrada.keys()[8:-3] # all pigments
-# only photosynthetic pigments
-pigments_est = ["Chl c", "Per", "Fuc", "Chl b", "Chl c", "beta-Carotene"]
-est_pig_richness = np.sum(estrada[pigments_est]>0, axis = 1)
-
-datas_biodiv["Estrada"] = [estrada['SP Pigments detected by HPLC'].values,
-             estrada['SM Phyto-plankton taxa'].values, c_est]
-#datas_biodiv["Estrada2"] = [est_pig_richness.values,
-#             estrada['SM Phyto-plankton taxa'].values, "darkred"]
 
 ###############################################################################
-c_lab = "blue"
-# Datas of Striebel
-striebel = pd.read_csv("EF,striebel,lab.csv",delimiter = ",")
-datas_biodiv["Striebel, exp"] = [striebel["Pigment richness"].values, 
-             np.exp(striebel["ln taxon richness"].values), c_lab]
-datas_EF["Striebel, exp"] = [striebel["Pigment richness"].values, 
-             np.exp(striebel["ln wet mass"].values), c_lab]
+try:
+    c_lab = "blue"
+    # Datas of Striebel
+    striebel = pd.read_csv("EF,striebel,lab.csv",delimiter = ",")
+    datas_biodiv["Striebel, exp"] = [striebel["Pigment richness"].values, 
+                 np.exp(striebel["ln taxon richness"].values), c_lab]
+    datas_EF["Striebel, exp"] = [striebel["Pigment richness"].values, 
+                 np.exp(striebel["ln wet mass"].values), c_lab]
+    
+    # datas of striebel field
+    c_fie = "cyan"
+    striebel_field_pigs = pd.read_csv("EF,striebel,field,pigments.csv",
+                                      delimiter= ",")
+    striebel_field_spec = pd.read_csv("EF,striebel,field,species.csv",
+                                      delimiter= ",")                    
+    r_pig = np.nansum(striebel_field_pigs.iloc[:,1:-2]>0,axis = 1)
+    datas_biodiv["Striebel, field"] = [r_pig                
+                    ,np.nansum(striebel_field_spec.iloc[:,1:-1]>0,axis = 1), c_fie]
+    datas_EF["Striebel, field"] = [r_pig, 
+               1e-9*np.nansum(striebel_field_spec.iloc[:,1:-1],axis = 1), c_fie]
 
-# datas of striebel field
-c_fie = "cyan"
-striebel_field_pigs = pd.read_csv("EF,striebel,field,pigments.csv",
-                                  delimiter= ",")
-striebel_field_spec = pd.read_csv("EF,striebel,field,species.csv",
-                                  delimiter= ",")                    
-r_pig = np.nansum(striebel_field_pigs.iloc[:,1:-2]>0,axis = 1)
-datas_biodiv["Striebel, field"] = [r_pig                
-                ,np.nansum(striebel_field_spec.iloc[:,1:-1]>0,axis = 1), c_fie]
-datas_EF["Striebel, field"] = [r_pig, 
-           1e-9*np.nansum(striebel_field_spec.iloc[:,1:-1],axis = 1), c_fie]
-
-#############
-# field data striebel
-striebel_field_pigs["Chl c"] = np.sum(striebel_field_pigs[["Chlorophyll c1",
-                    "Chlorophyll c2", "Chlorophyll c3"]], axis = 1)
-pigments_striebel = ["Chl c", "Chlorophyll b", "Total Chlorophyll a", 
-                     "Fucoxanthin", "Peridinin", "b-carotene", ]
-r_pig = np.nansum(striebel_field_pigs[pigments_striebel]>0,axis = 1)
-#datas_biodiv["Striebel, field2"] = [r_pig                
-#                ,np.nansum(striebel_field_spec.iloc[:,1:-1]>0,axis = 1), "grey"]
-#datas_EF["Striebel, field2"] = [r_pig, 
-#           1e-9*np.nansum(striebel_field_spec.iloc[:,1:-1],axis = 1), "grey"]
-         
+except FileNotFoundError:
+    print("Striebel lab dataset not found, will not be ploted")
+       
 ###############################################################################
-c_fietz = "orange"
-# Datas of Striebel
-fietz = pd.read_csv("EF,fietz.csv",delimiter = ",", engine = "python")
+try:
+    c_fietz = "orange"
+    # Datas of Striebel
+    fietz = pd.read_csv("EF,fietz.csv",delimiter = ",", engine = "python")
+    
+    r_pig_fietz = np.sum(fietz.iloc[:,3:28]>0, axis = 1).values
+    datas_biodiv["Fietz"] = [r_pig_fietz, np.nansum(fietz.iloc[:,28:].values>0
+                     , axis = 1),c_fietz]
+    datas_EF["Fietz"] = [r_pig_fietz, np.nansum(fietz.iloc[:,28:].values, axis = 1)
+                 ,c_fietz]
+    pigments_fietz = ["Peridinin", "Fuco", "b-Car", "Chl a", "Chl b", "Chl c", 
+                      "Ph a", "Ph b"]
+except FileNotFoundError:
+    print("Fietz dataset not found, will not be ploted")
 
-r_pig_fietz = np.sum(fietz.iloc[:,3:28]>0, axis = 1).values
-datas_biodiv["Fietz"] = [r_pig_fietz, np.nansum(fietz.iloc[:,28:].values>0
-                 , axis = 1),c_fietz]
-datas_EF["Fietz"] = [r_pig_fietz, np.nansum(fietz.iloc[:,28:].values, axis = 1)
-             ,c_fietz]
-pigments_fietz = ["Peridinin", "Fuco", "b-Car", "Chl a", "Chl b", "Chl c", 
-                  "Ph a", "Ph b"]
-"""
-r_pig_fietz = np.sum(fietz[pigments_fietz]>0, axis = 1).values
-datas_EF["Fietz2"] = [r_pig_fietz
-        , np.nansum(fietz.iloc[:,28:].values, axis = 1)
-             ,"darkorange"]
-
-datas_biodiv["Fietz2"] = [r_pig_fietz, np.nansum(fietz.iloc[:,28:].values>0
-                 , axis = 1),"darkorange"]
-"""
 ###############################################################################
 # datas of Spaak
 c_sta = "lime"
